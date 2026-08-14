@@ -3108,6 +3108,10 @@ const FORESTRY_INTERVAL = 2 * 60 * 60 * 1000;
 const FORESTRY_GROUP_SIZE = 4;
 const WOOD_PER_GROUP = 20;
 
+const FORESTRY_GROUND_DURABILITY_MAX = 100;
+const FORESTRY_GROUND_DURABILITY_LOSS = 10;
+const FORESTRY_GROUND_RECOVERY_MS = 24 * 60 * 60 * 1000;
+
 
 /* =====================================================
    ОТКРЫТЬ СОЗДАНИЕ
@@ -3759,18 +3763,52 @@ function updateCellInfo(x, y) {
                 foresters / FORESTRY_GROUP_SIZE
             ) * WOOD_PER_GROUP;
 
-        text.textContent =
-            "ЛЕСНИЧЕСТВО · " +
-            "👷 Рабочих: " +
-            foresters +
-            " · 🌲 Добыча: +" +
-            production +
-            " / 2 ч.";
+        updateForestryGroundRecovery(
+            ground,
+            Date.now()
+        );
 
-        coords.textContent =
-            "X: " + x +
-            " · Y: " + y +
-            " · 🪵 ЛЕСНИЧЕСТВО";
+        if (ground.durability <= 0) {
+
+            const recoveryLeft =
+                getForestryGroundRecoveryLeft(
+                    ground,
+                    Date.now()
+                );
+
+            text.textContent =
+                "ЛЕСНИЧЕСТВО · " +
+                "🔨 Прочность: 0% · " +
+                "👷 Рабочих: " +
+                foresters +
+                " · Добыча приостановлена";
+
+            coords.textContent =
+                "X: " + x +
+                " · Y: " + y +
+                " · ♻️ Восстановление: " +
+                formatForestryGroundRecovery(
+                    recoveryLeft
+                );
+
+        } else {
+
+            text.textContent =
+                "ЛЕСНИЧЕСТВО · " +
+                "🔨 Прочность: " +
+                ground.durability +
+                "% · " +
+                "👷 Рабочих: " +
+                foresters +
+                " · 🌲 Добыча: +" +
+                production +
+                " / 2 ч.";
+
+            coords.textContent =
+                "X: " + x +
+                " · Y: " + y +
+                " · 🪵 ЛЕСНИЧЕСТВО";
+        }
 
     } else if (huntingGround) {
 
@@ -4052,7 +4090,9 @@ function buildForestry() {
         x: x,
         y: y,
         builtAt: new Date().toISOString(),
-        foresters: 0
+        foresters: 0,
+        durability: FORESTRY_GROUND_DURABILITY_MAX,
+        recoveryStartedAt: null
     });
 
     saveHouseData(house);
@@ -4134,12 +4174,41 @@ function updateForestry() {
             groups *
             WOOD_PER_GROUP;
 
-        const statusText =
-            ground.foresters < FORESTRY_MINIMUM
-                ? "Недостаточно рабочих. Требуется минимум 4."
-                : "Активная добыча: +" +
-                  production +
-                  " 🌲 каждые 2 часа.";
+        updateForestryGroundRecovery(
+            ground,
+            Date.now()
+        );
+
+        let statusText;
+
+        if (ground.durability <= 0) {
+
+            statusText =
+                "Прочность: 0% · Добыча приостановлена · " +
+                "Восстановление: " +
+                formatForestryGroundRecovery(
+                    getForestryGroundRecoveryLeft(
+                        ground,
+                        Date.now()
+                    )
+                );
+
+        } else if (ground.foresters < FORESTRY_MINIMUM) {
+
+            statusText =
+                "Прочность: " +
+                ground.durability +
+                "% · Недостаточно рабочих. Требуется минимум 4.";
+
+        } else {
+
+            statusText =
+                "Прочность: " +
+                ground.durability +
+                "% · Активная добыча: +" +
+                production +
+                " 🌲 каждые 2 часа.";
+        }
 
         item.innerHTML =
             '<div class="huntingGroundItemTop">' +
@@ -4559,6 +4628,29 @@ function prepareHouse(house) {
                 Math.floor(ground.foresters)
             )
         );
+
+        if (
+            typeof ground.durability !== "number" ||
+            !isFinite(ground.durability)
+        ) {
+            ground.durability =
+                FORESTRY_GROUND_DURABILITY_MAX;
+        }
+
+        ground.durability = Math.max(
+            0,
+            Math.min(
+                FORESTRY_GROUND_DURABILITY_MAX,
+                Math.floor(ground.durability)
+            )
+        );
+
+        if (
+            ground.recoveryStartedAt !== null &&
+            typeof ground.recoveryStartedAt !== "number"
+        ) {
+            ground.recoveryStartedAt = null;
+        }
     });
 
 
@@ -4814,6 +4906,79 @@ function processHunting(house) {
 
 
 /* =====================================================
+   ПРОЧНОСТЬ ЛЕСНИЧЕСТВА
+===================================================== */
+
+function updateForestryGroundRecovery(ground, now) {
+
+    if (!ground) return;
+
+    if (ground.durability > 0) {
+        ground.recoveryStartedAt = null;
+        return;
+    }
+
+    if (ground.recoveryStartedAt === null) {
+        ground.recoveryStartedAt = now;
+        return;
+    }
+
+    if (
+        now - ground.recoveryStartedAt >=
+        FORESTRY_GROUND_RECOVERY_MS
+    ) {
+        ground.durability =
+            FORESTRY_GROUND_DURABILITY_MAX;
+
+        ground.recoveryStartedAt = null;
+    }
+}
+
+
+function getForestryGroundRecoveryLeft(ground, now) {
+
+    if (
+        !ground ||
+        ground.durability > 0 ||
+        ground.recoveryStartedAt === null
+    ) {
+        return 0;
+    }
+
+    return Math.max(
+        0,
+        FORESTRY_GROUND_RECOVERY_MS -
+        (now - ground.recoveryStartedAt)
+    );
+}
+
+
+function formatForestryGroundRecovery(ms) {
+
+    if (ms <= 0) {
+        return "восстановлено";
+    }
+
+    const totalSeconds =
+        Math.ceil(ms / 1000);
+
+    const hours =
+        Math.floor(totalSeconds / 3600);
+
+    const minutes =
+        Math.floor(
+            (totalSeconds % 3600) / 60
+        );
+
+    if (hours > 0) {
+        return hours + " ч. " + minutes + " мин.";
+    }
+
+    return minutes + " мин.";
+}
+
+
+/* =====================================================
    ДОБЫЧА ЛЕСА
 ===================================================== */
 
@@ -4843,6 +5008,15 @@ function processForestry(house) {
 
     house.forestryGrounds.forEach(function(ground) {
 
+        updateForestryGroundRecovery(
+            ground,
+            now
+        );
+
+        if (ground.durability <= 0) {
+            return;
+        }
+
         if (ground.foresters < FORESTRY_MINIMUM) {
             return;
         }
@@ -4854,9 +5028,39 @@ function processForestry(house) {
             ) *
             WOOD_PER_GROUP;
 
+        if (productionPerCycle <= 0) {
+            return;
+        }
+
+        let activeCycles =
+            Math.min(
+                completedCycles,
+                Math.ceil(
+                    ground.durability /
+                    FORESTRY_GROUND_DURABILITY_LOSS
+                )
+            );
+
+        if (activeCycles <= 0) {
+            return;
+        }
+
         totalProduction +=
             productionPerCycle *
-            completedCycles;
+            activeCycles;
+
+        ground.durability = Math.max(
+            0,
+            ground.durability -
+            (
+                activeCycles *
+                FORESTRY_GROUND_DURABILITY_LOSS
+            )
+        );
+
+        if (ground.durability <= 0) {
+            ground.recoveryStartedAt = now;
+        }
     });
 
     house.resources.wood += totalProduction;

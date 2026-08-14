@@ -2151,7 +2151,13 @@ textarea.input {
                 <div class="resourceCategoryContent">
 
 
-                    <div class="resourceItem" onclick="openMeatProduction()">
+                    <div
+                        class="resourceItem"
+                        onclick="showHuntingGrounds()"
+                        role="button"
+                        tabindex="0"
+                        onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showHuntingGrounds(); }"
+                    >
 
                         <div class="resourceItemIcon">
                             🍖
@@ -2169,7 +2175,7 @@ textarea.input {
                             </div>
 
                             <div class="resourceItemDescription">
-                                Для добычи требуется охотничье угодье на клетке 🌲 Лес
+                                Постройте охотничье угодье на клетке Лес, чтобы добывать мясо.
                             </div>
 
                         </div>
@@ -2185,7 +2191,7 @@ textarea.input {
 
                         <button
                             class="resourceInfoButton"
-                            onclick="showResourceInfo('meat')"
+                            onclick="event.stopPropagation(); showResourceInfo('meat')"
                         >
                             ⓘ
                         </button>
@@ -2267,7 +2273,7 @@ textarea.input {
                             </span>
 
                             <strong>
-                                🌲 ЛЕС
+                                🏹 ОХОТНИЧЬЕ УГОДЬЕ
                             </strong>
 
                         </div>
@@ -2326,11 +2332,9 @@ textarea.input {
                             </div>
 
                             <div>
-                                Для начала охоты необходимо
-                                владеть клеткой леса.
-                                Расширьте свои владения,
-                                чтобы получить доступ
-                                к этому производству.
+                                Для добычи мяса необходимо
+                                построить охотничье угодье
+                                на клетке Лес.
                             </div>
 
                         </div>
@@ -2551,14 +2555,41 @@ textarea.input {
      КАРТА МИРА
 ===================================================== -->
 
-<div id="meatProductionOverlay" style="display:none;position:fixed;inset:0;z-index:700;background:rgba(0,0,0,.76);align-items:center;justify-content:center;padding:20px;">
-    <div style="width:100%;max-width:360px;padding:22px 18px 18px;border:1px solid rgba(174,141,82,.65);background:#110e0a;box-shadow:0 12px 45px rgba(0,0,0,.65);">
-        <div style="color:#d3c2a3;font-family:'Cinzel',Georgia,serif;font-size:14px;letter-spacing:2px;text-align:center;">ОХОТНИЧЬИ УГОДЬЯ</div>
+<!-- =====================================================
+     ОХОТНИЧЬИ УГОДЬЯ
+===================================================== -->
+
+<div
+    id="huntingGroundsOverlay"
+    onclick="closeHuntingGroundsOutside(event)"
+    style="display:none;position:fixed;inset:0;z-index:650;padding:20px;background:rgba(0,0,0,.76);align-items:center;justify-content:center;"
+>
+    <div
+        style="width:100%;max-width:360px;max-height:78vh;overflow-y:auto;padding:23px 18px 18px;border:1px solid rgba(174,141,82,.65);background:#110e0a;box-shadow:0 12px 45px rgba(0,0,0,.65);"
+    >
+        <div style="color:#d3c2a3;font-family:'Cinzel',Georgia,serif;font-size:14px;letter-spacing:2px;text-align:center;">
+            ОХОТНИЧЬИ УГОДЬЯ
+        </div>
+
         <div style="width:130px;height:1px;margin:12px auto 15px;background:rgba(157,126,72,.55);"></div>
-        <div id="meatProductionList" style="color:#897c6b;font-size:12px;line-height:1.45;text-align:center;"></div>
-        <button onclick="closeMeatProduction()" style="width:100%;min-height:40px;margin-top:15px;border:1px solid rgba(117,94,56,.55);background:rgba(36,29,21,.8);color:#b7a17a;font-family:'Cinzel',Georgia,serif;font-size:9px;letter-spacing:2px;cursor:pointer;">ЗАКРЫТЬ</button>
+
+        <div
+            id="huntingGroundsHint"
+            style="color:#8f806c;font-size:12px;line-height:1.4;text-align:center;"
+        ></div>
+
+        <div id="huntingGroundsList" style="margin-top:15px;"></div>
+
+        <button
+            type="button"
+            onclick="closeHuntingGrounds()"
+            style="width:100%;min-height:40px;margin-top:15px;border:1px solid rgba(117,94,56,.55);background:rgba(36,29,21,.8);color:#b7a17a;font-family:'Cinzel',Georgia,serif;font-size:9px;letter-spacing:2px;cursor:pointer;"
+        >
+            ЗАКРЫТЬ
+        </button>
     </div>
 </div>
+
 
 <main id="mapScreen">
 
@@ -2603,6 +2634,15 @@ textarea.input {
 
     <button class="mapFoundButton" id="mapFoundButton" onclick="foundCity()" disabled>
         ОСНОВАТЬ ГОРОД
+    </button>
+
+    <button
+        class="mapFoundButton"
+        id="mapBuildHuntingButton"
+        onclick="buildHuntingGround()"
+        style="display:none;"
+    >
+        ПОСТРОИТЬ ОХОТНИЧЬЕ УГОДЬЕ
     </button>
 
 </main>
@@ -2727,6 +2767,26 @@ function hasForestForHouse(house) {
 
     return house.territory.cells.some(function(cell) {
         return terrainAt(cell.x, cell.y) === "forest";
+    });
+}
+
+
+function hasHuntingGroundForHouse(house) {
+    return !!(
+        house &&
+        Array.isArray(house.huntingGrounds) &&
+        house.huntingGrounds.length > 0
+    );
+}
+
+
+function hasHuntingGroundAt(house, x, y) {
+    if (!house || !Array.isArray(house.huntingGrounds)) {
+        return false;
+    }
+
+    return house.huntingGrounds.some(function(ground) {
+        return ground.x === x && ground.y === y;
     });
 }
 
@@ -2976,6 +3036,14 @@ function openWorldMap() {
 
 function setMapMode(mode) {
     mapState.mode = mode;
+
+    const buildButton =
+        document.getElementById("mapBuildHuntingButton");
+
+    if (buildButton) {
+        buildButton.style.display = "none";
+    }
+
     const instruction = document.getElementById("mapInstruction");
     const foundButton = document.getElementById("mapFoundButton");
 
@@ -3344,10 +3412,46 @@ function updateMap() {
 
         document.getElementById("mapFoundButton").disabled =
             !foundationMode || isWaterTerrain(type);
+
+        const buildButton =
+            document.getElementById("mapBuildHuntingButton");
+
+        if (buildButton) {
+
+            const house = getHouse();
+
+            const canBuild =
+                !foundationMode &&
+                type === "forest" &&
+                isTerritoryCell(
+                    house,
+                    mapState.selectedX,
+                    mapState.selectedY
+                ) &&
+                !hasHuntingGroundAt(
+                    house,
+                    mapState.selectedX,
+                    mapState.selectedY
+                );
+
+            buildButton.style.display =
+                canBuild ? "block" : "none";
+
+            buildButton.disabled = !canBuild;
+        }
+
     } else {
+
         document.getElementById("mapSelectionInfo").textContent =
             mapState.mode === "view" ? "Нажмите на клетку карты" : "Выберите клетку на карте";
         document.getElementById("mapFoundButton").disabled = true;
+
+        const buildButton =
+            document.getElementById("mapBuildHuntingButton");
+
+        if (buildButton) {
+            buildButton.style.display = "none";
+        }
     }
 }
 
@@ -3383,6 +3487,104 @@ function selectMapCell(x, y) {
 
     updateMap();
 }
+
+function buildHuntingGround() {
+
+    if (
+        mapState.selectedX === null ||
+        mapState.selectedY === null
+    ) {
+        return;
+    }
+
+    let house = getHouse();
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const x = mapState.selectedX;
+    const y = mapState.selectedY;
+
+    if (terrainAt(x, y) !== "forest") return;
+    if (!isTerritoryCell(house, x, y)) return;
+    if (hasHuntingGroundAt(house, x, y)) return;
+
+    house.huntingGrounds.push({
+        x: x,
+        y: y,
+        builtAt: new Date().toISOString()
+    });
+
+    saveHouseData(house);
+    updateMap();
+}
+
+
+function showHuntingGrounds() {
+
+    let house = getHouse();
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const list =
+        document.getElementById("huntingGroundsList");
+
+    const hint =
+        document.getElementById("huntingGroundsHint");
+
+    list.innerHTML = "";
+
+    if (house.huntingGrounds.length === 0) {
+
+        hint.textContent =
+            "Постройте охотничье угодье на клетке Лес, чтобы добывать мясо.";
+
+        list.innerHTML =
+            '<div style="padding:14px 10px;border:1px solid rgba(112,77,61,.42);background:rgba(64,37,28,.15);color:#89766a;font-size:12px;line-height:1.45;text-align:center;">Охотничьих угодий пока нет.</div>';
+
+    } else {
+
+        hint.textContent =
+            "Ваши охотничьи угодья.";
+
+        house.huntingGrounds.forEach(function(ground, index) {
+
+            const item =
+                document.createElement("div");
+
+            item.style.cssText =
+                "margin-bottom:8px;padding:11px 12px;border:1px solid rgba(117,94,56,.36);background:rgba(28,23,18,.68);";
+
+            item.innerHTML =
+                '<div style="color:#c8baa2;font-family:\'Cinzel\',Georgia,serif;font-size:9px;letter-spacing:1px;">ОХОТНИЧЬЕ УГОДЬЕ ' +
+                (index + 1) +
+                '</div>' +
+                '<div style="margin-top:4px;color:#8b7c68;font-size:11px;">🌲 Лес · X: ' +
+                ground.x +
+                ' · Y: ' +
+                ground.y +
+                '</div>';
+
+            list.appendChild(item);
+        });
+    }
+
+    document.getElementById("huntingGroundsOverlay").style.display = "flex";
+}
+
+
+function closeHuntingGrounds() {
+    document.getElementById("huntingGroundsOverlay").style.display = "none";
+}
+
+
+function closeHuntingGroundsOutside(event) {
+    if (event.target.id === "huntingGroundsOverlay") {
+        closeHuntingGrounds();
+    }
+}
+
 
 function foundCity() {
     if (mapState.selectedX === null) return;
@@ -3620,6 +3822,13 @@ function prepareHouse(house) {
     }
 
 
+    if (!Array.isArray(house.huntingGrounds)) {
+
+        house.huntingGrounds = [];
+
+    }
+
+
     // Миграция старых сохранений: если город уже был основан
     // до появления стартовой территории 3 × 3, автоматически
     // выдаём ему одну клетку во все стороны.
@@ -3664,7 +3873,7 @@ function prepareHouse(house) {
 
 function processHunting(house) {
 
-    if (!hasForestForHouse(house)) {
+    if (!hasHuntingGroundForHouse(house)) {
 
         house.hunting.lastProduction = Date.now();
 
@@ -3778,7 +3987,7 @@ function toggleResourceCategory(id) {
 function addHunter() {
 
     let house = getHouse();
-    if (!house || !hasForestForHouse(house)) return;
+    if (!house || !hasHuntingGroundForHouse(house)) return;
 
     if (!house) return;
 
@@ -4055,7 +4264,7 @@ function updateHunting() {
     house = prepareHouse(house);
 
 
-    if (!hasForestForHouse(house)) {
+    if (!hasHuntingGroundForHouse(house)) {
 
         document
             .getElementById("forestLocked")
@@ -4388,36 +4597,6 @@ function showResourceInfo(type) {
 /* =====================================================
    ЗАКРЫТЬ СПРАВКУ
 ===================================================== */
-
-function openMeatProduction() {
-    const house = getHouse();
-    const list = document.getElementById("meatProductionList");
-
-    if (!house) return;
-
-    const forest = house.territory && Array.isArray(house.territory.cells)
-        ? house.territory.cells.filter(function(cell) {
-            return terrainAt(cell.x, cell.y) === "forest";
-        })
-        : [];
-
-    if (!forest.length) {
-        list.innerHTML = "Охотничьих угодий пока нет.<br><br>Чтобы добывать мясо, необходимо построить охотничье угодье на клетке Лес.";
-    } else {
-        list.innerHTML = forest.map(function(cell, index) {
-            return '<div style="padding:10px;margin-bottom:7px;border:1px solid rgba(117,94,56,.36);background:rgba(28,23,18,.68);text-align:left;">' +
-                '<div style="color:#c8baa2;font-family:Cinzel,Georgia,serif;font-size:9px;letter-spacing:1px;">ОХОТНИЧЬЕ УГОДЬЕ ' + (index + 1) + '</div>' +
-                '<div style="margin-top:4px;color:#8b7c68;font-size:11px;">🌲 Лес · X: ' + cell.x + ' · Y: ' + cell.y + '</div>' +
-                '</div>';
-        }).join("");
-    }
-
-    document.getElementById("meatProductionOverlay").style.display = "flex";
-}
-
-function closeMeatProduction() {
-    document.getElementById("meatProductionOverlay").style.display = "none";
-}
 
 function closeHelp() {
 

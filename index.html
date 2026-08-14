@@ -2190,6 +2190,29 @@ textarea.input {
         </div>
 
 
+        <button
+            class="village"
+            id="villageCard"
+            type="button"
+            onclick="openWorldMap()"
+        >
+
+            <div class="villageTitle" id="villageTitle">
+                ПЕРВАЯ ДЕРЕВНЯ
+            </div>
+
+            <div class="villageText" id="villageText">
+                Здесь начнётся строительство
+                вашего будущего государства.
+            </div>
+
+            <div class="villageMapHint" id="villageMapHint">
+                ОТКРЫТЬ КАРТУ МИРА · ›
+            </div>
+
+        </button>
+
+
         <!-- =================================================
              НАСЕЛЕНИЕ
         ================================================== -->
@@ -2633,30 +2656,7 @@ textarea.input {
              ДЕРЕВНЯ
         ================================================== -->
 
-        <button
-            class="village"
-            id="villageCard"
-            type="button"
-            onclick="openWorldMap()"
-        >
-
-            <div class="villageTitle" id="villageTitle">
-                ПЕРВАЯ ДЕРЕВНЯ
-            </div>
-
-            <div class="villageText" id="villageText">
-                Здесь начнётся строительство
-                вашего будущего государства.
-            </div>
-
-            <div class="villageMapHint" id="villageMapHint">
-                ОТКРЫТЬ КАРТУ МИРА · ›
-            </div>
-
-        </button>
-
-
-        <!-- =================================================
+<!-- =================================================
              ЛЕТОПИСЬ
         ================================================== -->
 
@@ -5972,7 +5972,7 @@ function openRealm() {
         document.getElementById("villageMapHint");
 
     if (house.city) {
-        villageTitle.textContent = "ЕДИНСТВЕННЫЙ ГОРОД - ОСНОВАН";
+        villageTitle.textContent = "СТОЛИЦА • КАРТА";
         villageText.textContent =
             "Ваш единственный город основан. Вокруг него закреплены первые земли Дома.";
         villageMapHint.textContent =

@@ -5670,20 +5670,7 @@ window.addEventListener("error", function(event) {
 });
 
 
-/* =====================================================
-   ЗАПУСК
-===================================================== */
-
-if (
-    user &&
-    Number(user.id) ===
-    ALLOWED_USER_ID
-) {
-
-    checkExistingHouse();
-
-}
-
+/* Запуск выполняется финальным стабильным загрузчиком. */
 </script>
 
 
@@ -6235,6 +6222,1176 @@ function removeHunter() {
 }
 
 </script>
+
+<script>
+/* =====================================================
+   THE REALMS — СТАБИЛЬНЫЙ СЛОЙ СОХРАНЕНИЯ И UI
+   Этот слой ставится последним, чтобы исключить рассинхрон
+   между картой, производством и сохранением.
+===================================================== */
+
+let huntingGroundsExpanded = false;
+
+const REALMS_SAVE_KEY = "theRealmsHouse";
+const REALMS_BACKUP_KEY = "theRealmsHouseBackup";
+const REALMS_DB_NAME = "TheRealmsDemoDB";
+const REALMS_DB_STORE = "house";
+
+function openRealmsDB() {
+
+    return new Promise(function(resolve, reject) {
+
+        if (!("indexedDB" in window)) {
+            resolve(null);
+            return;
+        }
+
+        const request =
+            indexedDB.open(
+                REALMS_DB_NAME,
+                1
+            );
+
+        request.onupgradeneeded = function(event) {
+
+            const db = event.target.result;
+
+            if (!db.objectStoreNames.contains(REALMS_DB_STORE)) {
+                db.createObjectStore(
+                    REALMS_DB_STORE
+                );
+            }
+
+        };
+
+        request.onsuccess = function() {
+            resolve(request.result);
+        };
+
+        request.onerror = function() {
+            reject(request.error);
+        };
+
+    });
+
+}
+
+
+function saveHouseToIndexedDB(house) {
+
+    if (!house)
+        return;
+
+    openRealmsDB()
+        .then(function(db) {
+
+            if (!db)
+                return;
+
+            const tx =
+                db.transaction(
+                    REALMS_DB_STORE,
+                    "readwrite"
+                );
+
+            tx.objectStore(
+                REALMS_DB_STORE
+            ).put(
+                house,
+                "current"
+            );
+
+        })
+        .catch(function(error) {
+            console.warn(
+                "IndexedDB save:",
+                error
+            );
+        });
+
+}
+
+
+function loadHouseFromIndexedDB() {
+
+    return new Promise(function(resolve) {
+
+        openRealmsDB()
+            .then(function(db) {
+
+                if (!db) {
+                    resolve(null);
+                    return;
+                }
+
+                const tx =
+                    db.transaction(
+                        REALMS_DB_STORE,
+                        "readonly"
+                    );
+
+                const request =
+                    tx.objectStore(
+                        REALMS_DB_STORE
+                    ).get("current");
+
+                request.onsuccess = function() {
+                    resolve(
+                        request.result || null
+                    );
+                };
+
+                request.onerror = function() {
+                    resolve(null);
+                };
+
+            })
+            .catch(function() {
+                resolve(null);
+            });
+
+    });
+
+}
+
+
+/*
+   СИНХРОННОЕ чтение остаётся через localStorage,
+   чтобы все игровые функции могли работать без async/await.
+*/
+function saveHouseData(house) {
+
+    if (!house)
+        return false;
+
+    try {
+
+        const data =
+            JSON.stringify(house);
+
+        localStorage.setItem(
+            REALMS_SAVE_KEY,
+            data
+        );
+
+        localStorage.setItem(
+            REALMS_BACKUP_KEY,
+            data
+        );
+
+        saveHouseToIndexedDB(house);
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Ошибка сохранения:",
+            error
+        );
+
+        /*
+           Даже если localStorage недоступен,
+           IndexedDB всё ещё может работать.
+        */
+        saveHouseToIndexedDB(house);
+
+        return true;
+
+    }
+
+}
+
+
+function getHouse() {
+
+    try {
+
+        let data =
+            localStorage.getItem(
+                REALMS_SAVE_KEY
+            );
+
+        if (!data) {
+
+            data =
+                localStorage.getItem(
+                    REALMS_BACKUP_KEY
+                );
+
+        }
+
+        if (data) {
+
+            const house =
+                JSON.parse(data);
+
+            return house;
+
+        }
+
+    } catch (error) {
+
+        console.warn(
+            "Основное сохранение повреждено:",
+            error
+        );
+
+    }
+
+    return null;
+
+}
+
+
+/*
+   После перезагрузки сначала проверяем localStorage.
+   Если его нет — восстанавливаем сохранение из IndexedDB.
+*/
+async function stableCheckExistingHouse() {
+
+    let house =
+        getHouse();
+
+    if (!house) {
+
+        house =
+            await loadHouseFromIndexedDB();
+
+        if (house) {
+            saveHouseData(house);
+        }
+
+    }
+
+    if (!house) {
+
+        document.getElementById(
+            "introScreen"
+        ).style.display = "block";
+
+        document.getElementById(
+            "creationScreen"
+        ).style.display = "none";
+
+        document.getElementById(
+            "realmScreen"
+        ).style.display = "none";
+
+        document.getElementById(
+            "mapScreen"
+        ).style.display = "none";
+
+        return;
+
+    }
+
+    house =
+        prepareHouse(house);
+
+    /*
+       Нормализуем сохранение, но НЕ создаём
+       новый Дом и НЕ сбрасываем существующий.
+    */
+    saveHouseData(house);
+
+    if (
+        house.city &&
+        typeof house.city.x === "number" &&
+        typeof house.city.y === "number"
+    ) {
+
+        openRealm();
+
+    } else {
+
+        openMapForFoundation();
+
+    }
+
+}
+
+
+/* =====================================================
+   КАРТА — СТАБИЛЬНЫЙ РЕНДЕР
+===================================================== */
+
+function stableOpenWorldMap() {
+
+    const house =
+        getHouse();
+
+    if (!house || !house.city) {
+
+        openMapForFoundation();
+
+        return;
+
+    }
+
+    const mapScreen =
+        document.getElementById(
+            "mapScreen"
+        );
+
+    document.getElementById(
+        "introScreen"
+    ).style.display = "none";
+
+    document.getElementById(
+        "creationScreen"
+    ).style.display = "none";
+
+    document.getElementById(
+        "realmScreen"
+    ).style.display = "none";
+
+    mapScreen.style.display = "block";
+
+    /*
+       ВАЖНО:
+       сначала устанавливаем координаты города,
+       затем режим карты, затем рисуем.
+    */
+    mapState.x =
+        Number(house.city.x);
+
+    mapState.y =
+        Number(house.city.y);
+
+    mapState.selectedX = null;
+    mapState.selectedY = null;
+
+    setMapMode("view");
+
+    updateMap();
+
+    /*
+       Двойной рендер нужен мобильному WebView:
+       сначала DOM становится видимым,
+       затем canvas получает реальные размеры.
+    */
+    requestAnimationFrame(function() {
+
+        renderMapCells();
+
+        requestAnimationFrame(function() {
+
+            renderMapCells();
+
+            updateCellInfo(
+                null,
+                null
+            );
+
+        });
+
+    });
+
+    window.scrollTo(
+        0,
+        0
+    );
+
+}
+
+
+function stableReturnToRealm() {
+
+    const house =
+        getHouse();
+
+    document.getElementById(
+        "mapScreen"
+    ).style.display = "none";
+
+    document.getElementById(
+        "creationScreen"
+    ).style.display = "none";
+
+    if (house) {
+
+        document.getElementById(
+            "realmScreen"
+        ).style.display = "block";
+
+        openRealm();
+
+    } else {
+
+        document.getElementById(
+            "realmScreen"
+        ).style.display = "none";
+
+        document.getElementById(
+            "creationScreen"
+        ).style.display = "block";
+
+    }
+
+    window.scrollTo(
+        0,
+        0
+    );
+
+}
+
+
+/*
+   Основание города:
+   сначала сохраняем город,
+   затем сразу рендерим карту,
+   затем открываем главный экран.
+*/
+function stableFoundCity() {
+
+    if (
+        mapState.selectedX === null ||
+        mapState.selectedY === null
+    )
+        return;
+
+    const x =
+        Number(mapState.selectedX);
+
+    const y =
+        Number(mapState.selectedY);
+
+    const terrain =
+        terrainAt(
+            x,
+            y
+        );
+
+    if (isWaterTerrain(terrain))
+        return;
+
+    let house =
+        getHouse();
+
+    if (!house)
+        return;
+
+    house =
+        prepareHouse(house);
+
+    house.city = {
+
+        x: x,
+
+        y: y,
+
+        foundedAt:
+            new Date().toISOString()
+
+    };
+
+    house.mapPosition = {
+
+        x: x,
+
+        y: y
+
+    };
+
+    house.territory = {
+
+        cells:
+            getInitialTerritoryCells(
+                x,
+                y
+            ),
+
+        forest:
+            hasNearbyForest(
+                x,
+                y
+            )
+
+    };
+
+    /*
+       Ключевой момент:
+       сохраняем ПОЛНОСТЬЮ готовый объект,
+       включая city, territory, production.
+    */
+    saveHouseData(house);
+
+    /*
+       Обновляем состояние карты до перехода.
+    */
+    mapState.x = x;
+    mapState.y = y;
+    mapState.selectedX = x;
+    mapState.selectedY = y;
+
+    setMapMode("view");
+
+    updateMap();
+
+    /*
+       Теперь показываем главный экран.
+    */
+    openRealm();
+
+}
+
+
+/* =====================================================
+   ПРОИЗВОДСТВО — СТАБИЛЬНЫЙ ВЫПАДАЮЩИЙ СПИСОК
+===================================================== */
+
+function stableToggleProduction() {
+
+    const section =
+        document.getElementById(
+            "productionSection"
+        );
+
+    if (!section)
+        return;
+
+    section.classList.toggle(
+        "open"
+    );
+
+}
+
+
+/*
+   Охота раскрывается независимо от основного
+   блока Производство.
+*/
+function stableToggleHuntingGrounds() {
+
+    huntingGroundsExpanded =
+        !huntingGroundsExpanded;
+
+    const list =
+        document.getElementById(
+            "huntingGroundList"
+        );
+
+    const header =
+        document.getElementById(
+            "huntingGroundHeader"
+        );
+
+    if (list) {
+
+        list.classList.toggle(
+            "open",
+            huntingGroundsExpanded
+        );
+
+    }
+
+    if (header) {
+
+        header.classList.toggle(
+            "open",
+            huntingGroundsExpanded
+        );
+
+    }
+
+}
+
+
+function stableUpdateProductionPanel() {
+
+    const menu =
+        document.querySelector(
+            "#productionSection .productionMenu"
+        );
+
+    if (!menu)
+        return;
+
+    const house =
+        getHouse();
+
+    if (!house)
+        return;
+
+    const prepared =
+        prepareHouse(house);
+
+    const grounds =
+        getHuntingGrounds(
+            prepared
+        );
+
+    let output = "";
+
+    output +=
+        '<div class="huntingSubHeader ' +
+        (huntingGroundsExpanded ? "open" : "") +
+        '" id="huntingGroundHeader" ' +
+        'onclick="toggleHuntingGrounds()">' +
+
+            '<div class="huntingSubLeft">' +
+                '<span>🏹</span>' +
+                '<span>ОХОТА</span>' +
+                (
+                    grounds.length
+                    ? '<span class="productionCount">' +
+                        grounds.length +
+                        ' угод.</span>'
+                    : ""
+                ) +
+            '</div>' +
+
+            '<span class="huntingSubArrow">▼</span>' +
+
+        '</div>';
+
+
+    /*
+       Подсказка всегда находится под заголовком Охота.
+    */
+    output +=
+        '<div class="productionHint">' +
+
+            '<strong>КАК НАЧАТЬ ОХОТУ</strong>' +
+
+            '<div>1. Найдите принадлежащую Дому клетку леса на карте.</div>' +
+
+            '<div>2. Основите на ней охотничье угодье.</div>' +
+
+            '<div>3. Переведите свободных жителей в рабочих.</div>' +
+
+            '<div>4. Назначьте рабочих охотниками здесь.</div>' +
+
+        '</div>';
+
+
+    output +=
+        '<div class="huntingGroundList ' +
+        (huntingGroundsExpanded ? "open" : "") +
+        '" id="huntingGroundList">';
+
+
+    if (!grounds.length) {
+
+        output +=
+            '<div class="productionCard">' +
+
+                '<div class="productionStatus">' +
+
+                    'На карте пока нет охотничьих угодий.' +
+
+                '</div>' +
+
+            '</div>';
+
+    }
+
+
+    grounds.forEach(
+        function(
+            ground,
+            index
+        ) {
+
+            const def =
+                getProductionDefinition(
+                    ground.type
+                );
+
+            if (!def)
+                return;
+
+            const workers =
+                Number(
+                    ground.workers
+                ) || 0;
+
+            const groups =
+                Math.floor(
+                    workers /
+                    def.groupSize
+                );
+
+            const production =
+                groups *
+                def.outputPerGroup;
+
+
+            const availableWorkers =
+                Math.max(
+                    0,
+                    prepared.population.workers -
+                    getTotalAssignedWorkers(
+                        prepared
+                    )
+                );
+
+
+            output +=
+
+                '<div class="productionCard">' +
+
+                    '<div class="productionTop">' +
+
+                        '<div class="productionIcon">' +
+                            def.icon +
+                        '</div>' +
+
+                        '<div>' +
+
+                            '<div class="productionTitle">' +
+                                def.name +
+                                ' ' +
+                                (index + 1) +
+                            '</div>' +
+
+                            '<div class="productionSubtitle">' +
+                                'Лес · X: ' +
+                                ground.x +
+                                ' · Y: ' +
+                                ground.y +
+                            '</div>' +
+
+                        '</div>' +
+
+                    '</div>' +
+
+
+                    '<div class="productionInfo">' +
+
+                        '<div class="productionLine">' +
+                            '<span>Охотники</span>' +
+                            '<strong>' +
+                                workers +
+                                ' / ' +
+                                def.capacity +
+                            '</strong>' +
+                        '</div>' +
+
+
+                        '<div class="productionLine">' +
+                            '<span>Производство</span>' +
+                            '<strong>+' +
+                                production +
+                                ' 🍖 / 2 ч.</strong>' +
+                        '</div>' +
+
+
+                        '<div class="productionLine">' +
+                            '<span>Состояние</span>' +
+                            '<strong>' +
+                                (
+                                    workers >=
+                                    def.minWorkers
+                                        ? "РАБОТАЕТ"
+                                        : "ТРЕБУЕТСЯ " +
+                                          def.minWorkers
+                                ) +
+                            '</strong>' +
+                        '</div>' +
+
+
+                        '<div class="hunterControl">' +
+
+                            '<button ' +
+                                'type="button" ' +
+                                'class="hunterButton" ' +
+                                'onclick="event.stopPropagation(); removeWorkerFromProduction(' +
+                                    ground.x +
+                                    ',' +
+                                    ground.y +
+                                ')" ' +
+                                (
+                                    workers <= 0
+                                    ? "disabled"
+                                    : ""
+                                ) +
+                            '>' +
+                                '−' +
+                            '</button>' +
+
+
+                            '<div class="hunterCount">' +
+
+                                '<div class="hunterCountNumber">' +
+                                    workers +
+                                '</div>' +
+
+                                '<div class="hunterCountText">' +
+                                    'ОХОТНИКОВ' +
+                                '</div>' +
+
+                            '</div>' +
+
+
+                            '<button ' +
+                                'type="button" ' +
+                                'class="hunterButton" ' +
+                                'onclick="event.stopPropagation(); addWorkerToProduction(' +
+                                    ground.x +
+                                    ',' +
+                                    ground.y +
+                                ')" ' +
+                                (
+                                    availableWorkers <= 0 ||
+                                    workers >= def.capacity
+                                    ? "disabled"
+                                    : ""
+                                ) +
+                            '>' +
+                                '+' +
+                            '</button>' +
+
+                        '</div>' +
+
+                    '</div>' +
+
+                '</div>';
+
+        }
+    );
+
+
+    output +=
+        '</div>';
+
+
+    /*
+       Обновляем DOM только после формирования
+       всего списка. Состояние раскрытия сохраняется.
+    */
+    menu.innerHTML =
+        output;
+
+}
+
+
+/* =====================================================
+   СОХРАНЯЕМ ПРОИЗВОДСТВО И UI
+===================================================== */
+
+function stableAddWorkerToProduction(x, y) {
+
+    const house =
+        getHouse();
+
+    if (!house)
+        return;
+
+    const object =
+        getProductionAt(
+            house,
+            Number(x),
+            Number(y)
+        );
+
+    if (!object)
+        return;
+
+    const def =
+        getProductionDefinition(
+            object.type
+        );
+
+    if (!def)
+        return;
+
+    const workers =
+        Number(
+            object.workers
+        ) || 0;
+
+    const assigned =
+        getTotalAssignedWorkers(
+            house
+        );
+
+    const available =
+        Number(
+            house.population.workers
+        ) -
+        assigned;
+
+    if (
+        available <= 0 ||
+        workers >= def.capacity
+    )
+        return;
+
+    processAllProduction(
+        house
+    );
+
+    object.workers =
+        workers + 1;
+
+    object.lastProduction =
+        Date.now();
+
+    house.population.hunters =
+        getTotalAssignedWorkersByType(
+            house,
+            "hunting_ground"
+        );
+
+    saveHouseData(
+        house
+    );
+
+    updatePopulation();
+    updateHunting();
+    stableUpdateProductionPanel();
+
+}
+
+
+function stableRemoveWorkerFromProduction(x, y) {
+
+    const house =
+        getHouse();
+
+    if (!house)
+        return;
+
+    const object =
+        getProductionAt(
+            house,
+            Number(x),
+            Number(y)
+        );
+
+    if (!object)
+        return;
+
+    const workers =
+        Number(
+            object.workers
+        ) || 0;
+
+    if (
+        workers <= 0
+    )
+        return;
+
+    processAllProduction(
+        house
+    );
+
+    object.workers =
+        workers - 1;
+
+    object.lastProduction =
+        Date.now();
+
+    house.population.hunters =
+        getTotalAssignedWorkersByType(
+            house,
+            "hunting_ground"
+        );
+
+    saveHouseData(
+        house
+    );
+
+    updatePopulation();
+    updateHunting();
+    stableUpdateProductionPanel();
+
+}
+
+
+/* =====================================================
+   ПЕРЕОПРЕДЕЛЯЕМ ГЛОБАЛЬНЫЕ ОБРАБОТЧИКИ
+===================================================== */
+
+window.saveHouseData =
+    saveHouseData;
+
+window.getHouse =
+    getHouse;
+
+window.openWorldMap =
+    stableOpenWorldMap;
+
+window.returnToRealm =
+    stableReturnToRealm;
+
+window.foundCity =
+    stableFoundCity;
+
+window.toggleProduction =
+    stableToggleProduction;
+
+window.toggleHuntingGrounds =
+    stableToggleHuntingGrounds;
+
+window.updateProductionPanel =
+    stableUpdateProductionPanel;
+
+window.addWorkerToProduction =
+    stableAddWorkerToProduction;
+
+window.removeWorkerFromProduction =
+    stableRemoveWorkerFromProduction;
+
+
+/* =====================================================
+   СТИЛИ ДЛЯ ПОДСКАЗКИ
+===================================================== */
+
+(function ensureProductionStyles() {
+
+    if (
+        document.getElementById(
+            "stableProductionStyles"
+        )
+    )
+        return;
+
+    const style =
+        document.createElement(
+            "style"
+        );
+
+    style.id =
+        "stableProductionStyles";
+
+    style.textContent = `
+
+        .huntingGroundList {
+            display: none;
+        }
+
+        .huntingGroundList.open {
+            display: block;
+        }
+
+        .huntingSubHeader {
+            transition:
+                background .2s ease,
+                border-color .2s ease;
+        }
+
+        .huntingSubHeader.open {
+            border-color:
+                rgba(174,141,82,.72);
+        }
+
+        .huntingSubArrow {
+            transition:
+                transform .2s ease;
+        }
+
+        .huntingSubHeader.open
+        .huntingSubArrow {
+            transform:
+                rotate(180deg);
+        }
+
+        .productionHint {
+            margin:
+                0 10px 10px;
+            padding:
+                10px 11px;
+            border:
+                1px solid
+                rgba(117,94,56,.28);
+            background:
+                rgba(15,12,9,.45);
+            color:
+                #7d7365;
+            font-size:
+                10px;
+            line-height:
+                1.45;
+        }
+
+        .productionHint strong {
+            display:
+                block;
+            margin-bottom:
+                6px;
+            color:
+                #a48b61;
+            font-family:
+                "Cinzel",
+                Georgia,
+                serif;
+            font-size:
+                8px;
+            letter-spacing:
+                1.3px;
+        }
+
+        .productionHint div {
+            margin-top:
+                2px;
+        }
+
+        .productionCount {
+            color:
+                #756a5c;
+            font-size:
+                9px;
+            margin-left:
+                4px;
+        }
+
+        .hunterButton:disabled {
+            opacity:
+                .28;
+            cursor:
+                default;
+        }
+
+    `;
+
+    document.head.appendChild(
+        style
+    );
+
+})();
+
+
+/* =====================================================
+   ФИНАЛЬНЫЙ ЗАПУСК
+===================================================== */
+
+(async function bootTheRealms() {
+
+    if (
+        !user ||
+        Number(user.id) !==
+        ALLOWED_USER_ID
+    ) {
+
+        document.getElementById(
+            "locked"
+        ).style.display = "flex";
+
+        return;
+
+    }
+
+    /*
+       Даём браузеру закончить создание DOM,
+       затем восстанавливаем сохранение.
+    */
+    await new Promise(
+        function(resolve) {
+            setTimeout(
+                resolve,
+                0
+            );
+        }
+    );
+
+    await stableCheckExistingHouse();
+
+})();
+</script>
+
 </body>
 
 </html>

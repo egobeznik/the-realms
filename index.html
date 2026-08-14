@@ -1,105 +1,474 @@
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
     <title>The Realms</title>
 
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        html,
         body {
             margin: 0;
+            width: 100%;
+            min-height: 100%;
+            background: #0c0b09;
+        }
+
+        body {
+            color: #ded4c2;
+            font-family: Georgia, "Times New Roman", serif;
+            overflow: hidden;
+        }
+
+        /* Основной экран */
+
+        .screen {
+            position: relative;
+            width: 100%;
             min-height: 100vh;
-            background: #11100e;
-            color: #e8dfcf;
-            font-family: Georgia, serif;
+            min-height: 100dvh;
+
             display: flex;
             align-items: center;
             justify-content: center;
+
+            padding: 40px 24px;
+
+            background:
+                radial-gradient(
+                    circle at 50% 42%,
+                    rgba(112, 91, 59, 0.10),
+                    transparent 42%
+                ),
+                #0c0b09;
+        }
+
+        /* Декоративная рамка */
+
+        .frame {
+            position: absolute;
+            inset: 18px;
+
+            border: 1px solid rgba(150, 128, 91, 0.32);
+
+            pointer-events: none;
+        }
+
+        .frame::before,
+        .frame::after {
+            content: "";
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            border-color: rgba(174, 147, 98, 0.65);
+        }
+
+        .frame::before {
+            top: -1px;
+            left: -1px;
+            border-top: 2px solid;
+            border-left: 2px solid;
+        }
+
+        .frame::after {
+            right: -1px;
+            bottom: -1px;
+            border-right: 2px solid;
+            border-bottom: 2px solid;
+        }
+
+        /* Центральный контент */
+
+        .content {
+            position: relative;
+            z-index: 2;
+
+            width: 100%;
+            max-width: 440px;
+
+            text-align: center;
+
+            animation: appear 1.2s ease forwards;
+        }
+
+        .crest {
+            width: 72px;
+            height: 72px;
+
+            margin: 0 auto 28px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            border: 1px solid rgba(174, 147, 98, 0.55);
+
+            color: #b59a68;
+            font-size: 38px;
+
+            position: relative;
+        }
+
+        .crest::before,
+        .crest::after {
+            content: "";
+            position: absolute;
+
+            width: 8px;
+            height: 8px;
+
+            border: 1px solid rgba(174, 147, 98, 0.45);
+        }
+
+        .crest::before {
+            top: -5px;
+            left: -5px;
+        }
+
+        .crest::after {
+            right: -5px;
+            bottom: -5px;
+        }
+
+        .title {
+            margin: 0;
+
+            color: #e5dbc9;
+
+            font-size: clamp(32px, 10vw, 44px);
+            font-weight: normal;
+
+            letter-spacing: 8px;
+            line-height: 1.1;
+
+            text-transform: uppercase;
+        }
+
+        .title-line {
+            width: 150px;
+            height: 1px;
+
+            margin: 22px auto 18px;
+
+            background:
+                linear-gradient(
+                    to right,
+                    transparent,
+                    rgba(174, 147, 98, 0.7),
+                    transparent
+                );
+        }
+
+        .era {
+            color: #a99370;
+
+            font-size: 11px;
+            letter-spacing: 4px;
+
+            margin-bottom: 42px;
+        }
+
+        .story {
+            margin: 0 auto;
+
+            max-width: 340px;
+
+            color: #9a9183;
+
+            font-size: 15px;
+            line-height: 1.9;
+        }
+
+        .story strong {
+            color: #c9bda8;
+            font-weight: normal;
+        }
+
+        /* Разделитель */
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            width: 100%;
+            max-width: 260px;
+
+            margin: 38px auto 30px;
+
+            color: #756a58;
+        }
+
+        .divider-line {
+            flex: 1;
+            height: 1px;
+
+            background: rgba(117, 106, 88, 0.35);
+        }
+
+        .divider-symbol {
+            font-size: 10px;
+        }
+
+        /* Кнопка */
+
+        .start-button {
+            width: 100%;
+            max-width: 260px;
+
+            padding: 17px 20px;
+
+            border: 1px solid rgba(174, 147, 98, 0.65);
+
+            background: rgba(35, 31, 25, 0.65);
+
+            color: #d7c7aa;
+
+            font-family: Georgia, "Times New Roman", serif;
+            font-size: 12px;
+            letter-spacing: 3px;
+
+            cursor: pointer;
+
+            transition:
+                background 0.25s ease,
+                border-color 0.25s ease,
+                transform 0.15s ease;
+        }
+
+        .start-button:active {
+            transform: scale(0.98);
+            background: rgba(70, 58, 42, 0.55);
+        }
+
+        .year {
+            margin-top: 34px;
+
+            color: #575148;
+
+            font-size: 9px;
+            letter-spacing: 3px;
+        }
+
+        /* Нижняя подпись */
+
+        .copyright {
+            position: absolute;
+
+            bottom: 28px;
+            left: 0;
+            right: 0;
+
+            text-align: center;
+
+            color: #403c36;
+
+            font-size: 8px;
+            letter-spacing: 2px;
+        }
+
+        /* Анимация */
+
+        @keyframes appear {
+            from {
+                opacity: 0;
+                transform: translateY(12px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Экран блокировки */
+
+        #locked {
+            display: none;
+
+            position: fixed;
+            inset: 0;
+
+            align-items: center;
+            justify-content: center;
+
+            padding: 30px;
+
+            background: #0c0b09;
+
             text-align: center;
         }
 
-        .game {
-            padding: 30px;
+        .locked-content {
+            max-width: 320px;
         }
 
-        .symbol {
-            font-size: 60px;
+        .locked-icon {
+            font-size: 42px;
+            margin-bottom: 25px;
         }
 
-        h1 {
-            font-size: 36px;
-            letter-spacing: 6px;
+        .locked-title {
+            color: #c9bda8;
+            font-size: 18px;
+            letter-spacing: 3px;
+            margin-bottom: 15px;
         }
 
-        p {
-            color: #9d927e;
-        }
-
-        .id {
-            margin-top: 30px;
-            padding: 15px;
-            border: 1px solid #756b59;
-            color: #c9b99d;
+        .locked-text {
+            color: #777064;
+            font-size: 13px;
+            line-height: 1.7;
         }
     </style>
 </head>
 
 <body>
 
-<div class="game">
+    <!-- =========================================
+         ГЛАВНЫЙ ЭКРАН
+    ========================================== -->
 
-    <div class="symbol">♜</div>
+    <main class="screen" id="mainScreen">
 
-    <h1>THE REALMS</h1>
+        <div class="frame"></div>
 
-    <p>ЛЕТОПИСЬ НАЧИНАЕТСЯ ЗДЕСЬ</p>
+        <section class="content">
 
-    <div class="id" id="user">
-        Проверка Telegram...
-    </div>
+            <div class="crest">
+                ♜
+            </div>
 
-</div>
+            <h1 class="title">
+                THE REALMS
+            </h1>
 
-<script>
+            <div class="title-line"></div>
 
-    const tg = window.Telegram.WebApp;
+            <div class="era">
+                П Е Р В А Я &nbsp; Э Р А
+            </div>
 
-    tg.ready();
-    tg.expand();
+            <p class="story">
+                Земли ещё не разделены
+                между великими Домами.
+                <br><br>
 
-    const user = tg.initDataUnsafe.user;
+                Здесь ещё нет королей.
+                Нет границ.
+                Нет древних династий.
+                <br><br>
 
-const ALLOWED_USER_ID = 8608712290;
+                Есть только <strong>земля</strong>
+                и тот, кто осмелится
+                назвать её своей.
+            </p>
 
-if (!user) {
+            <div class="divider">
+                <div class="divider-line"></div>
+                <div class="divider-symbol">◆</div>
+                <div class="divider-line"></div>
+            </div>
 
-    document.getElementById("user").innerHTML =
-        "Игра должна быть открыта через Telegram.";
+            <button
+                class="start-button"
+                onclick="startChronicle()"
+            >
+                НАЧАТЬ ЛЕТОПИСЬ
+            </button>
 
-} else if (Number(user.id) !== ALLOWED_USER_ID) {
+            <div class="year">
+                ГОД I
+            </div>
 
-    document.getElementById("user").innerHTML =
-        "🔒<br><br>" +
-        "<strong>ЗАКРЫТОЕ ТЕСТИРОВАНИЕ</strong>" +
-        "<br><br>" +
-        "Доступ к игре пока ограничен.";
+        </section>
 
-} else {
+        <div class="copyright">
+            THE REALMS
+        </div>
 
-    document.getElementById("user").innerHTML =
-        "Добро пожаловать, " +
-        user.first_name +
-        "<br><br>" +
-        "✓ Доступ разрешён" +
-        "<br><br>" +
-        "Telegram ID: " +
-        user.id;
+    </main>
 
-}
 
-</script>
+    <!-- =========================================
+         ЭКРАН ЗАКРЫТОГО ДОСТУПА
+    ========================================== -->
+
+    <section id="locked">
+
+        <div class="locked-content">
+
+            <div class="locked-icon">
+                ♜
+            </div>
+
+            <div class="locked-title">
+                ЗАКРЫТОЕ ТЕСТИРОВАНИЕ
+            </div>
+
+            <div class="locked-text">
+                Эта летопись ещё не открыта
+                для других правителей.
+            </div>
+
+        </div>
+
+    </section>
+
+
+    <script>
+
+        /* ========================================
+           TELEGRAM MINI APP
+        ======================================== */
+
+        const tg = window.Telegram.WebApp;
+
+        tg.ready();
+        tg.expand();
+
+
+        /* ========================================
+           ДОСТУП
+        ======================================== */
+
+        const user = tg.initDataUnsafe.user;
+
+        const ALLOWED_USER_ID = 8608712290;
+
+
+        if (!user || Number(user.id) !== ALLOWED_USER_ID) {
+
+            document.getElementById("mainScreen").style.display = "none";
+
+            document.getElementById("locked").style.display = "flex";
+
+        }
+
+
+        /* ========================================
+           НАЧАЛО ЛЕТОПИСИ
+        ======================================== */
+
+        function startChronicle() {
+
+            alert(
+                "Здесь начнётся создание твоего Дома."
+            );
+
+        }
+
+    </script>
 
 </body>
 </html>
+```

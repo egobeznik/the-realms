@@ -5,25 +5,17 @@
 
 <meta charset="UTF-8">
 
-<meta
-    name="viewport"
-    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
->
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
 <title>The Realms</title>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<link
-    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap"
-    rel="stylesheet"
->
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap"
+      rel="stylesheet">
 
 <style>
-
-/* =====================================================
-   ОСНОВА
-===================================================== */
 
 * {
     box-sizing: border-box;
@@ -32,20 +24,13 @@
 
 html,
 body {
-
     margin: 0;
     padding: 0;
-
     width: 100%;
     min-height: 100%;
-
     background: #090806;
     color: #d8ccb8;
-
-    font-family:
-        "Cormorant Garamond",
-        Georgia,
-        serif;
+    font-family: "Cormorant Garamond", Georgia, serif;
 }
 
 body {
@@ -58,62 +43,40 @@ body {
 ===================================================== */
 
 #introScreen {
-
     position: relative;
-
     width: 100vw;
     height: 100vh;
     height: 100dvh;
-
     overflow: hidden;
-
     background: #000;
 }
 
-
 #background {
-
     position: absolute;
-
     width: 100%;
     height: 100%;
-
     object-fit: cover;
     object-position: center center;
-
     display: block;
-
     user-select: none;
     -webkit-user-drag: none;
 }
 
-
 #startButton {
-
     position: absolute;
-
     left: 50%;
     top: 87%;
-
     transform: translate(-50%, -50%);
-
     width: 52%;
     height: 8%;
-
     border: none;
     outline: none;
-
     background: transparent;
-
     cursor: pointer;
 }
 
-
 #startButton:active {
-
-    transform:
-        translate(-50%, -50%)
-        scale(0.97);
+    transform: translate(-50%, -50%) scale(0.97);
 }
 
 
@@ -122,443 +85,229 @@ body {
 ===================================================== */
 
 #creationScreen {
-
     display: none;
-
     width: 100%;
-
     min-height: 100vh;
     min-height: 100dvh;
-
-    padding:
-        22px
-        18px
-        30px;
-
+    padding: 22px 18px 30px;
     overflow-y: auto;
 
     background-image:
-
         linear-gradient(
             rgba(8, 7, 5, 0.28),
             rgba(8, 7, 5, 0.28)
         ),
-
         url("creation-bg.jpg");
 
     background-size: cover;
-
-    background-position:
-        center top;
-
+    background-position: center top;
     background-repeat: no-repeat;
 }
 
-
 .creationFrame {
-
     position: relative;
-
-    min-height:
-        calc(100vh - 52px);
-
-    min-height:
-        calc(100dvh - 52px);
-
-    padding:
-        24px
-        18px
-        28px;
-
-    border:
-        1px solid
-        rgba(157, 126, 72, 0.55);
-
-    background:
-        rgba(7, 6, 5, 0.20);
+    min-height: calc(100vh - 52px);
+    min-height: calc(100dvh - 52px);
+    padding: 24px 18px 28px;
+    border: 1px solid rgba(157, 126, 72, 0.55);
+    background: rgba(7, 6, 5, 0.20);
 }
 
-
 .creationFrame::before {
-
     content: "";
-
     position: absolute;
-
     inset: 6px;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.25);
-
+    border: 1px solid rgba(117, 94, 56, 0.25);
     pointer-events: none;
 }
 
-
 .creationHeader {
-
     position: relative;
-
     z-index: 2;
-
     text-align: center;
-
     margin-bottom: 20px;
 }
 
-
 .smallCrown {
-
     color: #aa8b55;
-
     font-size: 20px;
-
     margin-bottom: 8px;
 }
 
-
 .creationTitle {
-
     margin: 0;
-
     color: #ddd1bd;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 20px;
-
     font-weight: 500;
-
     letter-spacing: 3px;
-
     text-transform: uppercase;
 }
 
-
 .creationSubtitle {
-
     margin-top: 7px;
-
     color: #958773;
-
     font-size: 14px;
-
     line-height: 1.35;
 }
 
-
 .goldDivider {
-
     display: flex;
-
     align-items: center;
-
     gap: 8px;
-
-    margin:
-        13px auto 0;
-
+    margin: 13px auto 0;
     width: 170px;
 }
 
-
 .goldDivider span {
-
     flex: 1;
-
     height: 1px;
-
-    background:
-        rgba(157, 126, 72, 0.55);
+    background: rgba(157, 126, 72, 0.55);
 }
 
-
 .goldDiamond {
-
     color: #ad8b52;
-
     font-size: 7px;
 }
 
-
 .form {
-
     position: relative;
-
     z-index: 2;
 }
 
-
 .field {
-
     margin-bottom: 14px;
 }
 
-
 .fieldLabel {
-
     display: block;
-
     margin-bottom: 6px;
-
     color: #a89167;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 10px;
-
     font-weight: 500;
-
     letter-spacing: 2px;
-
     text-transform: uppercase;
 }
 
-
 .fieldHint {
-
     display: block;
-
     margin-top: 5px;
-
     color: #665d51;
-
     font-size: 11px;
 }
 
-
 .input {
-
     width: 100%;
-
     min-height: 43px;
-
-    padding:
-        9px
-        12px;
-
-    border:
-        1px solid
-        rgba(133, 108, 68, 0.55);
-
+    padding: 9px 12px;
+    border: 1px solid rgba(133, 108, 68, 0.55);
     outline: none;
-
     border-radius: 0;
-
-    background:
-        rgba(24, 20, 16, 0.78);
-
+    background: rgba(24, 20, 16, 0.78);
     color: #d8ccb9;
-
-    font-family:
-        "Cormorant Garamond",
-        Georgia,
-        serif;
-
+    font-family: "Cormorant Garamond", Georgia, serif;
     font-size: 16px;
 }
 
-
 .input:focus {
-
-    border-color:
-        rgba(181, 150, 91, 0.9);
-
-    background:
-        rgba(35, 29, 22, 0.88);
+    border-color: rgba(181, 150, 91, 0.9);
+    background: rgba(35, 29, 22, 0.88);
 }
 
-
 .input::placeholder {
-
     color: #625a50;
 }
 
-
 textarea.input {
-
     min-height: 72px;
-
     resize: none;
 }
 
-
 .crestUpload {
-
     display: flex;
-
     align-items: center;
-
     gap: 13px;
-
     padding: 11px;
-
-    border:
-        1px solid
-        rgba(133, 108, 68, 0.45);
-
-    background:
-        rgba(25, 21, 17, 0.72);
+    border: 1px solid rgba(133, 108, 68, 0.45);
+    background: rgba(25, 21, 17, 0.72);
 }
 
-
 .crestPreview {
-
     flex-shrink: 0;
-
     width: 58px;
     height: 58px;
-
     display: flex;
-
     align-items: center;
     justify-content: center;
-
     overflow: hidden;
-
-    border:
-        1px solid
-        rgba(163, 132, 77, 0.55);
-
+    border: 1px solid rgba(163, 132, 77, 0.55);
     background: #0c0a08;
-
     color: #776448;
-
     font-size: 23px;
 }
 
-
 .crestPreview img {
-
     width: 100%;
     height: 100%;
-
     object-fit: cover;
 }
-
 
 .uploadArea {
     flex: 1;
 }
 
-
 .uploadButton {
-
     display: inline-block;
-
-    padding:
-        8px
-        11px;
-
-    border:
-        1px solid
-        rgba(153, 122, 70, 0.65);
-
+    padding: 8px 11px;
+    border: 1px solid rgba(153, 122, 70, 0.65);
     color: #c5b28f;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 9px;
-
     letter-spacing: 1.5px;
-
     cursor: pointer;
 }
-
 
 #crestInput {
     display: none;
 }
 
-
 .continueButton {
-
     width: 100%;
-
     min-height: 53px;
-
     margin-top: 8px;
-
-    border:
-        1px solid
-        rgba(174, 141, 82, 0.75);
-
+    border: 1px solid rgba(174, 141, 82, 0.75);
     outline: none;
-
-    background:
-        rgba(30, 25, 19, 0.90);
-
+    background: rgba(30, 25, 19, 0.90);
     color: #d5c4a5;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 11px;
-
     letter-spacing: 3px;
-
     cursor: pointer;
 }
 
-
 .continueButton:active {
-
-    background:
-        rgba(74, 58, 35, 0.8);
-
+    background: rgba(74, 58, 35, 0.8);
     transform: scale(0.99);
 }
 
-
 .error {
-
     display: none;
-
     margin-top: 10px;
-
     padding: 8px;
-
-    border:
-        1px solid
-        rgba(140, 73, 55, 0.5);
-
+    border: 1px solid rgba(140, 73, 55, 0.5);
     color: #b98570;
-
-    background:
-        rgba(80, 38, 28, 0.18);
-
+    background: rgba(80, 38, 28, 0.18);
     font-size: 12px;
-
     text-align: center;
 }
 
-
 .creationFooter {
-
     margin-top: 17px;
-
     text-align: center;
-
     color: #665d51;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 8px;
-
     letter-spacing: 2px;
 }
 
@@ -568,71 +317,37 @@ textarea.input {
 ===================================================== */
 
 #realmScreen {
-
     display: none;
-
     width: 100%;
-
     min-height: 100vh;
     min-height: 100dvh;
-
-    padding:
-        16px
-        14px
-        30px;
-
+    padding: 16px 14px 30px;
     overflow-y: auto;
 
     background:
-
         radial-gradient(
             ellipse at top,
             rgba(119, 91, 49, 0.12),
             transparent 42%
         ),
-
         #090806;
 }
 
-
 .realmFrame {
-
     position: relative;
-
     width: 100%;
-
-    min-height:
-        calc(100vh - 46px);
-
-    min-height:
-        calc(100dvh - 46px);
-
-    padding:
-        20px
-        14px
-        28px;
-
-    border:
-        1px solid
-        rgba(157, 126, 72, 0.55);
-
-    background:
-        rgba(12, 10, 8, 0.52);
+    min-height: calc(100vh - 46px);
+    min-height: calc(100dvh - 46px);
+    padding: 20px 14px 28px;
+    border: 1px solid rgba(157, 126, 72, 0.55);
+    background: rgba(12, 10, 8, 0.52);
 }
 
-
 .realmFrame::before {
-
     content: "";
-
     position: absolute;
-
     inset: 5px;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.25);
-
+    border: 1px solid rgba(117, 94, 56, 0.25);
     pointer-events: none;
 }
 
@@ -642,176 +357,91 @@ textarea.input {
 ===================================================== */
 
 .realmCrest {
-
     position: relative;
-
     z-index: 2;
-
     width: 72px;
     height: 72px;
-
-    margin:
-        0 auto
-        10px;
-
+    margin: 0 auto 10px;
     display: flex;
-
     align-items: center;
     justify-content: center;
-
     overflow: hidden;
-
-    border:
-        1px solid
-        rgba(174, 143, 87, 0.65);
-
+    border: 1px solid rgba(174, 143, 87, 0.65);
     background: #0b0907;
-
     color: #b99b63;
-
     font-size: 28px;
 }
 
-
 .realmCrest img {
-
     width: 100%;
     height: 100%;
-
     object-fit: cover;
 }
 
-
 .realmHouse {
-
     position: relative;
-
     z-index: 2;
-
     text-align: center;
-
     color: #e1d5c0;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 20px;
-
     font-weight: 500;
-
     letter-spacing: 2.5px;
-
     line-height: 1.2;
 }
 
-
 .realmCountry {
-
     position: relative;
-
     z-index: 2;
-
     margin-top: 5px;
-
     text-align: center;
-
     color: #a68b5d;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 9px;
-
     letter-spacing: 2px;
-
     text-transform: uppercase;
 }
 
-
 .realmMotto {
-
     position: relative;
-
     z-index: 2;
-
     max-width: 320px;
-
-    margin:
-        12px auto
-        15px;
-
+    margin: 12px auto 15px;
     color: #9b8e7b;
-
     text-align: center;
-
     font-size: 14px;
-
     font-style: italic;
-
     line-height: 1.35;
 }
 
-
 .realmDivider {
-
     position: relative;
-
     z-index: 2;
-
     display: flex;
-
     align-items: center;
-
     gap: 8px;
-
     width: 180px;
-
-    margin:
-        0 auto
-        15px;
+    margin: 0 auto 15px;
 }
-
 
 .realmDivider span {
-
     flex: 1;
-
     height: 1px;
-
-    background:
-        rgba(157, 126, 72, 0.45);
+    background: rgba(157, 126, 72, 0.45);
 }
 
-
 .realmDivider div {
-
     color: #ae8d55;
-
     font-size: 7px;
 }
 
-
 .realmYear {
-
     position: relative;
-
     z-index: 2;
-
     text-align: center;
-
     color: #a99168;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 9px;
-
     letter-spacing: 4px;
 }
 
@@ -821,58 +451,30 @@ textarea.input {
 ===================================================== */
 
 .realmSection {
-
     position: relative;
-
     z-index: 2;
-
     margin-top: 18px;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.45);
-
-    background:
-        rgba(21, 18, 14, 0.72);
+    border: 1px solid rgba(117, 94, 56, 0.45);
+    background: rgba(21, 18, 14, 0.72);
 }
-
 
 .sectionHeader {
-
     display: flex;
-
     align-items: center;
     justify-content: space-between;
-
-    padding:
-        11px
-        13px;
-
-    border-bottom:
-        1px solid
-        rgba(117, 94, 56, 0.35);
+    padding: 11px 13px;
+    border-bottom: 1px solid rgba(117, 94, 56, 0.35);
 }
 
-
 .sectionTitle {
-
     color: #bca57b;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 10px;
-
     letter-spacing: 2px;
 }
 
-
 .sectionTotal {
-
     color: #817668;
-
     font-size: 11px;
 }
 
@@ -882,326 +484,169 @@ textarea.input {
 ===================================================== */
 
 .populationRow {
-
     display: grid;
-
-    grid-template-columns:
-        34px
-        1fr
-        auto
-        32px;
-
+    grid-template-columns: 34px 1fr auto 32px;
     align-items: center;
-
     gap: 7px;
-
     min-height: 58px;
-
-    padding:
-        8px
-        10px;
-
-    border-bottom:
-        1px solid
-        rgba(117, 94, 56, 0.18);
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(117, 94, 56, 0.18);
 }
-
 
 .populationRow:last-child {
     border-bottom: none;
 }
 
-
 .populationIcon {
-
     width: 30px;
     height: 30px;
-
     display: flex;
-
     align-items: center;
     justify-content: center;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.4);
-
+    border: 1px solid rgba(117, 94, 56, 0.4);
     color: #aa9162;
-
     font-size: 14px;
 }
-
 
 .populationInfo {
     min-width: 0;
 }
 
-
 .populationName {
-
     color: #c8baa2;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 9px;
-
     letter-spacing: 0.8px;
-
     line-height: 1.2;
 }
 
-
 .populationConsumption {
-
     margin-top: 3px;
-
     color: #665f54;
-
     font-size: 10px;
 }
 
-
 .populationValue {
-
     min-width: 28px;
-
     color: #d1c3a9;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 16px;
-
     text-align: center;
 }
 
-
 .helpButton {
-
     width: 28px;
     height: 28px;
-
     padding: 0;
-
-    border:
-        1px solid
-        rgba(142, 116, 70, 0.55);
-
-    background:
-        rgba(36, 29, 21, 0.75);
-
+    border: 1px solid rgba(142, 116, 70, 0.55);
+    background: rgba(36, 29, 21, 0.75);
     color: #b29667;
-
-    font-family:
-        Georgia,
-        serif;
-
+    font-family: Georgia, serif;
     font-size: 13px;
-
     cursor: pointer;
 }
 
-
 .helpButton:active {
-
-    background:
-        rgba(91, 68, 38, 0.75);
-
+    background: rgba(91, 68, 38, 0.75);
     transform: scale(0.94);
 }
 
-
 .populationActions {
-
     display: flex;
-
     gap: 4px;
-
-    padding:
-        7px
-        10px
-        9px;
-
-    background:
-        rgba(12, 10, 8, 0.28);
-
-    border-bottom:
-        1px solid
-        rgba(117, 94, 56, 0.16);
+    padding: 7px 10px 9px;
+    background: rgba(12, 10, 8, 0.28);
+    border-bottom: 1px solid rgba(117, 94, 56, 0.16);
 }
 
-
 .populationAction {
-
     flex: 1;
-
     min-height: 30px;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.4);
-
-    background:
-        rgba(37, 30, 22, 0.75);
-
+    border: 1px solid rgba(117, 94, 56, 0.4);
+    background: rgba(37, 30, 22, 0.75);
     color: #9e8a67;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 7px;
-
     letter-spacing: 0.8px;
-
     cursor: pointer;
 }
 
-
 .populationAction:active {
-
-    background:
-        rgba(88, 66, 38, 0.7);
-
+    background: rgba(88, 66, 38, 0.7);
     transform: scale(0.98);
 }
 
-
 .populationAction:disabled {
-
     opacity: 0.3;
-
     cursor: default;
 }
 
 
 /* =====================================================
-   РЕСУРСЫ — ВЫПАДАЮЩИЕ КАТЕГОРИИ
+   РЕСУРСЫ
 ===================================================== */
 
 .resourcesSection {
-
     position: relative;
-
     z-index: 2;
 }
 
-
 .resourceCategory {
-
-    border-bottom:
-        1px solid
-        rgba(117, 94, 56, 0.25);
+    border-bottom: 1px solid rgba(117, 94, 56, 0.25);
 }
 
-
 .resourceCategory:last-child {
-
     border-bottom: none;
 }
 
-
 .resourceCategoryHeader {
-
     display: flex;
-
     align-items: center;
-
     justify-content: space-between;
-
     width: 100%;
-
     min-height: 48px;
-
-    padding:
-        9px
-        13px;
-
+    padding: 9px 13px;
     border: none;
-
     outline: none;
-
     background: transparent;
-
     color: #bca57b;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 10px;
-
     letter-spacing: 1.5px;
-
     cursor: pointer;
-
     text-align: left;
 }
 
-
 .resourceCategoryHeader:active {
-
-    background:
-        rgba(75, 58, 35, 0.18);
+    background: rgba(75, 58, 35, 0.18);
 }
 
-
 .resourceCategoryLeft {
-
     display: flex;
-
     align-items: center;
-
     gap: 9px;
 }
 
-
 .resourceCategoryIcon {
-
     font-size: 16px;
 }
 
-
 .resourceCategoryArrow {
-
     color: #94784c;
-
     font-size: 12px;
-
-    transition:
-        transform 0.25s ease;
+    transition: transform 0.25s ease;
 }
 
-
-.resourceCategory.open
-.resourceCategoryArrow {
-
+.resourceCategory.open .resourceCategoryArrow {
     transform: rotate(180deg);
 }
 
-
 .resourceCategoryContent {
-
     display: none;
-
-    padding:
-        0
-        9px
-        9px;
-
+    padding: 0 9px 9px;
 }
 
-
-.resourceCategory.open
-.resourceCategoryContent {
-
+.resourceCategory.open .resourceCategoryContent {
     display: block;
 }
 
@@ -1211,132 +656,66 @@ textarea.input {
 ===================================================== */
 
 .resourceItem {
-
     display: grid;
-
-    grid-template-columns:
-        42px
-        1fr
-        auto
-        34px;
-
+    grid-template-columns: 42px 1fr auto 34px;
     align-items: center;
-
     gap: 9px;
-
     min-height: 62px;
-
-    padding:
-        8px
-        9px;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.36);
-
-    background:
-        rgba(28, 23, 18, 0.68);
+    padding: 8px 9px;
+    border: 1px solid rgba(117, 94, 56, 0.36);
+    background: rgba(28, 23, 18, 0.68);
 }
-
 
 .resourceItemIcon {
-
     width: 38px;
     height: 38px;
-
     display: flex;
-
     align-items: center;
     justify-content: center;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.42);
-
+    border: 1px solid rgba(117, 94, 56, 0.42);
     color: #aa9162;
-
     font-size: 18px;
 }
-
 
 .resourceItemInfo {
     min-width: 0;
 }
 
-
 .resourceItemName {
-
     color: #c8baa2;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 9px;
-
     letter-spacing: 1px;
 }
 
-
 .resourceItemDescription {
-
     margin-top: 3px;
-
     color: #6e665a;
-
     font-size: 10px;
 }
 
-
 .resourceItemValue {
-
     min-width: 45px;
-
     color: #d1c3a9;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 15px;
-
     text-align: right;
 }
 
-
 .resourceInfoButton {
-
     width: 30px;
     height: 30px;
-
     padding: 0;
-
-    border:
-        1px solid
-        rgba(142, 116, 70, 0.55);
-
-    background:
-        rgba(36, 29, 21, 0.75);
-
+    border: 1px solid rgba(142, 116, 70, 0.55);
+    background: rgba(36, 29, 21, 0.75);
     color: #b29667;
-
-    font-family:
-        Georgia,
-        serif;
-
+    font-family: Georgia, serif;
     font-size: 13px;
-
     cursor: pointer;
 }
 
-
 .resourceInfoButton:active {
-
-    background:
-        rgba(91, 68, 38, 0.75);
-
+    background: rgba(91, 68, 38, 0.75);
     transform: scale(0.94);
 }
 
@@ -1346,426 +725,222 @@ textarea.input {
 ===================================================== */
 
 .productionHeader {
-
     display: flex;
-
     align-items: center;
-
     justify-content: space-between;
-
     width: 100%;
-
     min-height: 50px;
-
-    padding:
-        10px
-        13px;
-
+    padding: 10px 13px;
     border: none;
-
-    background:
-        transparent;
-
+    background: transparent;
     color: #bca57b;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 10px;
-
     letter-spacing: 1.5px;
-
     cursor: pointer;
-
     text-align: left;
 }
 
-
 .productionHeader:active {
-
-    background:
-        rgba(75, 58, 35, 0.18);
+    background: rgba(75, 58, 35, 0.18);
 }
 
-
 .productionHeaderLeft {
-
     display: flex;
-
     align-items: center;
-
     gap: 9px;
 }
 
-
 .productionHeaderIcon {
-
     font-size: 16px;
 }
 
-
 .productionArrow {
-
     color: #94784c;
-
     font-size: 13px;
-
-    transition:
-        transform 0.25s ease;
+    transition: transform 0.25s ease;
 }
 
-
-.productionSection.open
-.productionArrow {
-
+.productionSection.open .productionArrow {
     transform: rotate(180deg);
 }
 
-
 .productionMenu {
-
     display: none;
-
-    border-top:
-        1px solid
-        rgba(117, 94, 56, 0.32);
+    border-top: 1px solid rgba(117, 94, 56, 0.32);
 }
 
-
-.productionSection.open
-.productionMenu {
-
+.productionSection.open .productionMenu {
     display: block;
 }
 
-
 .productionCard {
-
     margin: 10px;
-
     padding: 12px;
-
-    border:
-        1px solid
-        rgba(157, 126, 72, 0.42);
-
-    background:
-        rgba(26, 22, 17, 0.65);
+    border: 1px solid rgba(157, 126, 72, 0.42);
+    background: rgba(26, 22, 17, 0.65);
 }
 
-
 .productionTop {
-
     display: flex;
-
     align-items: center;
-
     gap: 10px;
 }
 
-
 .productionIcon {
-
     width: 42px;
     height: 42px;
-
     display: flex;
-
     align-items: center;
     justify-content: center;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.45);
-
+    border: 1px solid rgba(117, 94, 56, 0.45);
     font-size: 22px;
 }
 
-
 .productionTitle {
-
     color: #cbb99a;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 11px;
-
     letter-spacing: 1.5px;
 }
 
-
 .productionSubtitle {
-
     margin-top: 3px;
-
     color: #736a5e;
-
     font-size: 11px;
 }
 
-
 .productionInfo {
-
     margin-top: 12px;
-
     padding-top: 10px;
-
-    border-top:
-        1px solid
-        rgba(117, 94, 56, 0.25);
+    border-top: 1px solid rgba(117, 94, 56, 0.25);
 }
 
-
 .productionLine {
-
     display: flex;
-
     justify-content: space-between;
-
     gap: 10px;
-
     margin-bottom: 6px;
-
     color: #85796a;
-
     font-size: 12px;
 }
 
-
 .productionLine strong {
-
     color: #b8a27a;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 9px;
-
     text-align: right;
 }
 
-
 .productionStatus {
-
     margin-top: 9px;
-
     padding: 9px;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.28);
-
-    background:
-        rgba(10, 9, 7, 0.4);
-
+    border: 1px solid rgba(117, 94, 56, 0.28);
+    background: rgba(10, 9, 7, 0.4);
     color: #8c7d68;
-
     font-size: 11px;
-
     line-height: 1.4;
-
     text-align: center;
 }
 
-
 .productionStatus.locked {
-
     color: #876f60;
-
-    border-color:
-        rgba(112, 77, 61, 0.42);
-
-    background:
-        rgba(64, 37, 28, 0.16);
+    border-color: rgba(112, 77, 61, 0.42);
+    background: rgba(64, 37, 28, 0.16);
 }
 
-
 .hunterControl {
-
     display: flex;
-
     align-items: center;
-
     justify-content: space-between;
-
     gap: 8px;
-
     margin-top: 10px;
 }
 
-
 .hunterButton {
-
     width: 40px;
     height: 36px;
-
-    border:
-        1px solid
-        rgba(142, 116, 70, 0.55);
-
-    background:
-        rgba(37, 30, 22, 0.8);
-
+    border: 1px solid rgba(142, 116, 70, 0.55);
+    background: rgba(37, 30, 22, 0.8);
     color: #b69a68;
-
     font-size: 18px;
-
     cursor: pointer;
 }
 
-
 .hunterButton:active {
-
     transform: scale(0.94);
-
-    background:
-        rgba(82, 61, 35, 0.75);
+    background: rgba(82, 61, 35, 0.75);
 }
 
-
 .hunterButton:disabled {
-
     opacity: 0.25;
-
     cursor: default;
 }
 
-
 .hunterCount {
-
     flex: 1;
-
     text-align: center;
 }
 
-
 .hunterCountNumber {
-
     color: #d0c0a5;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 17px;
 }
 
-
 .hunterCountText {
-
     margin-top: 2px;
-
     color: #70675b;
-
     font-size: 10px;
 }
-
 
 .forestBar {
-
     margin-top: 10px;
 }
 
-
 .forestBarLabel {
-
     display: flex;
-
     justify-content: space-between;
-
     margin-bottom: 5px;
-
     color: #746b5d;
-
     font-size: 10px;
 }
 
-
 .forestBarOuter {
-
     width: 100%;
-
     height: 5px;
-
-    background:
-        rgba(45, 39, 30, 0.8);
+    background: rgba(45, 39, 30, 0.8);
 }
-
 
 .forestBarInner {
-
     width: 100%;
-
     height: 100%;
-
-    background:
-        #77633f;
-
-    transition:
-        width 0.4s ease;
+    background: #77633f;
+    transition: width 0.4s ease;
 }
 
-
-/* =====================================================
-   НЕТ ЛЕСА
-===================================================== */
-
 .noForest {
-
     margin-top: 10px;
-
-    padding:
-        12px
-        10px;
-
-    border:
-        1px solid
-        rgba(112, 77, 61, 0.42);
-
-    background:
-        rgba(64, 37, 28, 0.15);
-
+    padding: 12px 10px;
+    border: 1px solid rgba(112, 77, 61, 0.42);
+    background: rgba(64, 37, 28, 0.15);
     color: #89766a;
-
     font-size: 12px;
-
     line-height: 1.45;
-
     text-align: center;
 }
 
-
 .noForestIcon {
-
     display: block;
-
     margin-bottom: 5px;
-
     font-size: 20px;
 }
 
-
 .noForestTitle {
-
     margin-bottom: 4px;
-
     color: #a28a72;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 9px;
-
     letter-spacing: 1.5px;
 }
 
@@ -1775,51 +950,26 @@ textarea.input {
 ===================================================== */
 
 .village {
-
     position: relative;
-
     z-index: 2;
-
     margin-top: 18px;
-
-    padding:
-        15px
-        13px;
-
-    border:
-        1px solid
-        rgba(157, 126, 72, 0.5);
-
-    background:
-        rgba(29, 24, 18, 0.7);
-
+    padding: 15px 13px;
+    border: 1px solid rgba(157, 126, 72, 0.5);
+    background: rgba(29, 24, 18, 0.7);
     text-align: center;
 }
 
-
 .villageTitle {
-
     color: #cdbb9d;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 13px;
-
     letter-spacing: 2px;
 }
 
-
 .villageText {
-
     margin-top: 7px;
-
     color: #7e7569;
-
     font-size: 13px;
-
     line-height: 1.4;
 }
 
@@ -1829,51 +979,26 @@ textarea.input {
 ===================================================== */
 
 .history {
-
     position: relative;
-
     z-index: 2;
-
     margin-top: 18px;
-
-    padding:
-        14px
-        13px;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.35);
-
-    background:
-        rgba(20, 17, 14, 0.5);
+    padding: 14px 13px;
+    border: 1px solid rgba(117, 94, 56, 0.35);
+    background: rgba(20, 17, 14, 0.5);
 }
 
-
 .historyTitle {
-
     color: #a99168;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 8px;
-
     letter-spacing: 2px;
-
     text-transform: uppercase;
 }
 
-
 .historyText {
-
     margin-top: 7px;
-
     color: #908474;
-
     font-size: 14px;
-
     line-height: 1.5;
 }
 
@@ -1883,158 +1008,77 @@ textarea.input {
 ===================================================== */
 
 #helpOverlay {
-
     display: none;
-
     position: fixed;
-
     inset: 0;
-
     z-index: 500;
-
     padding: 20px;
-
-    background:
-        rgba(0, 0, 0, 0.72);
-
+    background: rgba(0, 0, 0, 0.72);
     align-items: center;
     justify-content: center;
 }
 
-
 .helpWindow {
-
     width: 100%;
-
     max-width: 360px;
-
-    padding:
-        23px
-        18px
-        18px;
-
-    border:
-        1px solid
-        rgba(174, 141, 82, 0.65);
-
-    background:
-        #110e0a;
-
-    box-shadow:
-        0 12px 45px
-        rgba(0, 0, 0, 0.65);
+    padding: 23px 18px 18px;
+    border: 1px solid rgba(174, 141, 82, 0.65);
+    background: #110e0a;
+    box-shadow: 0 12px 45px rgba(0, 0, 0, 0.65);
 }
-
 
 .helpWindowTitle {
-
     color: #d3c2a3;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 14px;
-
     letter-spacing: 2px;
-
     text-align: center;
 }
-
 
 .helpWindowDivider {
-
     width: 130px;
-
     height: 1px;
-
-    margin:
-        12px auto
-        15px;
-
-    background:
-        rgba(157, 126, 72, 0.55);
+    margin: 12px auto 15px;
+    background: rgba(157, 126, 72, 0.55);
 }
 
-
 .helpWindowDescription {
-
     color: #a39786;
-
     font-size: 14px;
-
     line-height: 1.5;
-
     text-align: center;
 }
 
-
 .helpDetails {
-
     margin-top: 17px;
-
     padding-top: 13px;
-
-    border-top:
-        1px solid
-        rgba(117, 94, 56, 0.3);
+    border-top: 1px solid rgba(117, 94, 56, 0.3);
 }
 
-
 .helpDetail {
-
     margin-bottom: 10px;
-
     color: #877b6b;
-
     font-size: 12px;
-
     line-height: 1.4;
 }
 
-
 .helpDetail strong {
-
     color: #b39a6b;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 9px;
-
     letter-spacing: 1px;
 }
 
-
 .closeHelp {
-
     width: 100%;
-
     min-height: 40px;
-
     margin-top: 8px;
-
-    border:
-        1px solid
-        rgba(117, 94, 56, 0.55);
-
-    background:
-        rgba(36, 29, 21, 0.8);
-
+    border: 1px solid rgba(117, 94, 56, 0.55);
+    background: rgba(36, 29, 21, 0.8);
     color: #b7a17a;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 9px;
-
     letter-spacing: 2px;
-
     cursor: pointer;
 }
 
@@ -2044,35 +1088,17 @@ textarea.input {
 ===================================================== */
 
 .resetButton {
-
     position: relative;
-
     z-index: 2;
-
     width: 100%;
-
     min-height: 42px;
-
     margin-top: 22px;
-
-    border:
-        1px solid
-        rgba(99, 78, 48, 0.45);
-
-    background:
-        transparent;
-
+    border: 1px solid rgba(99, 78, 48, 0.45);
+    background: transparent;
     color: #665e53;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 8px;
-
     letter-spacing: 2px;
-
     cursor: pointer;
 }
 
@@ -2082,85 +1108,54 @@ textarea.input {
 ===================================================== */
 
 #locked {
-
     display: none;
-
     position: fixed;
-
     inset: 0;
-
     z-index: 1000;
-
     background: #090806;
-
     align-items: center;
     justify-content: center;
-
     text-align: center;
 }
 
-
 .lockedContent {
-
     padding: 30px;
-
     max-width: 320px;
 }
 
-
 .lockedIcon {
-
     margin-bottom: 20px;
-
     color: #a48755;
-
     font-size: 42px;
 }
 
-
 .lockedTitle {
-
     color: #d5c8b2;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
+    font-family: "Cinzel", Georgia, serif;
     font-size: 16px;
-
     letter-spacing: 3px;
 }
 
-
 .lockedText {
-
     margin-top: 15px;
-
     color: #777064;
-
     font-size: 14px;
-
     line-height: 1.5;
 }
-
 
 @media (max-height: 700px) {
 
     #creationScreen,
     #realmScreen {
-
         padding-top: 10px;
     }
 
     .creationFrame,
     .realmFrame {
-
         padding-top: 17px;
     }
 
     .populationRow {
-
         min-height: 52px;
     }
 }
@@ -2238,10 +1233,8 @@ textarea.input {
 
             <div class="field">
 
-                <label
-                    class="fieldLabel"
-                    for="rulerName"
-                >
+                <label class="fieldLabel"
+                       for="rulerName">
                     Имя правителя
                 </label>
 
@@ -2260,10 +1253,8 @@ textarea.input {
 
             <div class="field">
 
-                <label
-                    class="fieldLabel"
-                    for="houseName"
-                >
+                <label class="fieldLabel"
+                       for="houseName">
                     Название Дома
                 </label>
 
@@ -2282,10 +1273,8 @@ textarea.input {
 
             <div class="field">
 
-                <label
-                    class="fieldLabel"
-                    for="realmName"
-                >
+                <label class="fieldLabel"
+                       for="realmName">
                     Название государства
                 </label>
 
@@ -2304,10 +1293,8 @@ textarea.input {
 
             <div class="field">
 
-                <label
-                    class="fieldLabel"
-                    for="motto"
-                >
+                <label class="fieldLabel"
+                       for="motto">
                     Девиз Дома
                 </label>
 
@@ -2368,10 +1355,8 @@ textarea.input {
 
             <div class="field">
 
-                <label
-                    class="fieldLabel"
-                    for="description"
-                >
+                <label class="fieldLabel"
+                       for="description">
                     История Дома
                 </label>
 
@@ -2670,10 +1655,6 @@ textarea.input {
             </div>
 
 
-            <!-- ===============================
-                 ЕДА
-            ================================ -->
-
             <div
                 class="resourceCategory"
                 id="foodCategory"
@@ -2696,7 +1677,6 @@ textarea.input {
 
                     </div>
 
-
                     <span class="resourceCategoryArrow">
                         ▼
                     </span>
@@ -2706,8 +1686,6 @@ textarea.input {
 
                 <div class="resourceCategoryContent">
 
-
-                    <!-- МЯСО -->
 
                     <div class="resourceItem">
 
@@ -2750,12 +1728,6 @@ textarea.input {
 
             </div>
 
-
-            <!-- ===============================
-                 БУДУЩИЕ КАТЕГОРИИ
-                 ПОКА НЕ ПОКАЗЫВАЕМ
-            ================================ -->
-
         </section>
 
 
@@ -2785,7 +1757,6 @@ textarea.input {
 
                 </div>
 
-
                 <span class="productionArrow">
                     ▼
                 </span>
@@ -2796,7 +1767,6 @@ textarea.input {
             <div class="productionMenu">
 
                 <div class="productionCard">
-
 
                     <div class="productionTop">
 
@@ -2913,7 +1883,6 @@ textarea.input {
 
                             <div class="hunterControl">
 
-
                                 <button
                                     class="hunterButton"
                                     onclick="removeHunter()"
@@ -2958,9 +1927,7 @@ textarea.input {
                                         🦌 Дичь в лесу
                                     </span>
 
-                                    <span
-                                        id="gamePercent"
-                                    >
+                                    <span id="gamePercent">
                                         100%
                                     </span>
 
@@ -2972,8 +1939,7 @@ textarea.input {
                                     <div
                                         class="forestBarInner"
                                         id="gameBar"
-                                    >
-                                    </div>
+                                    ></div>
 
                                 </div>
 
@@ -3021,8 +1987,7 @@ textarea.input {
             <div
                 class="historyText"
                 id="realmHistory"
-            >
-            </div>
+            ></div>
 
         </div>
 
@@ -3054,40 +2019,38 @@ textarea.input {
         <div
             class="helpWindowTitle"
             id="helpTitle"
-        >
-        </div>
+        ></div>
 
-        <div class="helpWindowDivider">
-        </div>
+
+        <div class="helpWindowDivider"></div>
+
 
         <div
             class="helpWindowDescription"
             id="helpDescription"
-        >
-        </div>
+        ></div>
+
 
         <div class="helpDetails">
 
             <div class="helpDetail">
 
-                <strong>
-                    ВЛИЯНИЕ
+                <strong id="helpDetailLabel">
+                    ПОТРЕБЛЕНИЕ
                 </strong>
 
-                <div id="helpInfluence">
-                </div>
+                <div id="helpInfluence"></div>
 
             </div>
 
 
             <div class="helpDetail">
 
-                <strong>
+                <strong id="helpSecondLabel">
                     ПОТРЕБЛЕНИЕ
                 </strong>
 
-                <div id="helpConsumption">
-                </div>
+                <div id="helpConsumption"></div>
 
             </div>
 
@@ -3138,11 +2101,9 @@ textarea.input {
    TELEGRAM
 ===================================================== */
 
-const tg =
-    window.Telegram.WebApp;
+const tg = window.Telegram.WebApp;
 
 tg.ready();
-
 tg.expand();
 
 
@@ -3150,33 +2111,17 @@ tg.expand();
    ДОСТУП
 ===================================================== */
 
-const ALLOWED_USER_ID =
-    8608712290;
+const ALLOWED_USER_ID = 8608712290;
 
-const user =
-    tg.initDataUnsafe.user;
+const user = tg.initDataUnsafe.user;
 
 
-if (
-    !user ||
-    Number(user.id) !== ALLOWED_USER_ID
-) {
+if (!user || Number(user.id) !== ALLOWED_USER_ID) {
 
-    document
-        .getElementById("introScreen")
-        .style.display = "none";
-
-    document
-        .getElementById("creationScreen")
-        .style.display = "none";
-
-    document
-        .getElementById("realmScreen")
-        .style.display = "none";
-
-    document
-        .getElementById("locked")
-        .style.display = "flex";
+    document.getElementById("introScreen").style.display = "none";
+    document.getElementById("creationScreen").style.display = "none";
+    document.getElementById("realmScreen").style.display = "none";
+    document.getElementById("locked").style.display = "flex";
 }
 
 
@@ -3191,23 +2136,12 @@ const hasForest = false;
    НАСТРОЙКИ ОХОТЫ
 ===================================================== */
 
-const HUNTING_MINIMUM =
-    2;
-
-const HUNTING_MAXIMUM =
-    10;
-
-const HUNTING_INTERVAL =
-    2 * 60 * 60 * 1000;
-
-const MEAT_PER_GROUP =
-    20;
-
-const HUNTING_GROUP_SIZE =
-    2;
-
-const GAME_LOSS_PER_HUNT =
-    5;
+const HUNTING_MINIMUM = 2;
+const HUNTING_MAXIMUM = 10;
+const HUNTING_INTERVAL = 2 * 60 * 60 * 1000;
+const MEAT_PER_GROUP = 20;
+const HUNTING_GROUP_SIZE = 2;
+const GAME_LOSS_PER_HUNT = 5;
 
 
 /* =====================================================
@@ -3216,17 +2150,9 @@ const GAME_LOSS_PER_HUNT =
 
 function openCreation() {
 
-    document
-        .getElementById("introScreen")
-        .style.display = "none";
-
-    document
-        .getElementById("realmScreen")
-        .style.display = "none";
-
-    document
-        .getElementById("creationScreen")
-        .style.display = "block";
+    document.getElementById("introScreen").style.display = "none";
+    document.getElementById("realmScreen").style.display = "none";
+    document.getElementById("creationScreen").style.display = "block";
 
     window.scrollTo(0, 0);
 }
@@ -3238,33 +2164,18 @@ function openCreation() {
 
 function previewCrest(event) {
 
-    const file =
-        event.target.files[0];
+    const file = event.target.files[0];
 
-    if (!file) {
-        return;
-    }
+    if (!file) return;
 
+    const reader = new FileReader();
 
-    const reader =
-        new FileReader();
+    reader.onload = function(event) {
 
+        document.getElementById("crestPreview").innerHTML =
+            `<img src="${event.target.result}" alt="Герб">`;
 
-    reader.onload =
-        function(event) {
-
-            document
-                .getElementById("crestPreview")
-                .innerHTML =
-                `
-                <img
-                    src="${event.target.result}"
-                    alt="Герб"
-                >
-                `;
-
-        };
-
+    };
 
     reader.readAsDataURL(file);
 }
@@ -3278,61 +2189,32 @@ function saveHouse(event) {
 
     event.preventDefault();
 
-
     const rulerName =
-        document
-            .getElementById("rulerName")
-            .value
-            .trim();
-
+        document.getElementById("rulerName").value.trim();
 
     const houseName =
-        document
-            .getElementById("houseName")
-            .value
-            .trim();
-
+        document.getElementById("houseName").value.trim();
 
     const realmName =
-        document
-            .getElementById("realmName")
-            .value
-            .trim();
-
+        document.getElementById("realmName").value.trim();
 
     const motto =
-        document
-            .getElementById("motto")
-            .value
-            .trim();
-
+        document.getElementById("motto").value.trim();
 
     const description =
-        document
-            .getElementById("description")
-            .value
-            .trim();
+        document.getElementById("description").value.trim();
 
 
-    if (
-        !rulerName ||
-        !houseName ||
-        !realmName ||
-        !motto
-    ) {
+    if (!rulerName || !houseName || !realmName || !motto) {
 
-        document
-            .getElementById("error")
-            .style.display = "block";
+        document.getElementById("error").style.display = "block";
 
         return;
     }
 
 
     const crestInput =
-        document
-            .getElementById("crestInput");
-
+        document.getElementById("crestInput");
 
     const crestFile =
         crestInput.files[0];
@@ -3340,26 +2222,19 @@ function saveHouse(event) {
 
     const house = {
 
-        rulerName:
-            rulerName,
+        rulerName: rulerName,
 
-        houseName:
-            houseName,
+        houseName: houseName,
 
-        realmName:
-            realmName,
+        realmName: realmName,
 
-        motto:
-            motto,
+        motto: motto,
 
-        description:
-            description,
+        description: description,
 
-        createdAt:
-            new Date().toISOString(),
+        createdAt: new Date().toISOString(),
 
-        crest:
-            null,
+        crest: null,
 
         population: {
 
@@ -3370,6 +2245,7 @@ function saveHouse(event) {
             soldiers: 0,
 
             hunters: 0
+
         },
 
         resources: {
@@ -3381,14 +2257,15 @@ function saveHouse(event) {
             stone: 50,
 
             gold: 0
+
         },
 
         hunting: {
 
             game: 100,
 
-            lastProduction:
-                Date.now()
+            lastProduction: Date.now()
+
         }
 
     };
@@ -3396,22 +2273,18 @@ function saveHouse(event) {
 
     if (crestFile) {
 
-        const reader =
-            new FileReader();
+        const reader = new FileReader();
 
+        reader.onload = function(event) {
 
-        reader.onload =
-            function(event) {
+            house.crest =
+                event.target.result;
 
-                house.crest =
-                    event.target.result;
+            saveHouseData(house);
 
+            openRealm();
 
-                saveHouseData(house);
-
-                openRealm();
-            };
-
+        };
 
         reader.readAsDataURL(crestFile);
 
@@ -3422,6 +2295,7 @@ function saveHouse(event) {
         saveHouseData(house);
 
         openRealm();
+
     }
 
 }
@@ -3434,15 +2308,9 @@ function saveHouse(event) {
 function getHouse() {
 
     const savedHouse =
-        localStorage.getItem(
-            "theRealmsHouse"
-        );
+        localStorage.getItem("theRealmsHouse");
 
-
-    if (!savedHouse) {
-        return null;
-    }
-
+    if (!savedHouse) return null;
 
     return JSON.parse(savedHouse);
 }
@@ -3475,44 +2343,23 @@ function prepareHouse(house) {
             workers: 0,
             soldiers: 0,
             hunters: 0
+
         };
+
     }
 
 
-    if (
-        typeof house.population.free
-        !== "number"
-    ) {
-
+    if (typeof house.population.free !== "number")
         house.population.free = 100;
-    }
 
-
-    if (
-        typeof house.population.workers
-        !== "number"
-    ) {
-
+    if (typeof house.population.workers !== "number")
         house.population.workers = 0;
-    }
 
-
-    if (
-        typeof house.population.soldiers
-        !== "number"
-    ) {
-
+    if (typeof house.population.soldiers !== "number")
         house.population.soldiers = 0;
-    }
 
-
-    if (
-        typeof house.population.hunters
-        !== "number"
-    ) {
-
+    if (typeof house.population.hunters !== "number")
         house.population.hunters = 0;
-    }
 
 
     if (!house.resources) {
@@ -3520,23 +2367,17 @@ function prepareHouse(house) {
         house.resources = {
 
             meat: 100,
-
             wood: 50,
-
             stone: 50,
-
             gold: 0
+
         };
+
     }
 
 
-    if (
-        typeof house.resources.meat
-        !== "number"
-    ) {
-
+    if (typeof house.resources.meat !== "number")
         house.resources.meat = 100;
-    }
 
 
     if (!house.hunting) {
@@ -3544,10 +2385,10 @@ function prepareHouse(house) {
         house.hunting = {
 
             game: 100,
+            lastProduction: Date.now()
 
-            lastProduction:
-                Date.now()
         };
+
     }
 
 
@@ -3563,8 +2404,7 @@ function processHunting(house) {
 
     if (!hasForest) {
 
-        house.hunting.lastProduction =
-            Date.now();
+        house.hunting.lastProduction = Date.now();
 
         saveHouseData(house);
 
@@ -3576,12 +2416,9 @@ function processHunting(house) {
         house.population.hunters;
 
 
-    if (
-        hunters < HUNTING_MINIMUM
-    ) {
+    if (hunters < HUNTING_MINIMUM) {
 
-        house.hunting.lastProduction =
-            Date.now();
+        house.hunting.lastProduction = Date.now();
 
         saveHouseData(house);
 
@@ -3589,37 +2426,30 @@ function processHunting(house) {
     }
 
 
-    const now =
-        Date.now();
-
+    const now = Date.now();
 
     const elapsed =
-        now -
-        house.hunting.lastProduction;
+        now - house.hunting.lastProduction;
 
 
     const completedCycles =
         Math.floor(
-            elapsed /
-            HUNTING_INTERVAL
+            elapsed / HUNTING_INTERVAL
         );
 
 
-    if (completedCycles <= 0) {
+    if (completedCycles <= 0)
         return;
-    }
 
 
     const groups =
         Math.floor(
-            hunters /
-            HUNTING_GROUP_SIZE
+            hunters / HUNTING_GROUP_SIZE
         );
 
 
     const meatPerCycle =
-        groups *
-        MEAT_PER_GROUP;
+        groups * MEAT_PER_GROUP;
 
 
     const possibleCycles =
@@ -3638,18 +2468,14 @@ function processHunting(house) {
     if (possibleCycles > 0) {
 
         house.resources.meat +=
-            meatPerCycle *
-            possibleCycles;
-
+            meatPerCycle * possibleCycles;
 
         house.hunting.game -=
-            GAME_LOSS_PER_HUNT *
-            possibleCycles;
-
+            GAME_LOSS_PER_HUNT * possibleCycles;
 
         house.hunting.lastProduction +=
-            HUNTING_INTERVAL *
-            possibleCycles;
+            HUNTING_INTERVAL * possibleCycles;
+
     }
 
 
@@ -3658,37 +2484,28 @@ function processHunting(house) {
 
 
 /* =====================================================
-   РАСКРЫТИЕ ПРОИЗВОДСТВА
+   ПРОИЗВОДСТВО — ОТКРЫТЬ
 ===================================================== */
 
 function toggleProduction() {
 
-    const section =
-        document
-            .getElementById(
-                "productionSection"
-            );
+    document
+        .getElementById("productionSection")
+        .classList.toggle("open");
 
-
-    section.classList.toggle(
-        "open"
-    );
 }
 
 
 /* =====================================================
-   РАСКРЫТИЕ РЕСУРСОВ
+   РЕСУРСЫ — ОТКРЫТЬ
 ===================================================== */
 
 function toggleResourceCategory(id) {
 
-    const category =
-        document.getElementById(id);
+    document
+        .getElementById(id)
+        .classList.toggle("open");
 
-
-    category.classList.toggle(
-        "open"
-    );
 }
 
 
@@ -3698,51 +2515,34 @@ function toggleResourceCategory(id) {
 
 function addHunter() {
 
-    if (!hasForest) {
-        return;
-    }
+    if (!hasForest) return;
 
+    let house = getHouse();
 
-    let house =
-        getHouse();
+    if (!house) return;
 
-
-    if (!house) {
-        return;
-    }
-
-
-    house =
-        prepareHouse(house);
+    house = prepareHouse(house);
 
 
     const availableWorkers =
-
         house.population.workers -
         house.population.hunters;
 
 
-    if (
-        availableWorkers <= 0
-    ) {
+    if (availableWorkers <= 0)
         return;
-    }
 
 
     if (
         house.population.hunters >=
         HUNTING_MAXIMUM
-    ) {
+    )
         return;
-    }
 
 
     house.population.hunters += 1;
 
-
-    house.hunting.lastProduction =
-        Date.now();
-
+    house.hunting.lastProduction = Date.now();
 
     saveHouseData(house);
 
@@ -3758,32 +2558,20 @@ function addHunter() {
 
 function removeHunter() {
 
-    let house =
-        getHouse();
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
 
 
-    if (!house) {
+    if (house.population.hunters <= 0)
         return;
-    }
-
-
-    house =
-        prepareHouse(house);
-
-
-    if (
-        house.population.hunters <= 0
-    ) {
-        return;
-    }
 
 
     house.population.hunters -= 1;
 
-
-    house.hunting.lastProduction =
-        Date.now();
-
+    house.hunting.lastProduction = Date.now();
 
     saveHouseData(house);
 
@@ -3799,30 +2587,20 @@ function removeHunter() {
 
 function moveFreeToWorker() {
 
-    let house =
-        getHouse();
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
 
 
-    if (!house) {
+    if (house.population.free <= 0)
         return;
-    }
-
-
-    house =
-        prepareHouse(house);
-
-
-    if (
-        house.population.free <= 0
-    ) {
-        return;
-    }
 
 
     house.population.free -= 1;
 
     house.population.workers += 1;
-
 
     saveHouseData(house);
 
@@ -3838,36 +2616,25 @@ function moveFreeToWorker() {
 
 function moveWorkerToFree() {
 
-    let house =
-        getHouse();
+    let house = getHouse();
 
+    if (!house) return;
 
-    if (!house) {
-        return;
-    }
-
-
-    house =
-        prepareHouse(house);
+    house = prepareHouse(house);
 
 
     const ordinaryWorkers =
-
         house.population.workers -
         house.population.hunters;
 
 
-    if (
-        ordinaryWorkers <= 0
-    ) {
+    if (ordinaryWorkers <= 0)
         return;
-    }
 
 
     house.population.workers -= 1;
 
     house.population.free += 1;
-
 
     saveHouseData(house);
 
@@ -3883,30 +2650,20 @@ function moveWorkerToFree() {
 
 function moveFreeToSoldier() {
 
-    let house =
-        getHouse();
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
 
 
-    if (!house) {
+    if (house.population.free <= 0)
         return;
-    }
-
-
-    house =
-        prepareHouse(house);
-
-
-    if (
-        house.population.free <= 0
-    ) {
-        return;
-    }
 
 
     house.population.free -= 1;
 
     house.population.soldiers += 1;
-
 
     saveHouseData(house);
 
@@ -3920,30 +2677,20 @@ function moveFreeToSoldier() {
 
 function moveSoldierToFree() {
 
-    let house =
-        getHouse();
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
 
 
-    if (!house) {
+    if (house.population.soldiers <= 0)
         return;
-    }
-
-
-    house =
-        prepareHouse(house);
-
-
-    if (
-        house.population.soldiers <= 0
-    ) {
-        return;
-    }
 
 
     house.population.soldiers -= 1;
 
     house.population.free += 1;
-
 
     saveHouseData(house);
 
@@ -3957,104 +2704,75 @@ function moveSoldierToFree() {
 
 function updatePopulation() {
 
-    let house =
-        getHouse();
+    let house = getHouse();
 
+    if (!house) return;
 
-    if (!house) {
-        return;
-    }
-
-
-    house =
-        prepareHouse(house);
+    house = prepareHouse(house);
 
 
     const free =
         house.population.free;
 
-
     const workers =
         house.population.workers;
-
 
     const soldiers =
         house.population.soldiers;
 
 
     const total =
-
         free +
         workers +
         soldiers;
 
 
     document
-        .getElementById(
-            "freePopulation"
-        )
-        .textContent =
-        free;
+        .getElementById("freePopulation")
+        .textContent = free;
 
 
     document
-        .getElementById(
-            "workerPopulation"
-        )
-        .textContent =
-        workers;
+        .getElementById("workerPopulation")
+        .textContent = workers;
 
 
     document
-        .getElementById(
-            "soldierPopulation"
-        )
-        .textContent =
-        soldiers;
+        .getElementById("soldierPopulation")
+        .textContent = soldiers;
 
 
     document
-        .getElementById(
-            "populationTotal"
-        )
+        .getElementById("populationTotal")
         .textContent =
         "Всего: " + total;
 
 
     document
-        .getElementById(
-            "freeToWorkerButton"
-        )
+        .getElementById("freeToWorkerButton")
         .disabled =
         free <= 0;
 
 
     document
-        .getElementById(
-            "freeToSoldierButton"
-        )
+        .getElementById("freeToSoldierButton")
         .disabled =
         free <= 0;
 
 
     const ordinaryWorkers =
-
         workers -
         house.population.hunters;
 
 
     document
-        .getElementById(
-            "workerToFreeButton"
-        )
+        .getElementById("workerToFreeButton")
         .disabled =
         ordinaryWorkers <= 0;
 
 
     document
-        .getElementById(
-            "soldierToFreeButton"
-        )
+        .getElementById("soldierToFreeButton")
         .disabled =
         soldiers <= 0;
 
@@ -4069,35 +2787,23 @@ function updatePopulation() {
 
 function updateHunting() {
 
-    let house =
-        getHouse();
+    let house = getHouse();
 
+    if (!house) return;
 
-    if (!house) {
-        return;
-    }
-
-
-    house =
-        prepareHouse(house);
+    house = prepareHouse(house);
 
 
     if (!hasForest) {
 
         document
-            .getElementById(
-                "forestLocked"
-            )
-            .style.display =
-            "block";
+            .getElementById("forestLocked")
+            .style.display = "block";
 
 
         document
-            .getElementById(
-                "huntingAvailable"
-            )
-            .style.display =
-            "none";
+            .getElementById("huntingAvailable")
+            .style.display = "none";
 
 
         return;
@@ -4105,19 +2811,13 @@ function updateHunting() {
 
 
     document
-        .getElementById(
-            "forestLocked"
-        )
-        .style.display =
-        "none";
+        .getElementById("forestLocked")
+        .style.display = "none";
 
 
     document
-        .getElementById(
-            "huntingAvailable"
-        )
-        .style.display =
-        "block";
+        .getElementById("huntingAvailable")
+        .style.display = "block";
 
 
     processHunting(house);
@@ -4134,39 +2834,29 @@ function updateHunting() {
 
 
     document
-        .getElementById(
-            "hunterCount"
-        )
-        .textContent =
-        hunters;
+        .getElementById("hunterCount")
+        .textContent = hunters;
 
 
     document
-        .getElementById(
-            "gamePercent"
-        )
+        .getElementById("gamePercent")
         .textContent =
         game + "%";
 
 
     document
-        .getElementById(
-            "gameBar"
-        )
+        .getElementById("gameBar")
         .style.width =
         game + "%";
 
 
     const availableWorkers =
-
         house.population.workers -
         house.population.hunters;
 
 
     document
-        .getElementById(
-            "addHunterButton"
-        )
+        .getElementById("addHunterButton")
         .disabled =
 
         availableWorkers <= 0 ||
@@ -4174,23 +2864,18 @@ function updateHunting() {
 
 
     document
-        .getElementById(
-            "removeHunterButton"
-        )
+        .getElementById("removeHunterButton")
         .disabled =
         hunters <= 0;
 
 
     const status =
-        document
-            .getElementById(
-                "huntingStatus"
-            );
+        document.getElementById(
+            "huntingStatus"
+        );
 
 
-    if (
-        hunters < HUNTING_MINIMUM
-    ) {
+    if (hunters < HUNTING_MINIMUM) {
 
         status.textContent =
             "Недостаточно охотников. Требуется минимум 2.";
@@ -4201,21 +2886,19 @@ function updateHunting() {
 
         const groups =
             Math.floor(
-                hunters /
-                HUNTING_GROUP_SIZE
+                hunters / HUNTING_GROUP_SIZE
             );
 
 
         const production =
-            groups *
-            MEAT_PER_GROUP;
+            groups * MEAT_PER_GROUP;
 
 
         status.textContent =
-
             "Активная охота: +" +
             production +
             " 🍖 каждые 2 часа.";
+
     }
 
 
@@ -4229,19 +2912,13 @@ function updateHunting() {
 
 function updateResources() {
 
-    const house =
-        getHouse();
+    const house = getHouse();
 
-
-    if (!house) {
-        return;
-    }
+    if (!house) return;
 
 
     document
-        .getElementById(
-            "foodValue"
-        )
+        .getElementById("foodValue")
         .textContent =
         Math.floor(
             house.resources.meat
@@ -4250,7 +2927,7 @@ function updateResources() {
 
 
 /* =====================================================
-   СПРАВКА НАСЕЛЕНИЯ
+   ДАННЫЕ НАСЕЛЕНИЯ
 ===================================================== */
 
 const helpData = {
@@ -4309,7 +2986,7 @@ const helpData = {
 
 
 /* =====================================================
-   СПРАВКА РЕСУРСОВ
+   ДАННЫЕ РЕСУРСОВ
 ===================================================== */
 
 const resourceData = {
@@ -4323,17 +3000,19 @@ const resourceData = {
             "Мясо — основной источник пищи для населения Дома. Без достаточных запасов пищи государство не сможет долго существовать.",
 
         influence:
-            "Поддерживает жизнь населения. Каждый житель потребляет мясо через определённый промежуток времени.",
+            "Поддерживает жизнь населения.",
 
-        consumption:
-            "Свободный и рабочий житель — 1 мясо каждые 5 часов. Военнослужащий — 2 мяса каждые 5 часов.",
+        extraction:
+            "На текущем этапе мясо добывается охотой. Для охоты требуется клетка 🌲 Лес и назначенные охотники."
 
-        production:
-            "На текущем этапе добывается охотой. Для охоты требуется клетка 🌲 Лес и назначенные охотники."
     }
 
 };
 
+
+/* =====================================================
+   СПРАВКА НАСЕЛЕНИЯ
+===================================================== */
 
 function showHelp(type) {
 
@@ -4341,51 +3020,56 @@ function showHelp(type) {
         helpData[type];
 
 
-    if (!data) {
+    if (!data)
         return;
-    }
 
 
     document
-        .getElementById(
-            "helpTitle"
-        )
+        .getElementById("helpTitle")
         .textContent =
         data.title;
 
 
     document
-        .getElementById(
-            "helpDescription"
-        )
+        .getElementById("helpDescription")
         .textContent =
         data.description;
 
 
     document
-        .getElementById(
-            "helpInfluence"
-        )
+        .getElementById("helpDetailLabel")
+        .textContent =
+        "ВЛИЯНИЕ";
+
+
+    document
+        .getElementById("helpInfluence")
         .textContent =
         data.influence;
 
 
     document
-        .getElementById(
-            "helpConsumption"
-        )
+        .getElementById("helpSecondLabel")
+        .textContent =
+        "ПОТРЕБЛЕНИЕ";
+
+
+    document
+        .getElementById("helpConsumption")
         .textContent =
         data.consumption;
 
 
     document
-        .getElementById(
-            "helpOverlay"
-        )
+        .getElementById("helpOverlay")
         .style.display =
         "flex";
 }
 
+
+/* =====================================================
+   СПРАВКА РЕСУРСА
+===================================================== */
 
 function showResourceInfo(type) {
 
@@ -4393,60 +3077,61 @@ function showResourceInfo(type) {
         resourceData[type];
 
 
-    if (!data) {
+    if (!data)
         return;
-    }
 
 
     document
-        .getElementById(
-            "helpTitle"
-        )
+        .getElementById("helpTitle")
         .textContent =
         data.title;
 
 
     document
-        .getElementById(
-            "helpDescription"
-        )
+        .getElementById("helpDescription")
         .textContent =
         data.description;
 
 
     document
-        .getElementById(
-            "helpInfluence"
-        )
+        .getElementById("helpDetailLabel")
+        .textContent =
+        "ВЛИЯНИЕ";
+
+
+    document
+        .getElementById("helpInfluence")
         .textContent =
         data.influence;
 
 
     document
-        .getElementById(
-            "helpConsumption"
-        )
+        .getElementById("helpSecondLabel")
         .textContent =
-        data.consumption +
-        " " +
-        data.production;
+        "ДОБЫВАНИЕ";
 
 
     document
-        .getElementById(
-            "helpOverlay"
-        )
+        .getElementById("helpConsumption")
+        .textContent =
+        data.extraction;
+
+
+    document
+        .getElementById("helpOverlay")
         .style.display =
         "flex";
 }
 
 
+/* =====================================================
+   ЗАКРЫТЬ СПРАВКУ
+===================================================== */
+
 function closeHelp() {
 
     document
-        .getElementById(
-            "helpOverlay"
-        )
+        .getElementById("helpOverlay")
         .style.display =
         "none";
 }
@@ -4460,7 +3145,9 @@ function closeHelpOutside(event) {
     ) {
 
         closeHelp();
+
     }
+
 }
 
 
@@ -4492,25 +3179,19 @@ function openRealm() {
 
 
     document
-        .getElementById(
-            "realmHouse"
-        )
+        .getElementById("realmHouse")
         .textContent =
         house.houseName;
 
 
     document
-        .getElementById(
-            "realmCountry"
-        )
+        .getElementById("realmCountry")
         .textContent =
         house.realmName;
 
 
     document
-        .getElementById(
-            "realmMotto"
-        )
+        .getElementById("realmMotto")
         .textContent =
         "«" +
         house.motto +
@@ -4518,9 +3199,7 @@ function openRealm() {
 
 
     document
-        .getElementById(
-            "realmHistory"
-        )
+        .getElementById("realmHistory")
         .textContent =
 
         house.description ||
@@ -4528,10 +3207,9 @@ function openRealm() {
 
 
     const crest =
-        document
-            .getElementById(
-                "realmCrest"
-            );
+        document.getElementById(
+            "realmCrest"
+        );
 
 
     if (house.crest) {
@@ -4550,6 +3228,7 @@ function openRealm() {
 
         crest.innerHTML =
             "♜";
+
     }
 
 
@@ -4561,33 +3240,24 @@ function openRealm() {
 
 
     document
-        .getElementById(
-            "introScreen"
-        )
+        .getElementById("introScreen")
         .style.display =
         "none";
 
 
     document
-        .getElementById(
-            "creationScreen"
-        )
+        .getElementById("creationScreen")
         .style.display =
         "none";
 
 
     document
-        .getElementById(
-            "realmScreen"
-        )
+        .getElementById("realmScreen")
         .style.display =
         "block";
 
 
-    window.scrollTo(
-        0,
-        0
-    );
+    window.scrollTo(0, 0);
 }
 
 
@@ -4603,9 +3273,8 @@ function resetHouse() {
         );
 
 
-    if (!confirmed) {
+    if (!confirmed)
         return;
-    }
 
 
     localStorage.removeItem(
@@ -4638,26 +3307,24 @@ function checkExistingHouse() {
     else {
 
         document
-            .getElementById(
-                "introScreen"
-            )
+            .getElementById("introScreen")
             .style.display =
             "block";
 
+
         document
-            .getElementById(
-                "creationScreen"
-            )
+            .getElementById("creationScreen")
             .style.display =
             "none";
 
+
         document
-            .getElementById(
-                "realmScreen"
-            )
+            .getElementById("realmScreen")
             .style.display =
             "none";
+
     }
+
 }
 
 
@@ -4673,9 +3340,8 @@ setInterval(
             getHouse();
 
 
-        if (!house) {
+        if (!house)
             return;
-        }
 
 
         processHunting(house);
@@ -4687,6 +3353,7 @@ setInterval(
     },
 
     1000
+
 );
 
 

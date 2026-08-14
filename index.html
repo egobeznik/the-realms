@@ -638,7 +638,7 @@ textarea.input {
 
 
 /* =====================================================
-   ВЕРХ
+   ВЕРХ ГОСУДАРСТВА
 ===================================================== */
 
 .realmCrest {
@@ -817,7 +817,7 @@ textarea.input {
 
 
 /* =====================================================
-   ОБЩИЕ СЕКЦИИ
+   СЕКЦИИ
 ===================================================== */
 
 .realmSection {
@@ -1156,8 +1156,104 @@ textarea.input {
 
 
 /* =====================================================
-   ПРОИЗВОДСТВО
+   ВЫПАДАЮЩЕЕ ПРОИЗВОДСТВО
 ===================================================== */
+
+.productionHeader {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    width: 100%;
+
+    min-height: 50px;
+
+    padding:
+        10px
+        13px;
+
+    border: none;
+
+    background:
+        transparent;
+
+    color: #bca57b;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 10px;
+
+    letter-spacing: 1.5px;
+
+    cursor: pointer;
+
+    text-align: left;
+}
+
+
+.productionHeader:active {
+
+    background:
+        rgba(75, 58, 35, 0.18);
+}
+
+
+.productionHeaderLeft {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+}
+
+
+.productionHeaderIcon {
+
+    font-size: 16px;
+}
+
+
+.productionArrow {
+
+    color: #94784c;
+
+    font-size: 13px;
+
+    transition:
+        transform 0.25s ease;
+}
+
+
+.productionSection.open
+.productionArrow {
+
+    transform: rotate(180deg);
+}
+
+
+.productionMenu {
+
+    display: none;
+
+    border-top:
+        1px solid
+        rgba(117, 94, 56, 0.32);
+}
+
+
+.productionSection.open
+.productionMenu {
+
+    display: block;
+}
+
 
 .productionCard {
 
@@ -1245,7 +1341,9 @@ textarea.input {
 
     justify-content: space-between;
 
-    margin-bottom: 5px;
+    gap: 10px;
+
+    margin-bottom: 6px;
 
     color: #85796a;
 
@@ -1263,6 +1361,8 @@ textarea.input {
         serif;
 
     font-size: 9px;
+
+    text-align: right;
 }
 
 
@@ -1270,7 +1370,7 @@ textarea.input {
 
     margin-top: 9px;
 
-    padding: 8px;
+    padding: 9px;
 
     border:
         1px solid
@@ -1283,7 +1383,21 @@ textarea.input {
 
     font-size: 11px;
 
+    line-height: 1.4;
+
     text-align: center;
+}
+
+
+.productionStatus.locked {
+
+    color: #876f60;
+
+    border-color:
+        rgba(112, 77, 61, 0.42);
+
+    background:
+        rgba(64, 37, 28, 0.16);
 }
 
 
@@ -1410,6 +1524,64 @@ textarea.input {
         #77633f;
 
     transition: width 0.4s ease;
+}
+
+
+/* =====================================================
+   СООБЩЕНИЕ ОБ ОТСУТСТВИИ ЛЕСА
+===================================================== */
+
+.noForest {
+
+    margin-top: 10px;
+
+    padding:
+        12px
+        10px;
+
+    border:
+        1px solid
+        rgba(112, 77, 61, 0.42);
+
+    background:
+        rgba(64, 37, 28, 0.15);
+
+    color: #89766a;
+
+    font-size: 12px;
+
+    line-height: 1.45;
+
+    text-align: center;
+}
+
+
+.noForestIcon {
+
+    display: block;
+
+    margin-bottom: 5px;
+
+    font-size: 20px;
+
+    filter: grayscale(0.4);
+}
+
+
+.noForestTitle {
+
+    margin-bottom: 4px;
+
+    color: #a28a72;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 9px;
+
+    letter-spacing: 1.5px;
 }
 
 
@@ -2092,7 +2264,7 @@ textarea.input {
             class="realmMotto"
             id="realmMotto"
         >
-            «Мы храним то, что ещё не стало историей.»
+            «Девиз»
         </div>
 
 
@@ -2134,7 +2306,7 @@ textarea.input {
             </div>
 
 
-            <!-- СВОБОДНЫЕ -->
+            <!-- СВОБОДНОЕ -->
 
             <div class="populationRow">
 
@@ -2192,7 +2364,7 @@ textarea.input {
             </div>
 
 
-            <!-- РАБОЧИЕ -->
+            <!-- РАБОЧЕЕ -->
 
             <div class="populationRow">
 
@@ -2315,7 +2487,6 @@ textarea.input {
 
             <div class="resourceGrid">
 
-
                 <div class="resource">
 
                     <div class="resourceIcon">
@@ -2386,7 +2557,6 @@ textarea.input {
 
                 </div>
 
-
             </div>
 
         </section>
@@ -2396,171 +2566,233 @@ textarea.input {
              ПРОИЗВОДСТВО
         ================================================== -->
 
-        <section class="realmSection">
+        <section
+            class="realmSection productionSection"
+            id="productionSection"
+        >
 
-            <div class="sectionHeader">
+            <button
+                class="productionHeader"
+                onclick="toggleProduction()"
+            >
 
-                <div class="sectionTitle">
-                    ПРОИЗВОДСТВО
+                <div class="productionHeaderLeft">
+
+                    <span class="productionHeaderIcon">
+                        ⚒
+                    </span>
+
+                    <span>
+                        ПРОИЗВОДСТВО
+                    </span>
+
                 </div>
 
-                <div class="sectionTotal">
-                    ДОСТУПНО: 1
-                </div>
 
-            </div>
+                <span
+                    class="productionArrow"
+                    id="productionArrow"
+                >
+                    ▼
+                </span>
+
+            </button>
 
 
-            <div class="productionCard">
+            <div class="productionMenu">
+
+                <!-- ОХОТА -->
+
+                <div class="productionCard">
 
 
-                <div class="productionTop">
+                    <div class="productionTop">
 
-                    <div class="productionIcon">
-                        🏹
-                    </div>
-
-                    <div>
-
-                        <div class="productionTitle">
-                            ОХОТА
+                        <div class="productionIcon">
+                            🏹
                         </div>
 
-                        <div class="productionSubtitle">
-                            Добыча мяса в лесных угодьях
-                        </div>
+                        <div>
 
-                    </div>
-
-                </div>
-
-
-                <div class="productionInfo">
-
-
-                    <div class="productionLine">
-
-                        <span>
-                            Требование
-                        </span>
-
-                        <strong>
-                            🌲 ЛЕС
-                        </strong>
-
-                    </div>
-
-
-                    <div class="productionLine">
-
-                        <span>
-                            Минимум
-                        </span>
-
-                        <strong>
-                            2 охотника
-                        </strong>
-
-                    </div>
-
-
-                    <div class="productionLine">
-
-                        <span>
-                            Производство
-                        </span>
-
-                        <strong>
-                            +20 🍖 / 2 ч.
-                        </strong>
-
-                    </div>
-
-
-                    <div class="productionLine">
-
-                        <span>
-                            Вместимость леса
-                        </span>
-
-                        <strong>
-                            10 охотников
-                        </strong>
-
-                    </div>
-
-
-                    <div
-                        class="productionStatus"
-                        id="huntingStatus"
-                    >
-                        Охота не ведётся
-                    </div>
-
-
-                    <div class="hunterControl">
-
-
-                        <button
-                            class="hunterButton"
-                            onclick="removeHunter()"
-                            id="removeHunterButton"
-                        >
-                            −
-                        </button>
-
-
-                        <div class="hunterCount">
-
-                            <div
-                                class="hunterCountNumber"
-                                id="hunterCount"
-                            >
-                                0
+                            <div class="productionTitle">
+                                ОХОТА
                             </div>
 
-                            <div class="hunterCountText">
-                                ОХОТНИКОВ
+                            <div class="productionSubtitle">
+                                Добыча мяса в лесных угодьях
                             </div>
 
                         </div>
 
-
-                        <button
-                            class="hunterButton"
-                            onclick="addHunter()"
-                            id="addHunterButton"
-                        >
-                            +
-                        </button>
-
-
                     </div>
 
 
-                    <div class="forestBar">
+                    <div class="productionInfo">
 
-                        <div class="forestBarLabel">
+
+                        <div class="productionLine">
 
                             <span>
-                                🦌 Дичь в лесу
+                                Требование
                             </span>
 
-                            <span
-                                id="gamePercent"
-                            >
-                                100%
-                            </span>
+                            <strong>
+                                🌲 ЛЕС
+                            </strong>
 
                         </div>
 
 
-                        <div class="forestBarOuter">
+                        <div class="productionLine">
+
+                            <span>
+                                Минимум
+                            </span>
+
+                            <strong>
+                                2 охотника
+                            </strong>
+
+                        </div>
+
+
+                        <div class="productionLine">
+
+                            <span>
+                                Производство
+                            </span>
+
+                            <strong>
+                                +20 🍖 / 2 ч.
+                            </strong>
+
+                        </div>
+
+
+                        <div class="productionLine">
+
+                            <span>
+                                Вместимость
+                            </span>
+
+                            <strong>
+                                10 охотников
+                            </strong>
+
+                        </div>
+
+
+                        <!-- =================================
+                             ЛЕСА НЕТ
+                        ================================== -->
+
+                        <div
+                            id="forestLocked"
+                            class="noForest"
+                        >
+
+                            <span class="noForestIcon">
+                                🌲
+                            </span>
+
+                            <div class="noForestTitle">
+                                ОХОТА НЕДОСТУПНА
+                            </div>
+
+                            <div>
+                                Для начала охоты необходимо
+                                владеть клеткой леса.
+                                Расширьте свои владения,
+                                чтобы получить доступ
+                                к этому производству.
+                            </div>
+
+                        </div>
+
+
+                        <!-- =================================
+                             ОХОТА ДОСТУПНА
+                        ================================== -->
+
+                        <div
+                            id="huntingAvailable"
+                            style="display:none;"
+                        >
 
                             <div
-                                class="forestBarInner"
-                                id="gameBar"
+                                class="productionStatus"
+                                id="huntingStatus"
                             >
+                                Охота не ведётся
+                            </div>
+
+
+                            <div class="hunterControl">
+
+
+                                <button
+                                    class="hunterButton"
+                                    onclick="removeHunter()"
+                                    id="removeHunterButton"
+                                >
+                                    −
+                                </button>
+
+
+                                <div class="hunterCount">
+
+                                    <div
+                                        class="hunterCountNumber"
+                                        id="hunterCount"
+                                    >
+                                        0
+                                    </div>
+
+                                    <div class="hunterCountText">
+                                        ОХОТНИКОВ
+                                    </div>
+
+                                </div>
+
+
+                                <button
+                                    class="hunterButton"
+                                    onclick="addHunter()"
+                                    id="addHunterButton"
+                                >
+                                    +
+                                </button>
+
+                            </div>
+
+
+                            <div class="forestBar">
+
+                                <div class="forestBarLabel">
+
+                                    <span>
+                                        🦌 Дичь в лесу
+                                    </span>
+
+                                    <span
+                                        id="gamePercent"
+                                    >
+                                        100%
+                                    </span>
+
+                                </div>
+
+
+                                <div class="forestBarOuter">
+
+                                    <div
+                                        class="forestBarInner"
+                                        id="gameBar"
+                                    >
+                                    </div>
+
+                                </div>
+
                             </div>
 
                         </div>
@@ -2575,7 +2807,7 @@ textarea.input {
 
 
         <!-- =================================================
-             ПЕРВАЯ ДЕРЕВНЯ
+             ДЕРЕВНЯ
         ================================================== -->
 
         <div class="village">
@@ -2762,6 +2994,28 @@ if (
         .getElementById("locked")
         .style.display = "flex";
 }
+
+
+/* =====================================================
+   ТЕРРИТОРИЯ
+===================================================== */
+
+/*
+   Сейчас у государства НЕТ клетки леса.
+
+   Позже, когда мы сделаем карту,
+   это значение будет определяться
+   реальными клетками территории.
+
+   Например:
+
+   hasForest = true;
+
+   Тогда охота автоматически станет
+   доступной.
+*/
+
+const hasForest = false;
 
 
 /* =====================================================
@@ -3039,7 +3293,7 @@ function getHouse() {
 
 
 /* =====================================================
-   СОХРАНИТЬ ДОМ
+   СОХРАНИТЬ
 ===================================================== */
 
 function saveHouseData(house) {
@@ -3052,7 +3306,7 @@ function saveHouseData(house) {
 
 
 /* =====================================================
-   МИГРАЦИЯ СТАРОГО СОХРАНЕНИЯ
+   ПОДГОТОВКА ДАННЫХ
 ===================================================== */
 
 function prepareHouse(house) {
@@ -3070,12 +3324,38 @@ function prepareHouse(house) {
 
 
     if (
+        typeof house.population.free
+        !== "number"
+    ) {
+
+        house.population.free = 100;
+    }
+
+
+    if (
+        typeof house.population.workers
+        !== "number"
+    ) {
+
+        house.population.workers = 0;
+    }
+
+
+    if (
+        typeof house.population.soldiers
+        !== "number"
+    ) {
+
+        house.population.soldiers = 0;
+    }
+
+
+    if (
         typeof house.population.hunters
         !== "number"
     ) {
 
-        house.population.hunters =
-            0;
+        house.population.hunters = 0;
     }
 
 
@@ -3096,8 +3376,7 @@ function prepareHouse(house) {
         !== "number"
     ) {
 
-        house.resources.meat =
-            100;
+        house.resources.meat = 100;
     }
 
 
@@ -3116,160 +3395,113 @@ function prepareHouse(house) {
     }
 
 
-    if (
-        typeof house.hunting.game
-        !== "number"
-    ) {
-
-        house.hunting.game =
-            100;
-    }
-
-
-    if (
-        typeof house.hunting.lastProduction
-        !== "number"
-    ) {
-
-        house.hunting.lastProduction =
-            Date.now();
-    }
-
-
-    if (
-        typeof house.hunting.lastGameRestore
-        !== "number"
-    ) {
-
-        house.hunting.lastGameRestore =
-            Date.now();
-    }
-
-
     return house;
 }
 
 
 /* =====================================================
-   ПРОИЗВОДСТВО ОХОТЫ
+   ПРОИЗВОДСТВО
 ===================================================== */
 
 function processHunting(house) {
 
+    /*
+       Пока леса нет — производство
+       вообще не выполняется.
+    */
+
+    if (!hasForest) {
+
+        house.hunting.lastProduction =
+            Date.now();
+
+        saveHouseData(house);
+
+        return;
+    }
+
+
     const hunters =
         house.population.hunters;
+
+
+    if (
+        hunters < HUNTING_MINIMUM
+    ) {
+
+        house.hunting.lastProduction =
+            Date.now();
+
+        saveHouseData(house);
+
+        return;
+    }
 
 
     const now =
         Date.now();
 
 
-    if (
-        hunters >= HUNTING_MINIMUM &&
-        hunters <= HUNTING_MAXIMUM
-    ) {
-
-        const elapsed =
-            now -
-            house.hunting.lastProduction;
-
-
-        const completedCycles =
-            Math.floor(
-                elapsed /
-                HUNTING_INTERVAL
-            );
-
-
-        if (completedCycles > 0) {
-
-            const groups =
-                Math.floor(
-                    hunters /
-                    HUNTING_GROUP_SIZE
-                );
-
-
-            const meatPerCycle =
-                groups *
-                MEAT_PER_GROUP;
-
-
-            const possibleCycles =
-                Math.min(
-                    completedCycles,
-                    Math.floor(
-                        house.hunting.game /
-                        GAME_LOSS_PER_HUNT
-                    )
-                );
-
-
-            if (possibleCycles > 0) {
-
-                house.resources.meat +=
-                    meatPerCycle *
-                    possibleCycles;
-
-
-                house.hunting.game -=
-                    GAME_LOSS_PER_HUNT *
-                    possibleCycles;
-
-
-                house.hunting.lastProduction +=
-                    HUNTING_INTERVAL *
-                    possibleCycles;
-            }
-
-            else {
-
-                house.hunting.lastProduction =
-                    now;
-            }
-
-        }
-
-    }
-
-    else {
-
-        house.hunting.lastProduction =
-            now;
-    }
-
-
-    /* =================================================
-       ВОССТАНОВЛЕНИЕ ДИЧИ
-    ================================================== */
-
-    const restoreElapsed =
+    const elapsed =
         now -
-        house.hunting.lastGameRestore;
+        house.hunting.lastProduction;
 
 
-    const restoreCycles =
+    const completedCycles =
         Math.floor(
-            restoreElapsed /
-            GAME_RESTORE_INTERVAL
+            elapsed /
+            HUNTING_INTERVAL
         );
 
 
-    if (restoreCycles > 0) {
-
-        house.hunting.game =
-            Math.min(
-                100,
-
-                house.hunting.game +
-                GAME_RESTORE_AMOUNT *
-                restoreCycles
-            );
+    if (completedCycles <= 0) {
+        return;
+    }
 
 
-        house.hunting.lastGameRestore +=
-            GAME_RESTORE_INTERVAL *
-            restoreCycles;
+    const groups =
+        Math.floor(
+            hunters /
+            HUNTING_GROUP_SIZE
+        );
+
+
+    const meatPerCycle =
+        groups *
+        MEAT_PER_GROUP;
+
+
+    const possibleCycles =
+        Math.min(
+
+            completedCycles,
+
+            Math.floor(
+                house.hunting.game /
+                GAME_LOSS_PER_HUNT
+            )
+
+        );
+
+
+    if (possibleCycles > 0) {
+
+        house.resources.meat +=
+
+            meatPerCycle *
+            possibleCycles;
+
+
+        house.hunting.game -=
+
+            GAME_LOSS_PER_HUNT *
+            possibleCycles;
+
+
+        house.hunting.lastProduction +=
+
+            HUNTING_INTERVAL *
+            possibleCycles;
     }
 
 
@@ -3278,10 +3510,34 @@ function processHunting(house) {
 
 
 /* =====================================================
+   РАСКРЫТИЕ ПРОИЗВОДСТВА
+===================================================== */
+
+function toggleProduction() {
+
+    const section =
+        document
+            .getElementById(
+                "productionSection"
+            );
+
+
+    section.classList.toggle(
+        "open"
+    );
+}
+
+
+/* =====================================================
    ДОБАВИТЬ ОХОТНИКА
 ===================================================== */
 
 function addHunter() {
+
+    if (!hasForest) {
+        return;
+    }
+
 
     let house =
         getHouse();
@@ -3296,8 +3552,19 @@ function addHunter() {
         prepareHouse(house);
 
 
+    /*
+       Охотник берётся ТОЛЬКО
+       из рабочего населения.
+    */
+
+    const availableWorkers =
+
+        house.population.workers -
+        house.population.hunters;
+
+
     if (
-        house.population.free <= 0
+        availableWorkers <= 0
     ) {
         return;
     }
@@ -3310,10 +3577,6 @@ function addHunter() {
         return;
     }
 
-
-    house.population.free -= 1;
-
-    house.population.workers -= 1;
 
     house.population.hunters += 1;
 
@@ -3356,9 +3619,12 @@ function removeHunter() {
     }
 
 
-    house.population.hunters -= 1;
+    /*
+       Охотник возвращается
+       в обычное рабочее население.
+    */
 
-    house.population.workers += 1;
+    house.population.hunters -= 1;
 
 
     house.hunting.lastProduction =
@@ -3431,17 +3697,23 @@ function moveWorkerToFree() {
         prepareHouse(house);
 
 
+    /*
+       Нельзя перевести свободным
+       рабочего, если он уже охотник.
+    */
+
+    const ordinaryWorkers =
+
+        house.population.workers -
+        house.population.hunters;
+
+
     if (
-        house.population.workers <= 0
+        ordinaryWorkers <= 0
     ) {
         return;
     }
 
-
-    /*
-       Нельзя забрать человека,
-       который уже является охотником.
-    */
 
     house.population.workers -= 1;
 
@@ -3531,7 +3803,7 @@ function moveSoldierToFree() {
 
 
 /* =====================================================
-   ОБНОВЛЕНИЕ НАСЕЛЕНИЯ
+   НАСЕЛЕНИЕ
 ===================================================== */
 
 function updatePopulation() {
@@ -3566,71 +3838,78 @@ function updatePopulation() {
 
 
     const total =
+
         free +
         workers +
-        soldiers +
-        hunters;
+        soldiers;
 
 
     document
-        .getElementById("freePopulation")
+        .getElementById(
+            "freePopulation"
+        )
         .textContent =
         free;
 
 
-    /*
-       В рабочее население входят
-       в том числе охотники.
-    */
-
-    const totalWorkers =
-        workers +
-        hunters;
-
-
     document
-        .getElementById("workerPopulation")
+        .getElementById(
+            "workerPopulation"
+        )
         .textContent =
-        totalWorkers;
+        workers;
 
 
     document
-        .getElementById("soldierPopulation")
+        .getElementById(
+            "soldierPopulation"
+        )
         .textContent =
         soldiers;
 
 
     document
-        .getElementById("populationTotal")
+        .getElementById(
+            "populationTotal"
+        )
         .textContent =
         "Всего: " + total;
 
 
     document
-        .getElementById("freeToWorkerButton")
+        .getElementById(
+            "freeToWorkerButton"
+        )
         .disabled =
         free <= 0;
 
 
     document
-        .getElementById("freeToSoldierButton")
+        .getElementById(
+            "freeToSoldierButton"
+        )
         .disabled =
         free <= 0;
 
 
-    /*
-       Нельзя перевести охотника
-       обычной кнопкой рабочего.
-    */
+    const ordinaryWorkers =
+
+        workers -
+        hunters;
+
 
     document
-        .getElementById("workerToFreeButton")
+        .getElementById(
+            "workerToFreeButton"
+        )
         .disabled =
-        workers <= 0;
+        ordinaryWorkers <= 0;
 
 
     document
-        .getElementById("soldierToFreeButton")
+        .getElementById(
+            "soldierToFreeButton"
+        )
         .disabled =
         soldiers <= 0;
 
@@ -3640,7 +3919,7 @@ function updatePopulation() {
 
 
 /* =====================================================
-   ОБНОВЛЕНИЕ ОХОТЫ
+   ОХОТА
 ===================================================== */
 
 function updateHunting() {
@@ -3658,6 +3937,49 @@ function updateHunting() {
         prepareHouse(house);
 
 
+    /*
+       Если леса нет —
+       охота полностью закрыта.
+    */
+
+    if (!hasForest) {
+
+        document
+            .getElementById(
+                "forestLocked"
+            )
+            .style.display =
+            "block";
+
+
+        document
+            .getElementById(
+                "huntingAvailable"
+            )
+            .style.display =
+            "none";
+
+
+        return;
+    }
+
+
+    document
+        .getElementById(
+            "forestLocked"
+        )
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById(
+            "huntingAvailable"
+        )
+        .style.display =
+        "block";
+
+
     processHunting(house);
 
 
@@ -3672,51 +3994,72 @@ function updateHunting() {
 
 
     document
-        .getElementById("hunterCount")
+        .getElementById(
+            "hunterCount"
+        )
         .textContent =
         hunters;
 
 
     document
-        .getElementById("gamePercent")
+        .getElementById(
+            "gamePercent"
+        )
         .textContent =
         game + "%";
 
 
     document
-        .getElementById("gameBar")
+        .getElementById(
+            "gameBar"
+        )
         .style.width =
         game + "%";
 
 
+    const availableWorkers =
+
+        house.population.workers -
+        house.population.hunters;
+
+
     document
-        .getElementById("addHunterButton")
+        .getElementById(
+            "addHunterButton"
+        )
         .disabled =
-        (
-            house.population.free <= 0 ||
-            hunters >= HUNTING_MAXIMUM
-        );
+
+        availableWorkers <= 0 ||
+        hunters >= HUNTING_MAXIMUM;
 
 
     document
-        .getElementById("removeHunterButton")
+        .getElementById(
+            "removeHunterButton"
+        )
         .disabled =
         hunters <= 0;
 
 
     const status =
         document
-            .getElementById("huntingStatus");
+            .getElementById(
+                "huntingStatus"
+            );
 
 
-    if (hunters < HUNTING_MINIMUM) {
+    if (
+        hunters < HUNTING_MINIMUM
+    ) {
 
         status.textContent =
             "Недостаточно охотников. Требуется минимум 2.";
 
     }
 
-    else if (game <= 0) {
+    else if (
+        game <= 0
+    ) {
 
         status.textContent =
             "Дичь исчерпана. Лес восстанавливает запасы.";
@@ -3738,6 +4081,7 @@ function updateHunting() {
 
 
         status.textContent =
+
             "Активная охота: +" +
             production +
             " 🍖 каждые 2 часа.";
@@ -3764,7 +4108,9 @@ function updateResources() {
 
 
     document
-        .getElementById("foodValue")
+        .getElementById(
+            "foodValue"
+        )
         .textContent =
         Math.floor(
             house.resources.meat
@@ -3831,10 +4177,6 @@ const helpData = {
 };
 
 
-/* =====================================================
-   СПРАВКА
-===================================================== */
-
 function showHelp(type) {
 
     const data =
@@ -3847,31 +4189,41 @@ function showHelp(type) {
 
 
     document
-        .getElementById("helpTitle")
+        .getElementById(
+            "helpTitle"
+        )
         .textContent =
         data.title;
 
 
     document
-        .getElementById("helpDescription")
+        .getElementById(
+            "helpDescription"
+        )
         .textContent =
         data.description;
 
 
     document
-        .getElementById("helpInfluence")
+        .getElementById(
+            "helpInfluence"
+        )
         .textContent =
         data.influence;
 
 
     document
-        .getElementById("helpConsumption")
+        .getElementById(
+            "helpConsumption"
+        )
         .textContent =
         data.consumption;
 
 
     document
-        .getElementById("helpOverlay")
+        .getElementById(
+            "helpOverlay"
+        )
         .style.display =
         "flex";
 }
@@ -3880,7 +4232,9 @@ function showHelp(type) {
 function closeHelp() {
 
     document
-        .getElementById("helpOverlay")
+        .getElementById(
+            "helpOverlay"
+        )
         .style.display =
         "none";
 }
@@ -3922,24 +4276,29 @@ function openRealm() {
 
     processHunting(house);
 
-
     saveHouseData(house);
 
 
     document
-        .getElementById("realmHouse")
+        .getElementById(
+            "realmHouse"
+        )
         .textContent =
         house.houseName;
 
 
     document
-        .getElementById("realmCountry")
+        .getElementById(
+            "realmCountry"
+        )
         .textContent =
         house.realmName;
 
 
     document
-        .getElementById("realmMotto")
+        .getElementById(
+            "realmMotto"
+        )
         .textContent =
         "«" +
         house.motto +
@@ -3947,15 +4306,20 @@ function openRealm() {
 
 
     document
-        .getElementById("realmHistory")
+        .getElementById(
+            "realmHistory"
+        )
         .textContent =
+
         house.description ||
         "История этого Дома ещё только начинается.";
 
 
     const crest =
         document
-            .getElementById("realmCrest");
+            .getElementById(
+                "realmCrest"
+            );
 
 
     if (house.crest) {
@@ -3985,24 +4349,33 @@ function openRealm() {
 
 
     document
-        .getElementById("introScreen")
+        .getElementById(
+            "introScreen"
+        )
         .style.display =
         "none";
 
 
     document
-        .getElementById("creationScreen")
+        .getElementById(
+            "creationScreen"
+        )
         .style.display =
         "none";
 
 
     document
-        .getElementById("realmScreen")
+        .getElementById(
+            "realmScreen"
+        )
         .style.display =
         "block";
 
 
-    window.scrollTo(0, 0);
+    window.scrollTo(
+        0,
+        0
+    );
 }
 
 
@@ -4053,17 +4426,23 @@ function checkExistingHouse() {
     else {
 
         document
-            .getElementById("introScreen")
+            .getElementById(
+                "introScreen"
+            )
             .style.display =
             "block";
 
         document
-            .getElementById("creationScreen")
+            .getElementById(
+                "creationScreen"
+            )
             .style.display =
             "none";
 
         document
-            .getElementById("realmScreen")
+            .getElementById(
+                "realmScreen"
+            )
             .style.display =
             "none";
     }
@@ -4071,10 +4450,11 @@ function checkExistingHouse() {
 
 
 /* =====================================================
-   ОБНОВЛЕНИЕ ТАЙМЕРОВ
+   ОБНОВЛЕНИЕ
 ===================================================== */
 
 setInterval(
+
     function() {
 
         const house =

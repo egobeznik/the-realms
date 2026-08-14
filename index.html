@@ -2522,7 +2522,7 @@ textarea.input {
         >
 
             <div class="villageTitle" id="villageTitle">
-                ПЕРВАЯ ДЕРЕВНЯ
+                ВАША СТОЛИЦА
             </div>
 
             <div class="villageText" id="villageText">
@@ -5143,13 +5143,13 @@ function openRealm() {
         document.getElementById("villageMapHint");
 
     if (house.city) {
-        villageTitle.textContent = "ПЕРВАЯ ДЕРЕВНЯ · ОСНОВАНА";
+        villageTitle.textContent = "СТОЛИЦА • ОСНОВАНА";
         villageText.textContent =
             "Ваш единственный город основан. Вокруг него закреплены первые земли Дома.";
         villageMapHint.textContent =
             "ОТКРЫТЬ КАРТУ МИРА · X: " + house.city.x + " · Y: " + house.city.y + " · ›";
     } else {
-        villageTitle.textContent = "ПЕРВАЯ ДЕРЕВНЯ";
+        villageTitle.textContent = "СТОЛИЦА";
         villageText.textContent =
             "Здесь начнётся строительство вашего будущего государства.";
         villageMapHint.textContent =

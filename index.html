@@ -8,7 +8,7 @@
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-<title>The Realms</title>
+<title>The Realms · Merged v6</title>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -952,11 +952,21 @@ textarea.input {
 .village {
     position: relative;
     z-index: 2;
+    display: block;
+    width: 100%;
     margin-top: 18px;
-    padding: 15px 13px;
+    padding: 15px 13px 13px;
     border: 1px solid rgba(157, 126, 72, 0.5);
     background: rgba(29, 24, 18, 0.7);
     text-align: center;
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.village:active {
+    background: rgba(58, 46, 29, 0.78);
+    transform: scale(0.995);
 }
 
 .villageTitle {
@@ -971,6 +981,14 @@ textarea.input {
     color: #7e7569;
     font-size: 13px;
     line-height: 1.4;
+}
+
+.villageMapHint {
+    margin-top: 11px;
+    color: #a58b60;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 1.8px;
 }
 
 
@@ -1103,6 +1121,452 @@ textarea.input {
 }
 
 
+
+/* =====================================================
+   КАРТА МИРА
+===================================================== */
+
+#mapScreen {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 200;
+    overflow: hidden;
+    background: #080705;
+    color: #d8ccb8;
+}
+
+#worldMap {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    touch-action: none;
+    background:
+        radial-gradient(circle at center, rgba(105,82,48,.08), transparent 45%),
+        #0b0907;
+}
+
+.mapCanvas {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 0;
+    height: 0;
+    transform: translate(0,0);
+    will-change: transform;
+}
+
+.mapCell {
+    position: absolute;
+    width: 54px;
+    height: 54px;
+    margin-left: -27px;
+    margin-top: -27px;
+    border: 1px solid rgba(110,91,58,.28);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    user-select: none;
+    transition: border-color .12s ease, box-shadow .12s ease;
+}
+
+.mapCell.plain { background: #17140f; }
+.mapCell.forest { background: #101710; }
+.mapCell.hill { background: #15130f; }
+.mapCell.water { background: #0a3550; }
+.mapCell.sea { background: #082f49; }
+.mapCell.lake { background: #0d4666; }
+.mapCell.mountain { background: #171411; }
+
+.mapCell.selectable:active { border-color: #b89a61; }
+
+.mapCell.selected {
+    border: 2px solid #c3a66e;
+    box-shadow: inset 0 0 0 2px rgba(195,166,110,.18), 0 0 18px rgba(195,166,110,.18);
+    z-index: 5;
+}
+
+.mapCell.territory {
+    border-color: rgba(191, 157, 92, 0.72);
+    box-shadow: inset 0 0 0 1px rgba(191, 157, 92, 0.18);
+}
+
+.mapCell.territory::after {
+    content: "";
+    position: absolute;
+    inset: 3px;
+    border: 1px solid rgba(191, 157, 92, 0.16);
+    pointer-events: none;
+}
+
+.mapCell.city {
+    border: 2px solid #c3a66e;
+    background: #201a12;
+    box-shadow: 0 0 22px rgba(195,166,110,.18);
+    z-index: 6;
+}
+
+.mapCell .cityMark {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgba(195,166,110,.55);
+    background: rgba(10,8,6,.65);
+}
+
+.mapCell .cityMark img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cityLabel {
+    position: absolute;
+    left: 50%;
+    top: calc(100% + 3px);
+    transform: translateX(-50%);
+    width: max-content;
+    max-width: 120px;
+    padding: 2px 4px;
+    background: rgba(7,6,4,.9);
+    color: #d2bf9d;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 6px;
+    line-height: 1.15;
+    letter-spacing: .7px;
+    text-align: center;
+    pointer-events: none;
+    z-index: 10;
+}
+
+.cityLabel span {
+    display: block;
+    color: #8f7c5b;
+    margin-top: 1px;
+}
+
+.mapCell .terrainMark { opacity: .9; }
+
+.mapTopBar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    padding: calc(12px + env(safe-area-inset-top)) 14px 12px;
+    background: linear-gradient(to bottom, rgba(5,4,3,.94), rgba(5,4,3,.55), transparent);
+    pointer-events: none;
+}
+
+.mapTitle {
+    text-align: center;
+    color: #d8c6a6;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 13px;
+    letter-spacing: 2.5px;
+}
+
+.mapCoords {
+    margin-top: 4px;
+    text-align: center;
+    color: #897b68;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 1.5px;
+}
+
+.mapInstruction {
+    position: absolute;
+    left: 50%;
+    bottom: calc(180px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 30;
+    width: calc(100% - 28px);
+    max-width: 390px;
+    padding: 14px 15px;
+    border: 1px solid rgba(157,126,72,.58);
+    background: rgba(10,8,6,.88);
+    box-shadow: 0 10px 35px rgba(0,0,0,.45);
+    text-align: center;
+    pointer-events: none;
+}
+
+.mapInstructionTitle {
+    color: #d2bf9d;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 11px;
+    letter-spacing: 2px;
+}
+
+.mapInstructionText {
+    margin-top: 8px;
+    color: #9a8e7d;
+    font-size: 13px;
+    line-height: 1.42;
+}
+
+.mapSelectionInfo {
+    margin-top: 8px;
+    color: #a99168;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+.mapInstruction.viewMode {
+    display: none;
+}
+
+.mapFoundButton {
+    position: absolute;
+    left: 50%;
+    bottom: calc(82px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 31;
+    width: calc(100% - 28px);
+    max-width: 390px;
+    min-height: 53px;
+    border: 1px solid rgba(174,141,82,.78);
+    background: rgba(30,25,19,.95);
+    color: #d5c4a5;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    cursor: pointer;
+}
+
+.mapFoundButton:active { transform: translateX(-50%) scale(.98); }
+.mapFoundButton:disabled { opacity: .38; }
+
+.mapLegend {
+    position: absolute;
+    right: 12px;
+    top: calc(64px + env(safe-area-inset-top));
+    z-index: 25;
+    padding: 8px 9px;
+    border: 1px solid rgba(117,94,56,.38);
+    background: rgba(8,7,5,.72);
+    color: #766b5c;
+    font-size: 10px;
+    line-height: 1.7;
+}
+
+.mapLegend span { margin-right: 4px; }
+
+.mapNotice {
+    position: absolute;
+    top: calc(58px + env(safe-area-inset-top));
+    left: 12px;
+    z-index: 25;
+    padding: 7px 9px;
+    border: 1px solid rgba(117,94,56,.32);
+    background: rgba(8,7,5,.66);
+    color: #74695b;
+    font-size: 9px;
+}
+
+/* =====================================================
+   ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ КАРТЫ
+===================================================== */
+
+.mapBackButton {
+    position: absolute;
+    left: 12px;
+    top: calc(58px + env(safe-area-inset-top));
+    z-index: 30;
+    min-width: 46px;
+    height: 40px;
+    border: 1px solid rgba(157,126,72,.55);
+    background: rgba(8,7,5,.78);
+    color: #c4ad83;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.mapCellInfo {
+    position: absolute;
+    left: 50%;
+    bottom: calc(26px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 26;
+    width: calc(100% - 90px);
+    max-width: 340px;
+    padding: 9px 12px;
+    border: 1px solid rgba(117,94,56,.42);
+    background: rgba(8,7,5,.84);
+    text-align: center;
+    pointer-events: none;
+    box-shadow: 0 8px 24px rgba(0,0,0,.32);
+}
+
+.mapCellInfoTitle {
+    color: #c7b18a;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+}
+
+.mapCellInfoText {
+    margin-top: 3px;
+    color: #817565;
+    font-size: 10px;
+    line-height: 1.25;
+}
+
+.mapCellInfoCoordinates {
+    margin-top: 3px;
+    color: #a18a62;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 7px;
+    letter-spacing: 1px;
+}
+
+/* =====================================================
+   ИНФОРМАЦИЯ О ГОРОДЕ
+===================================================== */
+
+#cityInfoOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 600;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.76);
+    align-items: center;
+    justify-content: center;
+}
+
+.cityInfoWindow {
+    width: 100%;
+    max-width: 360px;
+    padding: 20px 17px 17px;
+    border: 1px solid rgba(174, 141, 82, 0.68);
+    background:
+        radial-gradient(circle at top, rgba(111, 83, 43, 0.10), transparent 55%),
+        #110e0a;
+    box-shadow: 0 14px 50px rgba(0,0,0,.72);
+    text-align: center;
+}
+
+.cityInfoCrest {
+    width: 74px;
+    height: 74px;
+    margin: 0 auto 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgba(174,141,82,.65);
+    background: #0b0907;
+    color: #b99b63;
+    font-size: 28px;
+}
+
+.cityInfoCrest img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.cityInfoTitle {
+    color: #d6c4a4;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+}
+
+.cityInfoSubtitle {
+    margin-top: 4px;
+    color: #8e7d63;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 1.4px;
+}
+
+.cityInfoDivider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 13px 0;
+}
+
+.cityInfoDivider span {
+    flex: 1;
+    height: 1px;
+    background: rgba(157,126,72,.35);
+}
+
+.cityInfoDivider b {
+    color: #a88a56;
+    font-size: 9px;
+    font-weight: 400;
+}
+
+.cityInfoRow {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 12px;
+    padding: 8px 0;
+    border-bottom: 1px solid rgba(117,94,56,.18);
+    text-align: left;
+}
+
+.cityInfoLabel {
+    color: #766d60;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 1.2px;
+}
+
+.cityInfoValue {
+    color: #c5b28f;
+    font-size: 13px;
+    text-align: right;
+}
+
+.cityInfoMotto {
+    margin: 13px 5px 3px;
+    color: #a28c6b;
+    font-size: 13px;
+    line-height: 1.4;
+    font-style: italic;
+}
+
+.cityInfoCoordinates {
+    margin-top: 9px;
+    color: #6f6659;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 7px;
+    letter-spacing: 1px;
+}
+
+.cityInfoClose {
+    width: 100%;
+    min-height: 43px;
+    margin-top: 15px;
+    border: 1px solid rgba(157,126,72,.55);
+    background: rgba(30,25,19,.85);
+    color: #cdbb9d;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    cursor: pointer;
+}
+
+.mapCell.lake,
+.mapCell.sea {
+    color: #8fc4dc;
+}
+
+.mapCell .terrainMark {
+    filter: drop-shadow(0 1px 2px rgba(0,0,0,.35));
+}
+
 /* =====================================================
    ЗАКРЫТЫЙ ДОСТУП
 ===================================================== */
@@ -1141,181 +1605,6 @@ textarea.input {
     color: #777064;
     font-size: 14px;
     line-height: 1.5;
-}
-
-/* =====================================================
-   КАРТА
-===================================================== */
-
-#mapScreen {
-    display: none;
-    width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
-    padding: 12px 12px 24px;
-    overflow-y: auto;
-    background: #090806;
-}
-
-.mapFrame {
-    position: relative;
-    width: 100%;
-    max-width: 560px;
-    margin: 0 auto;
-    padding: 12px;
-    border: 1px solid rgba(157,126,72,.55);
-    background: rgba(12,10,8,.8);
-}
-
-.mapTopbar {
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap:8px;
-    margin-bottom:10px;
-}
-
-.mapTitle {
-    color:#cbb99a;
-    font-family:"Cinzel", Georgia, serif;
-    font-size:11px;
-    letter-spacing:2px;
-}
-
-.mapButton {
-    min-height:34px;
-    padding:7px 10px;
-    border:1px solid rgba(142,116,70,.55);
-    background:rgba(36,29,21,.85);
-    color:#b9a178;
-    font-family:"Cinzel", Georgia, serif;
-    font-size:8px;
-    letter-spacing:1px;
-}
-
-.mapCanvasWrap {
-    position:relative;
-    width:500px;
-    height:500px;
-    max-width:100%;
-    margin:0 auto;
-    overflow:hidden;
-    border:1px solid rgba(157,126,72,.65);
-    background:#111;
-    touch-action:none;
-}
-
-#worldCanvas {
-    display:block;
-    width:500px;
-    height:500px;
-    max-width:none;
-    image-rendering:pixelated;
-    touch-action:none;
-}
-
-.mapHint {
-    margin:9px 2px 0;
-    color:#766d61;
-    font-size:11px;
-    line-height:1.4;
-    text-align:center;
-}
-
-.mapInfo {
-    margin-top:10px;
-    padding:11px;
-    border:1px solid rgba(117,94,56,.4);
-    background:rgba(21,18,14,.75);
-}
-
-.mapInfoHeader {
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:8px;
-}
-
-.mapInfoTitle {
-    color:#c8b697;
-    font-family:"Cinzel", Georgia, serif;
-    font-size:10px;
-    letter-spacing:1.4px;
-}
-
-.mapCoords {
-    color:#756b5c;
-    font-size:10px;
-}
-
-.mapInfoText {
-    margin-top:6px;
-    color:#938777;
-    font-size:12px;
-    line-height:1.45;
-}
-
-.mapAction {
-    width:100%;
-    min-height:40px;
-    margin-top:9px;
-    border:1px solid rgba(174,141,82,.65);
-    background:rgba(42,34,25,.9);
-    color:#c7b38d;
-    font-family:"Cinzel", Georgia, serif;
-    font-size:8px;
-    letter-spacing:1.2px;
-}
-
-.cityCard {
-    margin-top:10px;
-    padding:13px;
-    border:1px solid rgba(174,141,82,.65);
-    background:#110e0a;
-}
-
-.cityCardCrest {
-    width:58px;
-    height:58px;
-    margin:0 auto 8px;
-    border:1px solid rgba(174,141,82,.65);
-    overflow:hidden;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:#b99b63;
-}
-
-.cityCardCrest img {
-    width:100%;
-    height:100%;
-    object-fit:cover;
-}
-
-.cityCardTitle {
-    text-align:center;
-    color:#d3c2a3;
-    font-family:"Cinzel", Georgia, serif;
-    font-size:13px;
-    letter-spacing:1.5px;
-}
-
-.cityCardLine {
-    margin-top:6px;
-    color:#8f8271;
-    font-size:12px;
-    text-align:center;
-}
-
-.foundationNote {
-    margin-top:10px;
-    padding:10px;
-    border:1px solid rgba(174,141,82,.42);
-    background:rgba(53,41,25,.24);
-    color:#a79577;
-    font-size:12px;
-    line-height:1.45;
-    text-align:center;
 }
 
 @media (max-height: 700px) {
@@ -2135,17 +2424,27 @@ textarea.input {
              ДЕРЕВНЯ
         ================================================== -->
 
-        <div class="village">
+        <button
+            class="village"
+            id="villageCard"
+            type="button"
+            onclick="openWorldMap()"
+        >
 
-            <div class="villageTitle">
-                ГОРОД ОСНОВАН
+            <div class="villageTitle" id="villageTitle">
+                ПЕРВАЯ ДЕРЕВНЯ
             </div>
 
-            <div class="villageText">
-                Ваш город — начало государства. Дальнейшее расширение будет открывать новые земли и деревни.
+            <div class="villageText" id="villageText">
+                Здесь начнётся строительство
+                вашего будущего государства.
             </div>
 
-        </div>
+            <div class="villageMapHint" id="villageMapHint">
+                ОТКРЫТЬ КАРТУ МИРА · ›
+            </div>
+
+        </button>
 
 
         <!-- =================================================
@@ -2178,57 +2477,6 @@ textarea.input {
 
 </main>
 
-
-
-<!-- =====================================================
-     КАРТА
-===================================================== -->
-
-<main id="mapScreen">
-
-    <div class="mapFrame">
-
-        <div class="mapTopbar">
-            <div class="mapTitle">ЗЕМЛИ THE REALMS</div>
-            <button class="mapButton" onclick="openRealm()">↩ ГЛАВНЫЙ ЭКРАН</button>
-        </div>
-
-        <div class="mapCanvasWrap">
-            <canvas id="worldCanvas" width="500" height="500"></canvas>
-        </div>
-
-        <div class="mapHint" id="mapHint">
-            Выберите клетку. Для основания города перемещайте карту и выберите место.
-        </div>
-
-        <div class="foundationNote" id="foundationNote" style="display:none;">
-            Рекомендуется основать город рядом с лесом для охоты — охота является первым и важным умением для добычи еды: мяса.
-        </div>
-
-        <div class="mapInfo" id="mapInfo">
-            <div class="mapInfoHeader">
-                <div class="mapInfoTitle" id="mapCellTitle">КЛЕТКА НЕ ВЫБРАНА</div>
-                <div class="mapCoords" id="mapCellCoords">—</div>
-            </div>
-            <div class="mapInfoText" id="mapCellDescription">
-                Выберите клетку на карте, чтобы узнать о ней больше.
-            </div>
-            <button class="mapAction" id="mapActionButton" style="display:none;"></button>
-        </div>
-
-        <div class="cityCard" id="cityCard" style="display:none;">
-            <div class="cityCardCrest" id="cityCardCrest">♜</div>
-            <div class="cityCardTitle" id="cityCardTitle"></div>
-            <div class="cityCardLine" id="cityCardRuler"></div>
-            <div class="cityCardLine" id="cityCardHouse"></div>
-            <div class="cityCardLine" id="cityCardRealm"></div>
-            <div class="cityCardLine" id="cityCardMotto"></div>
-            <div class="cityCardLine" id="cityCardPopulation"></div>
-        </div>
-
-    </div>
-
-</main>
 
 <!-- =====================================================
      ОКНО ИНФОРМАЦИИ
@@ -2294,6 +2542,110 @@ textarea.input {
 </div>
 
 
+
+<!-- =====================================================
+     КАРТА МИРА
+===================================================== -->
+
+<main id="mapScreen">
+
+    <div id="worldMap">
+        <div class="mapCanvas" id="mapCanvas"></div>
+    </div>
+
+    <button class="mapBackButton" onclick="returnToRealm()" aria-label="Вернуться">‹</button>
+
+    <div class="mapTopBar">
+        <div class="mapTitle" id="mapTitle">ЗЕМЛИ МИРА</div>
+        <div class="mapCoords" id="mapCoords">X: 0 · Y: 0</div>
+    </div>
+
+    <div class="mapCellInfo" id="mapCellInfo">
+        <div class="mapCellInfoTitle" id="mapCellInfoTitle">КЛЕТКА НЕ ВЫБРАНА</div>
+        <div class="mapCellInfoText" id="mapCellInfoText">Нажмите на клетку, чтобы узнать о ней больше.</div>
+        <div class="mapCellInfoCoordinates" id="mapCellInfoCoordinates">—</div>
+    </div>
+
+    <div class="mapNotice" id="mapNotice">МИР · 500 × 500 КЛЕТОК</div>
+
+    <div class="mapLegend">
+        <div><span>🌲</span> Лес</div>
+        <div><span>·</span> Равнина</div>
+        <div><span>🪨</span> Холмы</div>
+        <div><span>⛰</span> Горы</div>
+        <div><span>💧</span> Озеро</div>
+        <div><span>≋</span> Море</div>
+    </div>
+
+    <div class="mapInstruction" id="mapInstruction">
+        <div class="mapInstructionTitle">ОСНОВАНИЕ ДОМА</div>
+        <div class="mapInstructionText">
+            Рекомендуется основать город рядом с лесом для охоты —
+            охота — первое и важное умение для добычи еды — мяса.
+        </div>
+        <div class="mapSelectionInfo" id="mapSelectionInfo">
+            Выберите клетку на карте
+        </div>
+    </div>
+
+    <button class="mapFoundButton" id="mapFoundButton" onclick="foundCity()" disabled>
+        ОСНОВАТЬ ГОРОД
+    </button>
+
+</main>
+
+<!-- =====================================================
+     ИНФОРМАЦИЯ О ГОРОДЕ
+===================================================== -->
+
+<div
+    id="cityInfoOverlay"
+    onclick="closeCityInfoOutside(event)"
+>
+    <div class="cityInfoWindow">
+
+        <div class="cityInfoCrest" id="cityInfoCrest">
+            ♜
+        </div>
+
+        <div class="cityInfoTitle" id="cityInfoHouse">
+            ДОМ
+        </div>
+
+        <div class="cityInfoSubtitle" id="cityInfoRealm">
+            ГОСУДАРСТВО
+        </div>
+
+        <div class="cityInfoDivider">
+            <span></span>
+            <b>◆</b>
+            <span></span>
+        </div>
+
+        <div class="cityInfoRow">
+            <div class="cityInfoLabel">ПРАВИТЕЛЬ</div>
+            <div class="cityInfoValue" id="cityInfoRuler">—</div>
+        </div>
+
+        <div class="cityInfoRow">
+            <div class="cityInfoLabel">НАСЕЛЕНИЕ</div>
+            <div class="cityInfoValue" id="cityInfoPopulation">0</div>
+        </div>
+
+        <div class="cityInfoMotto" id="cityInfoMotto">—</div>
+
+        <div class="cityInfoCoordinates" id="cityInfoCoordinates">X: 0 · Y: 0</div>
+
+        <button
+            class="cityInfoClose"
+            onclick="closeCityInfo()"
+        >
+            ЗАКРЫТЬ
+        </button>
+
+    </div>
+</div>
+
 <!-- =====================================================
      ЗАКРЫТЫЙ ДОСТУП
 ===================================================== -->
@@ -2321,22 +2673,54 @@ textarea.input {
 
 
 <script>
+
 /* =====================================================
-   THE REALMS — ДЕМО-ЯДРО
-   База: первая рабочая версия.
+   TELEGRAM
 ===================================================== */
 
-const tg = window.Telegram && window.Telegram.WebApp
-    ? window.Telegram.WebApp
-    : null;
+const tg = window.Telegram.WebApp;
 
-if (tg) {
-    try { tg.ready(); tg.expand(); } catch (e) {}
-}
+tg.ready();
+tg.expand();
+
+
+/* =====================================================
+   ДОСТУП
+===================================================== */
 
 const ALLOWED_USER_ID = 8608712290;
-const SAVE_KEY = "theRealmsHouse";
-const MAP_KEY = "theRealmsMap";
+
+const user = tg.initDataUnsafe.user;
+
+
+if (!user || Number(user.id) !== ALLOWED_USER_ID) {
+
+    document.getElementById("introScreen").style.display = "none";
+    document.getElementById("creationScreen").style.display = "none";
+    document.getElementById("realmScreen").style.display = "none";
+    document.getElementById("mapScreen").style.display = "none";
+    document.getElementById("locked").style.display = "flex";
+}
+
+
+/* =====================================================
+   ТЕРРИТОРИЯ
+===================================================== */
+
+function hasForestForHouse(house) {
+    if (!house || !house.territory || !Array.isArray(house.territory.cells)) {
+        return false;
+    }
+
+    return house.territory.cells.some(function(cell) {
+        return terrainAt(cell.x, cell.y) === "forest";
+    });
+}
+
+
+/* =====================================================
+   НАСТРОЙКИ ОХОТЫ
+===================================================== */
 
 const HUNTING_MINIMUM = 2;
 const HUNTING_MAXIMUM = 10;
@@ -2344,988 +2728,1930 @@ const HUNTING_INTERVAL = 2 * 60 * 60 * 1000;
 const MEAT_PER_GROUP = 20;
 const HUNTING_GROUP_SIZE = 2;
 const GAME_LOSS_PER_HUNT = 5;
-const MAP_SIZE = 50;
-const CELL_SIZE = 10;
 
-let selectedCell = null;
-let mapPanX = 0;
-let mapPanY = 0;
-let mapDragging = false;
-let dragStartX = 0;
-let dragStartY = 0;
-let dragOriginX = 0;
-let dragOriginY = 0;
 
-/* -----------------------------------------------------
-   ДАННЫЕ
------------------------------------------------------ */
-
-const helpData = {
-    free: {
-        title: "СВОБОДНОЕ НАСЕЛЕНИЕ",
-        description: "Люди, не связанные службой или трудом. Они ждут своего предназначения.",
-        influence: "Резерв государства. Могут быть назначены рабочими или военнослужащими.",
-        consumption: "1 мясо каждые 5 часов."
-    },
-    worker: {
-        title: "РАБОЧЕЕ НАСЕЛЕНИЕ",
-        description: "Те, кто трудится ради Дома. Их руки добывают богатство, на котором растёт государство.",
-        influence: "Производят ресурсы. В дальнейшем каждый рабочий сможет получить определённую профессию.",
-        consumption: "1 мясо каждые 5 часов."
-    },
-    soldier: {
-        title: "ВОЕННОСЛУЖАЩИЕ",
-        description: "Те, кто взял оружие ради Дома. Они защищают его земли и готовы проливать кровь за её пределы.",
-        influence: "Оборона государства, захват земель, военные походы и конфликты.",
-        consumption: "2 мяса каждые 5 часов."
-    }
-};
-
-const resourceData = {
-    meat: {
-        title: "МЯСО",
-        description: "Мясо — основной источник пищи для населения Дома.",
-        influence: "Поддерживает жизнь населения.",
-        extraction: "На текущем этапе мясо добывается охотой."
-    }
-};
-
-const terrainData = {
-    forest: ["ЛЕС", "Это лесные угодья — густые территории, покрытые деревьями."],
-    plain: ["РАВНИНА", "Это открытые равнинные земли с относительно спокойным рельефом."],
-    hill: ["ХОЛМЫ", "Это возвышенные земли с мягким перепадом высот."],
-    mountain: ["ГОРЫ", "Это горный массив с крутым рельефом и каменными вершинами."],
-    water: ["ВОДА", "Это водная территория — часть озера, моря или внутреннего водоёма."]
-};
-
-/* -----------------------------------------------------
-   СОЗДАНИЕ / СОХРАНЕНИЕ
------------------------------------------------------ */
+/* =====================================================
+   ОТКРЫТЬ СОЗДАНИЕ
+===================================================== */
 
 function openCreation() {
-    hideAllScreens();
+
+    document.getElementById("introScreen").style.display = "none";
+    document.getElementById("realmScreen").style.display = "none";
     document.getElementById("creationScreen").style.display = "block";
+
     window.scrollTo(0, 0);
 }
 
+
+/* =====================================================
+   ГЕРБ
+===================================================== */
+
 function previewCrest(event) {
+
     const file = event.target.files[0];
+
     if (!file) return;
+
     const reader = new FileReader();
-    reader.onload = function(e) {
+
+    reader.onload = function(event) {
+
         document.getElementById("crestPreview").innerHTML =
-            `<img src="${e.target.result}" alt="Герб">`;
+            `<img src="${event.target.result}" alt="Герб">`;
+
     };
+
     reader.readAsDataURL(file);
 }
 
+
+/* =====================================================
+   СОЗДАНИЕ ДОМА
+===================================================== */
+
 function saveHouse(event) {
+
     event.preventDefault();
 
-    const rulerName = document.getElementById("rulerName").value.trim();
-    const houseName = document.getElementById("houseName").value.trim();
-    const realmName = document.getElementById("realmName").value.trim();
-    const motto = document.getElementById("motto").value.trim();
-    const description = document.getElementById("description").value.trim();
+    const rulerName =
+        document.getElementById("rulerName").value.trim();
+
+    const houseName =
+        document.getElementById("houseName").value.trim();
+
+    const realmName =
+        document.getElementById("realmName").value.trim();
+
+    const motto =
+        document.getElementById("motto").value.trim();
+
+    const description =
+        document.getElementById("description").value.trim();
+
 
     if (!rulerName || !houseName || !realmName || !motto) {
+
         document.getElementById("error").style.display = "block";
+
         return;
     }
+
+
+    const crestInput =
+        document.getElementById("crestInput");
+
+    const crestFile =
+        crestInput.files[0];
+
 
     const house = {
-        rulerName,
-        houseName,
-        realmName,
-        motto,
-        description,
+
+        rulerName: rulerName,
+
+        houseName: houseName,
+
+        realmName: realmName,
+
+        motto: motto,
+
+        description: description,
+
         createdAt: new Date().toISOString(),
+
         crest: null,
-        population: { free: 100, workers: 0, soldiers: 0 },
-        resources: { meat: 100 },
-        hunting: {
-            lastProduction: Date.now(),
-            game: 100
+
+        population: {
+
+            free: 100,
+
+            workers: 0,
+
+            soldiers: 0,
+
+            hunters: 0
+
         },
-        city: null,
-        facilities: [],
-        foodLastTick: Date.now()
+
+        resources: {
+
+            meat: 100,
+
+            wood: 50,
+
+            stone: 50,
+
+            gold: 0
+
+        },
+
+        hunting: {
+
+            game: 100,
+
+            lastProduction: Date.now()
+
+        }
+
     };
 
-    const file = document.getElementById("crestInput").files[0];
 
-    if (file) {
+    if (crestFile) {
+
         const reader = new FileReader();
-        reader.onload = function(e) {
-            house.crest = e.target.result;
+
+        reader.onload = function(event) {
+
+            house.crest =
+                event.target.result;
+
             saveHouseData(house);
-            ensureMap();
-            openMap(true);
+
+            openAfterCreation(house);
+
         };
-        reader.readAsDataURL(file);
-    } else {
+
+        reader.readAsDataURL(crestFile);
+
+    }
+
+    else {
+
         saveHouseData(house);
-        ensureMap();
-        openMap(true);
-    }
-}
 
-function getHouse() {
-    try {
-        const raw = localStorage.getItem(SAVE_KEY);
-        return raw ? prepareHouse(JSON.parse(raw)) : null;
-    } catch (e) {
-        console.error(e);
-        return null;
-    }
-}
+        openAfterCreation(house);
 
-function saveHouseData(house) {
-    localStorage.setItem(SAVE_KEY, JSON.stringify(house));
-}
-
-function prepareHouse(house) {
-    house.population ||= {};
-    house.population.free = Number.isFinite(house.population.free) ? house.population.free : 100;
-    house.population.workers = Number.isFinite(house.population.workers) ? house.population.workers : 0;
-    house.population.soldiers = Number.isFinite(house.population.soldiers) ? house.population.soldiers : 0;
-    house.resources ||= {};
-    house.resources.meat = Number.isFinite(house.resources.meat) ? house.resources.meat : 100;
-    house.hunting ||= { lastProduction: Date.now(), game: 100 };
-    house.hunting.game = Number.isFinite(house.hunting.game) ? house.hunting.game : 100;
-    house.hunting.lastProduction ||= Date.now();
-    house.facilities ||= [];
-    house.foodLastTick ||= Date.now();
-    if (!("city" in house)) house.city = null;
-    return house;
-}
-
-function hideAllScreens() {
-    ["introScreen","creationScreen","realmScreen","mapScreen"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.style.display = "none";
-    });
-}
-
-/* -----------------------------------------------------
-   КАРТА — ДЕМО 50×50 КЛЕТОК, ПОЛЕ 500×500
------------------------------------------------------ */
-
-function seededRandom(seed) {
-    let x = Math.sin(seed) * 10000;
-    return x - Math.floor(x);
-}
-
-function noise(x, y, seed) {
-    const n = Math.sin(x * 12.9898 + y * 78.233 + seed * 37.719) * 43758.5453;
-    return n - Math.floor(n);
-}
-
-function generateMap() {
-    const cells = [];
-    const seed = 71429;
-    const seaX = Math.floor(MAP_SIZE * 0.48);
-
-    for (let y = 0; y < MAP_SIZE; y++) {
-        for (let x = 0; x < MAP_SIZE; x++) {
-            let type = "plain";
-
-            /* Море делит мир на три части: два пролива/берега вокруг центральной воды. */
-            const seaWidth = 5 + Math.floor(2 * noise(0, y, seed));
-            if (Math.abs(x - seaX) <= seaWidth / 2) {
-                type = "water";
-            } else {
-                const n = noise(x * 0.55, y * 0.55, seed);
-                const n2 = noise(x * 0.12, y * 0.12, seed + 91);
-
-                if (n > 0.84 && n2 > 0.48) type = "mountain";
-                else if (n > 0.72) type = "hill";
-                else if (n < 0.28) type = "forest";
-            }
-
-            cells.push({ x, y, type });
-        }
     }
 
-    /* Добавляем озёра. */
-    for (let i = 0; i < 7; i++) {
-        const cx = 4 + Math.floor(seededRandom(seed + i * 17) * (MAP_SIZE - 8));
-        const cy = 4 + Math.floor(seededRandom(seed + i * 23) * (MAP_SIZE - 8));
-        const r = 1 + Math.floor(seededRandom(seed + i * 31) * 2);
-
-        for (let y = cy - r; y <= cy + r; y++) {
-            for (let x = cx - r; x <= cx + r; x++) {
-                if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE) continue;
-                if (Math.hypot(x-cx, y-cy) <= r + 0.35 && Math.abs(x-seaX) > 4) {
-                    cells[y * MAP_SIZE + x].type = "water";
-                }
-            }
-        }
-    }
-
-    /* Формируем горы минимум группами по 2 клетки. */
-    for (let y = 1; y < MAP_SIZE - 1; y++) {
-        for (let x = 1; x < MAP_SIZE - 1; x++) {
-            const idx = y * MAP_SIZE + x;
-            if (cells[idx].type !== "mountain") continue;
-            const right = cells[idx + 1];
-            const down = cells[idx + MAP_SIZE];
-            if (right.type !== "mountain" && down.type !== "mountain") {
-                if (noise(x+7,y+11,seed) > 0.35) {
-                    right.type = "mountain";
-                } else {
-                    down.type = "mountain";
-                }
-            }
-        }
-    }
-
-    return { seed, cells, facilities: [], city: null };
 }
 
-function ensureMap() {
-    let map;
-    try {
-        map = JSON.parse(localStorage.getItem(MAP_KEY) || "null");
-    } catch (e) {
-        map = null;
-    }
-    if (!map || !Array.isArray(map.cells) || map.cells.length !== MAP_SIZE * MAP_SIZE) {
-        map = generateMap();
-        localStorage.setItem(MAP_KEY, JSON.stringify(map));
-    }
-    return map;
-}
 
-function saveMap(map) {
-    localStorage.setItem(MAP_KEY, JSON.stringify(map));
-}
 
-function getMapCell(x, y) {
-    const map = ensureMap();
-    return map.cells[y * MAP_SIZE + x];
-}
+/* =====================================================
+   КАРТА МИРА
+===================================================== */
 
-function isOwned(x, y) {
-    const house = getHouse();
-    if (!house || !house.city) return false;
-    const dx = Math.abs(x - house.city.x);
-    const dy = Math.abs(y - house.city.y);
-    return dx <= 1 && dy <= 1;
-}
+const WORLD_SIZE = 500;
+const CELL_SIZE = 54;
+const MAP_RENDER_RADIUS_X = 9;
+const MAP_RENDER_RADIUS_Y = 8;
 
-function drawMap() {
-    const canvas = document.getElementById("worldCanvas");
-    if (!canvas) return;
+let mapState = {
+    x: 0,
+    y: 0,
+    selectedX: null,
+    selectedY: null,
+    mode: "view",
+    dragging: false,
+    moved: false,
+    lastPointerX: 0,
+    lastPointerY: 0
+};
 
-    const ctx = canvas.getContext("2d");
-    const map = ensureMap();
-    const house = getHouse();
-
-    ctx.clearRect(0, 0, 500, 500);
-
-    const colors = {
-        forest: "#30442f",
-        plain: "#6b684e",
-        hill: "#81704f",
-        mountain: "#4d4a45",
-        water: "#244d70"
-    };
-
-    for (const cell of map.cells) {
-        const px = cell.x * CELL_SIZE;
-        const py = cell.y * CELL_SIZE;
-
-        ctx.fillStyle = colors[cell.type] || colors.plain;
-        ctx.fillRect(px, py, CELL_SIZE, CELL_SIZE);
-
-        /* Текстуры */
-        if (cell.type === "forest") {
-            ctx.fillStyle = "#17291a";
-            ctx.fillRect(px+2,py+2,2,3);
-            ctx.fillRect(px+6,py+5,2,3);
-        } else if (cell.type === "mountain") {
-            ctx.fillStyle = "#8d8a80";
-            ctx.fillRect(px+4,py+2,2,5);
-        } else if (cell.type === "hill") {
-            ctx.fillStyle = "#a18a5c";
-            ctx.fillRect(px+3,py+5,5,2);
-        } else if (cell.type === "water") {
-            ctx.fillStyle = "#3d7095";
-            ctx.fillRect(px+1,py+4,8,1);
-        }
-
-        if (isOwned(cell.x, cell.y)) {
-            ctx.strokeStyle = "rgba(214,183,111,.8)";
-            ctx.lineWidth = 1;
-            ctx.strokeRect(px+0.5, py+0.5, CELL_SIZE-1, CELL_SIZE-1);
-        }
-    }
-
-    /* Производственные объекты. */
-    for (const f of house?.facilities || []) {
-        const px = f.x * CELL_SIZE;
-        const py = f.y * CELL_SIZE;
-        ctx.fillStyle = "#b99755";
-        ctx.fillRect(px+2, py+2, 6, 6);
-        ctx.fillStyle = "#17110b";
-        ctx.font = "7px serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(f.type === "hunting_ground" ? "H" : "L", px+5, py+5);
-    }
-
-    /* Территория и город. */
-    if (house?.city) {
-        const cx = house.city.x * CELL_SIZE;
-        const cy = house.city.y * CELL_SIZE;
-
-        ctx.strokeStyle = "#d8bd79";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(cx+1, cy+1, 8, 8);
-
-        ctx.fillStyle = "#d6b96e";
-        ctx.fillRect(cx+3, cy+3, 4, 4);
-
-        ctx.font = "bold 9px serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "bottom";
-        ctx.fillText("♜", cx+5, cy-1);
-    }
-
-    /* Выбранная клетка. */
-    if (selectedCell) {
-        ctx.strokeStyle = "#efe0b8";
-        ctx.lineWidth = 2;
-        ctx.strokeRect(selectedCell.x*CELL_SIZE+1, selectedCell.y*CELL_SIZE+1, 8, 8);
-    }
-}
-
-function cellFromPointer(event) {
-    const canvas = document.getElementById("worldCanvas");
-    const rect = canvas.getBoundingClientRect();
-    const scaleX = canvas.width / rect.width;
-    const scaleY = canvas.height / rect.height;
-
-    const x = Math.floor(((event.clientX - rect.left) * scaleX) / CELL_SIZE);
-    const y = Math.floor(((event.clientY - rect.top) * scaleY) / CELL_SIZE);
-
-    if (x < 0 || y < 0 || x >= MAP_SIZE || y >= MAP_SIZE) return null;
-    return { x, y };
-}
-
-function selectMapCell(cell) {
-    if (!cell) return;
-    selectedCell = cell;
-
-    const data = getMapCell(cell.x, cell.y);
-    const terrain = terrainData[data.type] || terrainData.plain;
-
-    document.getElementById("mapCellTitle").textContent = terrain[0];
-    document.getElementById("mapCellCoords").textContent = `${cell.x + 1}:${cell.y + 1}`;
-    document.getElementById("mapCellDescription").textContent = terrain[1];
-
-    const action = document.getElementById("mapActionButton");
-    const house = getHouse();
-
-    action.style.display = "none";
-    action.onclick = null;
-
-    if (house && !house.city) {
-        action.style.display = "block";
-        action.textContent = "ОСНОВАТЬ ГОРОД ЗДЕСЬ";
-        action.onclick = () => foundCity(cell.x, cell.y);
-    } else if (house && house.city && isOwned(cell.x, cell.y) && data.type === "forest") {
-        const existing = house.facilities.find(f => f.x === cell.x && f.y === cell.y);
-        if (!existing) {
-            action.style.display = "block";
-            action.textContent = "ОСНОВАТЬ ОХОТНИЧЬЕ УГОДЬЕ";
-            action.onclick = () => buildFacility(cell.x, cell.y, "hunting_ground");
-        }
-    }
-
-    if (house?.city && cell.x === house.city.x && cell.y === house.city.y) {
-        showCityCard();
+function openAfterCreation(house) {
+    if (house && house.city && typeof house.city.x === "number" && typeof house.city.y === "number") {
+        openRealm();
     } else {
-        document.getElementById("cityCard").style.display = "none";
+        openMapForFoundation();
     }
-
-    drawMap();
 }
 
-function foundCity(x, y) {
-    const house = getHouse();
-    if (!house || house.city) return;
-
-    const map = ensureMap();
-    const cell = getMapCell(x,y);
-
-    if (cell.type === "water" || cell.type === "mountain") {
-        alert("На этой клетке город основать нельзя.");
-        return;
-    }
-
-    house.city = {
-        x, y,
-        foundedAt: new Date().toISOString()
-    };
-
-    saveHouseData(house);
-    map.city = { x, y };
-    saveMap(map);
-
-    selectedCell = { x, y };
-    drawMap();
-    updateMapInfoAfterFoundation();
-    showCityCard();
-}
-
-function updateMapInfoAfterFoundation() {
-    const note = document.getElementById("foundationNote");
-    if (note) note.style.display = "none";
-    document.getElementById("mapHint").textContent =
-        "Ваш город основан. Выбирайте клетки своей территории для развития.";
-    selectMapCell(selectedCell);
-}
-
-function buildFacility(x, y, type) {
-    const house = getHouse();
-    if (!house || !house.city || !isOwned(x,y)) return;
-
-    const cell = getMapCell(x,y);
-    if (cell.type !== "forest") return;
-
-    if (house.facilities.some(f => f.x === x && f.y === y)) return;
-
-    house.facilities.push({
-        id: `${type}_${x}_${y}`,
-        type,
-        x,
-        y,
-        workers: 0,
-        capacity: 10
-    });
-
-    saveHouseData(house);
-    selectedCell = {x,y};
-    drawMap();
-    updateMapInfoAfterFoundation();
-    updateHunting();
-}
-
-function openMap(firstVisit=false) {
-    const house = getHouse();
-    if (!house) {
-        openCreation();
-        return;
-    }
-
-    ensureMap();
-    hideAllScreens();
+function openMapForFoundation() {
+    document.getElementById("introScreen").style.display = "none";
+    document.getElementById("creationScreen").style.display = "none";
+    document.getElementById("realmScreen").style.display = "none";
     document.getElementById("mapScreen").style.display = "block";
 
-    const note = document.getElementById("foundationNote");
-    if (firstVisit && !house.city) {
-        note.style.display = "block";
-        document.getElementById("mapHint").textContent =
-            "Перемещайте карту и выберите место для основания города.";
+    const house = getHouse();
+    if (house && house.mapPosition) {
+        mapState.x = house.mapPosition.x;
+        mapState.y = house.mapPosition.y;
     } else {
-        note.style.display = "none";
+        mapState.x = 0;
+        mapState.y = 0;
     }
 
-    drawMap();
-    window.scrollTo(0,0);
+    mapState.selectedX = null;
+    mapState.selectedY = null;
+    setMapMode("foundation");
+    updateMap();
+    window.scrollTo(0, 0);
 }
 
-function openRealm() {
+function openWorldMap() {
     const house = getHouse();
-    if (!house) {
-        openCreation();
+
+    if (!house || !house.city) {
+        openMapForFoundation();
         return;
     }
 
-    processFood(house);
-    processAllProduction(house);
-    saveHouseData(house);
+    document.getElementById("introScreen").style.display = "none";
+    document.getElementById("creationScreen").style.display = "none";
+    document.getElementById("realmScreen").style.display = "none";
+    document.getElementById("mapScreen").style.display = "block";
 
-    document.getElementById("realmHouse").textContent = house.houseName;
-    document.getElementById("realmCountry").textContent = house.realmName;
-    document.getElementById("realmMotto").textContent = `«${house.motto}»`;
-    document.getElementById("realmHistory").textContent =
-        house.description || "История этого Дома ещё только начинается.";
-
-    const crest = document.getElementById("realmCrest");
-    crest.innerHTML = house.crest
-        ? `<img src="${house.crest}" alt="Герб Дома">`
-        : "♜";
-
-    hideAllScreens();
-    document.getElementById("realmScreen").style.display = "block";
-
-    updatePopulation();
-    updateHunting();
-    updateResources();
-    updateProductionList();
-    window.scrollTo(0,0);
+    mapState.x = house.city.x;
+    mapState.y = house.city.y;
+    mapState.selectedX = null;
+    mapState.selectedY = null;
+    setMapMode("view");
+    updateMap();
+    window.scrollTo(0, 0);
 }
 
-function showCityCard() {
-    const house = getHouse();
-    if (!house?.city) return;
+function setMapMode(mode) {
+    mapState.mode = mode;
+    const instruction = document.getElementById("mapInstruction");
+    const foundButton = document.getElementById("mapFoundButton");
 
-    const card = document.getElementById("cityCard");
-    const crest = document.getElementById("cityCardCrest");
-    crest.innerHTML = house.crest
-        ? `<img src="${house.crest}" alt="Герб">`
-        : "♜";
-
-    document.getElementById("cityCardTitle").textContent = house.realmName;
-    document.getElementById("cityCardRuler").textContent = `Правитель: ${house.rulerName}`;
-    document.getElementById("cityCardHouse").textContent = `Дом: ${house.houseName}`;
-    document.getElementById("cityCardRealm").textContent = `Государство: ${house.realmName}`;
-    document.getElementById("cityCardMotto").textContent = `Девиз: «${house.motto}»`;
-
-    const p = house.population;
-    const total = p.free + p.workers + p.soldiers;
-    document.getElementById("cityCardPopulation").textContent = `Население: ${total}`;
-
-    card.style.display = "block";
-}
-
-/* -----------------------------------------------------
-   НАСЕЛЕНИЕ
------------------------------------------------------ */
-
-function moveFreeToWorker() {
-    const h = getHouse();
-    if (!h || h.population.free <= 0) return;
-    h.population.free--;
-    h.population.workers++;
-    saveHouseData(h);
-    updatePopulation();
-    updateHunting();
-}
-
-function moveWorkerToFree() {
-    const h = getHouse();
-    if (!h) return;
-
-    const assigned = getAssignedWorkers(h);
-    if (h.population.workers - assigned <= 0) return;
-
-    h.population.workers--;
-    h.population.free++;
-    saveHouseData(h);
-    updatePopulation();
-    updateHunting();
-}
-
-function moveFreeToSoldier() {
-    const h = getHouse();
-    if (!h || h.population.free <= 0) return;
-    h.population.free--;
-    h.population.soldiers++;
-    saveHouseData(h);
-    updatePopulation();
-}
-
-function moveSoldierToFree() {
-    const h = getHouse();
-    if (!h || h.population.soldiers <= 0) return;
-    h.population.soldiers--;
-    h.population.free++;
-    saveHouseData(h);
-    updatePopulation();
-}
-
-function getAssignedWorkers(house) {
-    return house.facilities.reduce((sum,f) => sum + (f.workers || 0), 0);
-}
-
-function updatePopulation() {
-    const h = getHouse();
-    if (!h) return;
-
-    const total = h.population.free + h.population.workers + h.population.soldiers;
-    document.getElementById("freePopulation").textContent = h.population.free;
-    document.getElementById("workerPopulation").textContent = h.population.workers;
-    document.getElementById("soldierPopulation").textContent = h.population.soldiers;
-    document.getElementById("populationTotal").textContent = `Всего: ${total}`;
-
-    document.getElementById("freeToWorkerButton").disabled = h.population.free <= 0;
-    document.getElementById("freeToSoldierButton").disabled = h.population.free <= 0;
-    document.getElementById("workerToFreeButton").disabled =
-        h.population.workers - getAssignedWorkers(h) <= 0;
-    document.getElementById("soldierToFreeButton").disabled =
-        h.population.soldiers <= 0;
-}
-
-/* -----------------------------------------------------
-   ЕДА
------------------------------------------------------ */
-
-function processFood(house) {
-    const now = Date.now();
-    const cycles = Math.floor((now - house.foodLastTick) / (5 * 60 * 60 * 1000));
-    if (cycles <= 0) return;
-
-    const consumptionPerCycle =
-        house.population.free +
-        house.population.workers +
-        house.population.soldiers * 2;
-
-    const required = consumptionPerCycle * cycles;
-
-    if (house.resources.meat >= required) {
-        house.resources.meat -= required;
+    if (mode === "view") {
+        instruction.classList.add("viewMode");
+        document.querySelector(".mapInstructionTitle").textContent = "ВАШИ ЗЕМЛИ";
+        document.querySelector(".mapInstructionText").textContent =
+            "Ваш город находится в центре владений. Одна клетка вокруг города — первые земли Дома.";
+        foundButton.style.display = "none";
     } else {
-        const available = house.resources.meat;
-        house.resources.meat = 0;
+        instruction.classList.remove("viewMode");
+        document.querySelector(".mapInstructionTitle").textContent = "ОСНОВАНИЕ ДОМА";
+        document.querySelector(".mapInstructionText").textContent =
+            "Рекомендуется основать город рядом с лесом для охоты — охота — первое и важное умение для добычи еды — мяса.";
+        foundButton.style.display = "block";
+    }
+}
 
-        /* Демо-логика голода: сначала уходят свободные, затем рабочие, затем военные. */
-        let shortage = Math.ceil((required - available) / Math.max(1, cycles));
+/* =====================================================
+   ГЕНЕРАЦИЯ ЛАНДШАФТА
+===================================================== */
 
-        while (shortage > 0 && house.population.free > 0) {
-            house.population.free--;
-            shortage--;
-        }
-        while (shortage > 0 && house.population.workers > 0) {
-            const assigned = getAssignedWorkers(house);
-            if (house.population.workers - assigned <= 0) break;
-            house.population.workers--;
-            shortage--;
-        }
-        while (shortage > 0 && house.population.soldiers > 0) {
-            house.population.soldiers--;
-            shortage--;
+// Детерминированный генератор: одна и та же координата всегда
+// получает один и тот же ландшафт. Поэтому карта не меняется
+// после перезагрузки страницы.
+function seededNoise(x, y) {
+    const value = Math.sin(x * 127.1 + y * 311.7 + 74.23) * 43758.5453123;
+    return value - Math.floor(value);
+}
+
+function smoothNoise(x, y) {
+    const x0 = Math.floor(x);
+    const y0 = Math.floor(y);
+    const xf = x - x0;
+    const yf = y - y0;
+
+    const fade = t => t * t * (3 - 2 * t);
+    const u = fade(xf);
+    const v = fade(yf);
+
+    const n00 = seededNoise(x0, y0);
+    const n10 = seededNoise(x0 + 1, y0);
+    const n01 = seededNoise(x0, y0 + 1);
+    const n11 = seededNoise(x0 + 1, y0 + 1);
+
+    const nx0 = n00 + (n10 - n00) * u;
+    const nx1 = n01 + (n11 - n01) * u;
+    return nx0 + (nx1 - nx0) * v;
+}
+
+function fractalNoise(x, y, octaves = 4) {
+    let value = 0;
+    let amplitude = 0.5;
+    let frequency = 1;
+    let totalAmplitude = 0;
+
+    for (let i = 0; i < octaves; i++) {
+        value += smoothNoise(x * frequency, y * frequency) * amplitude;
+        totalAmplitude += amplitude;
+        amplitude *= 0.5;
+        frequency *= 2;
+    }
+
+    return value / totalAmplitude;
+}
+
+function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+}
+
+function seaDistance(x, y) {
+    // Два широких морских пролива. Берега слегка извиваются,
+    // поэтому материки не выглядят как прямоугольные полосы.
+    const coastWobble1 = Math.sin(y / 17) * 5 + Math.sin(y / 41) * 3;
+    const coastWobble2 = Math.sin(y / 23 + 1.7) * 6 + Math.sin(y / 49) * 3;
+
+    const d1 = Math.abs(x - (-82 + coastWobble1));
+    const d2 = Math.abs(x - (82 + coastWobble2));
+
+    return Math.min(d1, d2);
+}
+
+function isMainSea(x, y) {
+    const distance = seaDistance(x, y);
+    const coastalNoise = fractalNoise(x / 24, y / 30, 3);
+
+    // Основная ширина моря примерно 10–16 клеток,
+    // но берег местами расширяется и сужается.
+    const width = 6 + coastalNoise * 4;
+    return distance <= width;
+}
+
+function lakeMask(x, y) {
+    // Крупные естественные озёра задаются несколькими центрами,
+    // но их граница дополнительно искажается шумом.
+    const lakes = [
+        { x: -205, y: -145, rx: 14, ry: 10 },
+        { x: -45,  y: 132,  rx: 11, ry: 15 },
+        { x: 38,   y: -118, rx: 16, ry: 9 },
+        { x: 178,  y: 176,  rx: 13, ry: 11 },
+        { x: 215,  y: -180, rx: 10, ry: 14 }
+    ];
+
+    for (const lake of lakes) {
+        const dx = (x - lake.x) / lake.rx;
+        const dy = (y - lake.y) / lake.ry;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const distortion = fractalNoise(x / 8 + lake.x, y / 8 + lake.y, 2) * 0.25;
+
+        if (distance < 0.95 + distortion) {
+            return true;
         }
     }
 
-    house.foodLastTick += cycles * 5 * 60 * 60 * 1000;
+    return false;
 }
 
-/* -----------------------------------------------------
-   ПРОИЗВОДСТВО
------------------------------------------------------ */
+function mountainMask(x, y) {
+    // Горные цепи строятся вдоль нескольких извилистых хребтов.
+    // Поэтому горы образуют группы, а не одиночные случайные клетки.
+    const ridge1 = Math.abs(y - (0.30 * x + Math.sin(x / 18) * 17 - 20));
+    const ridge2 = Math.abs(y - (-0.42 * x + Math.sin(x / 25 + 2) * 15 + 75));
+    const ridge3 = Math.abs(y - (0.08 * x + Math.sin(x / 12) * 13 - 125));
 
-function processAllProduction(house) {
-    const now = Date.now();
+    const ridge = Math.min(ridge1, ridge2, ridge3);
+    const noise = fractalNoise(x / 9, y / 9, 3);
 
-    for (const f of house.facilities) {
-        if (f.type !== "hunting_ground") continue;
-        const hunters = f.workers || 0;
-        if (hunters < 2) continue;
+    // Рядом с хребтом вероятность гор высокая.
+    return ridge < 10 + noise * 8 && noise > 0.43;
+}
 
-        f.lastProduction ||= now;
-        const cycles = Math.floor((now - f.lastProduction) / HUNTING_INTERVAL);
-        if (cycles <= 0) continue;
+function hillMask(x, y) {
+    const n = fractalNoise(x / 15 + 13, y / 15 - 7, 4);
+    const ridge = Math.min(
+        Math.abs(y - (0.30 * x + Math.sin(x / 18) * 17 - 20)),
+        Math.abs(y - (-0.42 * x + Math.sin(x / 25 + 2) * 15 + 75))
+    );
 
-        const groups = Math.floor(hunters / 2);
-        const meat = groups * 20 * cycles;
-        const gameLoss = GAME_LOSS_PER_HUNT * cycles;
+    return (ridge < 22 && n > 0.42) || n > 0.69;
+}
 
-        if (f.game === undefined) f.game = 100;
-        const possible = Math.min(cycles, Math.floor(f.game / GAME_LOSS_PER_HUNT));
+function forestMask(x, y) {
+    // Лесные массивы — крупными пятнами. Это особенно важно
+    // для будущей механики охоты.
+    const n1 = fractalNoise(x / 11 - 31, y / 11 + 17, 4);
+    const n2 = fractalNoise(x / 27 + 71, y / 27 - 41, 3);
 
-        house.resources.meat += groups * 20 * possible;
-        f.game = Math.max(0, f.game - GAME_LOSS_PER_HUNT * possible);
-        f.lastProduction += HUNTING_INTERVAL * possible;
+    return n1 > 0.57 && n2 > 0.39;
+}
+
+function terrainAt(x, y) {
+    // Центр мира оставляем пригодным для первого основания.
+    // Благодаря этому уже существующий демо-город не окажется
+    // внезапно в море после обновления генерации.
+    if (Math.abs(x) <= 5 && Math.abs(y) <= 5) {
+        return forestMask(x, y) ? "forest" : "plain";
     }
 
-    house.hunting.lastProduction = now;
-}
-
-function updateHunting() {
-    const h = getHouse();
-    if (!h) return;
-
-    const facilities = h.facilities.filter(f => f.type === "hunting_ground");
-    const locked = document.getElementById("forestLocked");
-    const available = document.getElementById("huntingAvailable");
-
-    if (!facilities.length) {
-        locked.style.display = "block";
-        available.style.display = "none";
-        updateProductionList();
-        return;
+    // Море формирует три крупных материковых части.
+    if (isMainSea(x, y)) {
+        return "sea";
     }
 
-    locked.style.display = "none";
-    available.style.display = "block";
-
-    updateProductionList();
-}
-
-function addHunter() {
-    const h = getHouse();
-    if (!h) return;
-    const first = h.facilities.find(f => f.type === "hunting_ground");
-    if (!first) return;
-    assignFacilityWorker(first.id, 1);
-}
-
-function removeHunter() {
-    const h = getHouse();
-    if (!h) return;
-    const first = h.facilities.find(f => f.type === "hunting_ground");
-    if (!first) return;
-    assignFacilityWorker(first.id, -1);
-}
-
-function assignFacilityWorker(id, delta) {
-    const h = getHouse();
-    if (!h) return;
-
-    const f = h.facilities.find(x => x.id === id);
-    if (!f) return;
-
-    const totalAssigned = getAssignedWorkers(h);
-    const freeWorkers = h.population.workers - totalAssigned;
-    const next = (f.workers || 0) + delta;
-
-    if (next < 0 || next > 10) return;
-    if (delta > 0 && freeWorkers <= 0) return;
-
-    f.workers = next;
-    f.lastProduction = Date.now();
-
-    saveHouseData(h);
-    updatePopulation();
-    updateProductionList();
-    drawMap();
-}
-
-function updateProductionList() {
-    const h = getHouse();
-    if (!h) return;
-
-    const available = document.getElementById("huntingAvailable");
-    const locked = document.getElementById("forestLocked");
-    const card = document.querySelector("#huntingAvailable");
-
-    if (!available || !locked) return;
-
-    const grounds = h.facilities.filter(f => f.type === "hunting_ground");
-
-    if (!grounds.length) {
-        locked.style.display = "block";
-        available.style.display = "none";
-        return;
+    // Крупные озёра находятся внутри материков.
+    if (lakeMask(x, y)) {
+        return "lake";
     }
 
-    locked.style.display = "none";
-    available.style.display = "block";
-
-    let container = document.getElementById("huntingGroundsList");
-    if (!container) {
-        container = document.createElement("div");
-        container.id = "huntingGroundsList";
-        container.style.marginTop = "10px";
-        available.appendChild(container);
+    // Сначала горы, затем холмы — так переходы выглядят естественнее.
+    if (mountainMask(x, y)) {
+        return "mountain";
     }
 
-    container.innerHTML = grounds.map((f, index) => {
-        const assigned = f.workers || 0;
-        const game = f.game ?? 100;
-        const totalAssigned = getAssignedWorkers(h);
-        const freeWorkers = h.population.workers - totalAssigned;
-
-        return `
-            <div style="border-top:1px solid rgba(117,94,56,.25);padding-top:10px;margin-top:10px;">
-                <div class="productionLine">
-                    <span>Охотничье угодье ${index+1}</span>
-                    <strong>🌲 ${f.x+1}:${f.y+1}</strong>
-                </div>
-                <div class="productionLine">
-                    <span>Охотники</span>
-                    <strong>${assigned} / 10</strong>
-                </div>
-                <div class="productionLine">
-                    <span>Дичь</span>
-                    <strong>${Math.round(game)}%</strong>
-                </div>
-                <div class="hunterControl">
-                    <button class="hunterButton"
-                        onclick="assignFacilityWorker('${f.id}',-1)"
-                        ${assigned <= 0 ? "disabled" : ""}>−</button>
-                    <div class="hunterCount">
-                        <div class="hunterCountNumber">${assigned}</div>
-                        <div class="hunterCountText">ОХОТНИКОВ</div>
-                    </div>
-                    <button class="hunterButton"
-                        onclick="assignFacilityWorker('${f.id}',1)"
-                        ${assigned >= 10 || freeWorkers <= 0 ? "disabled" : ""}>+</button>
-                </div>
-                <div class="productionStatus">
-                    ${assigned < 2
-                        ? "Недостаточно охотников. Требуется минимум 2."
-                        : `Активная охота: +${Math.floor(assigned/2)*20} 🍖 каждые 2 часа.`}
-                </div>
-            </div>
-        `;
-    }).join("");
-}
-
-function toggleProduction() {
-    document.getElementById("productionSection").classList.toggle("open");
-}
-
-function toggleResourceCategory(id) {
-    document.getElementById(id).classList.toggle("open");
-}
-
-/* -----------------------------------------------------
-   СПРАВКИ
------------------------------------------------------ */
-
-function showHelp(type) {
-    const d = helpData[type];
-    if (!d) return;
-    document.getElementById("helpTitle").textContent = d.title;
-    document.getElementById("helpDescription").textContent = d.description;
-    document.getElementById("helpDetailLabel").textContent = "ВЛИЯНИЕ";
-    document.getElementById("helpInfluence").textContent = d.influence;
-    document.getElementById("helpSecondLabel").textContent = "ПОТРЕБЛЕНИЕ";
-    document.getElementById("helpConsumption").textContent = d.consumption;
-    document.getElementById("helpOverlay").style.display = "flex";
-}
-
-function showResourceInfo(type) {
-    const d = resourceData[type];
-    if (!d) return;
-    document.getElementById("helpTitle").textContent = d.title;
-    document.getElementById("helpDescription").textContent = d.description;
-    document.getElementById("helpDetailLabel").textContent = "ВЛИЯНИЕ";
-    document.getElementById("helpInfluence").textContent = d.influence;
-    document.getElementById("helpSecondLabel").textContent = "ДОБЫВАНИЕ";
-    document.getElementById("helpConsumption").textContent = d.extraction;
-    document.getElementById("helpOverlay").style.display = "flex";
-}
-
-function closeHelp() {
-    document.getElementById("helpOverlay").style.display = "none";
-}
-
-function closeHelpOutside(event) {
-    if (event.target.id === "helpOverlay") closeHelp();
-}
-
-/* -----------------------------------------------------
-   СБРОС ДЕМО
------------------------------------------------------ */
-
-function resetHouse() {
-    if (!confirm("Вы действительно хотите удалить существующий Дом и начать новую летопись?")) return;
-
-    localStorage.removeItem(SAVE_KEY);
-    localStorage.removeItem(MAP_KEY);
-
-    /* Возвращаемся на первый экран без перезагрузки. */
-    hideAllScreens();
-    document.getElementById("introScreen").style.display = "block";
-
-    /* Очищаем поля второго экрана. */
-    ["rulerName","houseName","realmName","motto","description"].forEach(id => {
-        const el = document.getElementById(id);
-        if (el) el.value = "";
-    });
-
-    document.getElementById("crestPreview").innerHTML = "♜";
-    document.getElementById("crestInput").value = "";
-    document.getElementById("error").style.display = "none";
-
-    selectedCell = null;
-}
-
-/* -----------------------------------------------------
-   ЗАПУСК
------------------------------------------------------ */
-
-function checkExistingHouse() {
-    const house = getHouse();
-
-    if (!house) {
-        hideAllScreens();
-        document.getElementById("introScreen").style.display = "block";
-        return;
+    if (hillMask(x, y)) {
+        return "hill";
     }
 
-    if (!house.city) {
-        openMap(false);
-    } else {
-        openRealm();
+    if (forestMask(x, y)) {
+        return "forest";
     }
+
+    return "plain";
 }
 
-/*
-   В Telegram проверяем доступ.
-   В обычном браузере оставляем демо доступным.
-*/
-function checkAccess() {
-    const user = tg?.initDataUnsafe?.user || null;
+function terrainIcon(type) {
+    if (type === "forest") return "🌲";
+    if (type === "hill") return "🪨";
+    if (type === "mountain") return "⛰";
+    if (type === "lake") return "💧";
+    if (type === "sea") return "≋";
+    return "";
+}
 
-    if (tg && user && Number(user.id) !== ALLOWED_USER_ID) {
-        hideAllScreens();
-        document.getElementById("locked").style.display = "flex";
+function isInsideWorld(x, y) {
+    return x >= -WORLD_SIZE/2 && x < WORLD_SIZE/2 &&
+           y >= -WORLD_SIZE/2 && y < WORLD_SIZE/2;
+}
+
+function getInitialTerritoryCells(x, y) {
+    const cells = [];
+
+    for (let dy = -1; dy <= 1; dy++) {
+        for (let dx = -1; dx <= 1; dx++) {
+            const cellX = x + dx;
+            const cellY = y + dy;
+
+            if (isInsideWorld(cellX, cellY)) {
+                cells.push({ x: cellX, y: cellY });
+            }
+        }
+    }
+
+    return cells;
+}
+
+function isTerritoryCell(house, x, y) {
+    if (!house || !house.territory || !Array.isArray(house.territory.cells)) {
         return false;
     }
 
-    return true;
+    return house.territory.cells.some(function(cell) {
+        return cell.x === x && cell.y === y;
+    });
 }
 
-/* -----------------------------------------------------
-   КАРТА: drag + tap
------------------------------------------------------ */
-
-(function bindMapEvents() {
-    const canvas = document.getElementById("worldCanvas");
-    if (!canvas) return;
-
-    canvas.addEventListener("pointerdown", e => {
-        mapDragging = false;
-        dragStartX = e.clientX;
-        dragStartY = e.clientY;
-        dragOriginX = mapPanX;
-        dragOriginY = mapPanY;
-        canvas.setPointerCapture?.(e.pointerId);
-    });
-
-    canvas.addEventListener("pointermove", e => {
-        if (Math.abs(e.clientX-dragStartX) > 5 || Math.abs(e.clientY-dragStartY) > 5) {
-            mapDragging = true;
-        }
-    });
-
-    canvas.addEventListener("pointerup", e => {
-        if (!mapDragging) {
-            const cell = cellFromPointer(e);
-            selectMapCell(cell);
-        }
-        mapDragging = false;
-    });
-})();
-
-if (checkAccess()) {
-    checkExistingHouse();
+function getCellDescription(type) {
+    switch (type) {
+        case "forest":
+            return "Лесные угодья.";
+        case "plain":
+            return "Равнинные земли.";
+        case "hill":
+            return "Холмистая местность.";
+        case "mountain":
+            return "Горный массив.";
+        case "lake":
+            return "Пресное озеро.";
+        case "sea":
+            return "Морские воды.";
+        default:
+            return "Неизведанная земля.";
+    }
 }
 
-setInterval(() => {
-    const h = getHouse();
-    if (!h) return;
+function isWaterTerrain(type) {
+    return type === "sea" || type === "lake";
+}
 
-    processFood(h);
-    processAllProduction(h);
-    saveHouseData(h);
+function renderMapCells() {
+    const canvas = document.getElementById("mapCanvas");
+    canvas.innerHTML = "";
 
-    if (document.getElementById("realmScreen").style.display !== "none") {
+    const centerX = Math.round(mapState.x);
+    const centerY = Math.round(mapState.y);
+    const house = getHouse();
+    const city = house && house.city;
+
+    for (let y = centerY - MAP_RENDER_RADIUS_Y; y <= centerY + MAP_RENDER_RADIUS_Y; y++) {
+        for (let x = centerX - MAP_RENDER_RADIUS_X; x <= centerX + MAP_RENDER_RADIUS_X; x++) {
+            if (!isInsideWorld(x, y)) continue;
+
+            const cell = document.createElement("div");
+            const type = terrainAt(x, y);
+
+            cell.className = "mapCell " + type + " selectable";
+            cell.style.left = (x - mapState.x) * CELL_SIZE + "px";
+            cell.style.top = (y - mapState.y) * CELL_SIZE + "px";
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            cell.title = terrainName(type);
+
+            if (isTerritoryCell(house, x, y)) {
+                cell.classList.add("territory");
+            }
+
+            if (city && city.x === x && city.y === y) {
+                cell.classList.add("city");
+
+                const crest = house.crest
+                    ? `<img src="${house.crest}" alt="Герб Дома">`
+                    : "♜";
+
+                cell.innerHTML = `
+                    <span class="cityMark">${crest}</span>
+                    <span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>
+                `;
+            } else {
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span>';
+            }
+
+            if (mapState.selectedX === x && mapState.selectedY === y) {
+                cell.classList.add("selected");
+            }
+
+            cell.addEventListener("click", function() {
+                if (mapState.moved) return;
+
+                const currentHouse = getHouse();
+
+                if (
+                    currentHouse &&
+                    currentHouse.city &&
+                    currentHouse.city.x === x &&
+                    currentHouse.city.y === y
+                ) {
+                    showCityInfo(currentHouse);
+                    return;
+                }
+
+                selectMapCell(x, y);
+            });
+
+            canvas.appendChild(cell);
+        }
+    }
+}
+
+function escapeHtml(value) {
+    return String(value || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+}
+
+function updateCellInfo(x, y) {
+    const title = document.getElementById("mapCellInfoTitle");
+    const text = document.getElementById("mapCellInfoText");
+    const coords = document.getElementById("mapCellInfoCoordinates");
+
+    if (x === null || y === null) {
+        title.textContent = "КЛЕТКА НЕ ВЫБРАНА";
+        text.textContent = "Нажмите на клетку, чтобы узнать о ней больше.";
+        coords.textContent = "—";
+        return;
+    }
+
+    const type = terrainAt(x, y);
+    title.textContent = terrainName(type);
+    text.textContent = getCellDescription(type);
+    coords.textContent = "X: " + x + " · Y: " + y;
+}
+
+function updateMap() {
+    renderMapCells();
+
+    const cx = Math.round(mapState.x);
+    const cy = Math.round(mapState.y);
+
+    document.getElementById("mapCoords").textContent =
+        "X: " + cx + " · Y: " + cy;
+
+    updateCellInfo(mapState.selectedX, mapState.selectedY);
+
+    if (mapState.selectedX !== null) {
+        const type = terrainAt(mapState.selectedX, mapState.selectedY);
+        const forestNearby = hasNearbyForest(mapState.selectedX, mapState.selectedY);
+        const foundationMode = mapState.mode === "foundation";
+
+        document.getElementById("mapSelectionInfo").textContent =
+            "ВЫБРАНО · X: " + mapState.selectedX +
+            " · Y: " + mapState.selectedY +
+            " · " + terrainName(type) +
+            (forestNearby ? " · РЯДОМ ЛЕС" : "");
+
+        document.getElementById("mapFoundButton").disabled =
+            !foundationMode || isWaterTerrain(type);
+    } else {
+        document.getElementById("mapSelectionInfo").textContent =
+            mapState.mode === "view" ? "Нажмите на клетку карты" : "Выберите клетку на карте";
+        document.getElementById("mapFoundButton").disabled = true;
+    }
+}
+
+function terrainName(type) {
+    if (type === "forest") return "ЛЕС";
+    if (type === "hill") return "ХОЛМЫ";
+    if (type === "mountain") return "ГОРЫ";
+    if (type === "lake") return "ОЗЕРО";
+    if (type === "sea") return "МОРЕ";
+    return "РАВНИНА";
+}
+
+function hasNearbyForest(x, y) {
+    for (let dy = -2; dy <= 2; dy++) {
+        for (let dx = -2; dx <= 2; dx++) {
+            if (dx === 0 && dy === 0) continue;
+            if (terrainAt(x + dx, y + dy) === "forest") return true;
+        }
+    }
+    return false;
+}
+
+function selectMapCell(x, y) {
+    if (!isInsideWorld(x, y)) return;
+    if (mapState.mode === "foundation" && isWaterTerrain(terrainAt(x, y))) return;
+
+    mapState.selectedX = x;
+    mapState.selectedY = y;
+
+    // Центрируем выбранную клетку.
+    mapState.x = x;
+    mapState.y = y;
+
+    updateMap();
+}
+
+function foundCity() {
+    if (mapState.selectedX === null) return;
+
+    const x = mapState.selectedX;
+    const y = mapState.selectedY;
+
+    if (isWaterTerrain(terrainAt(x, y))) return;
+
+    let house = getHouse();
+    if (!house) return;
+
+    house.city = {
+        x: x,
+        y: y,
+        foundedAt: new Date().toISOString()
+    };
+
+    house.mapPosition = { x: x, y: y };
+
+    // Первое основание получает 3 × 3 клетки: одна клетка
+    // во все стороны от центра города. Это стартовая территория Дома.
+    house.territory = {
+        cells: getInitialTerritoryCells(x, y),
+        forest: false
+    };
+
+    house.territory.forest = house.territory.cells.some(function(cell) {
+        return terrainAt(cell.x, cell.y) === "forest";
+    });
+
+    house.mapPosition = { x: x, y: y };
+
+    saveHouseData(house);
+
+    // После основания открываем главный экран. Отсюда игрок сможет
+    // вернуться на карту через блок «Первая деревня».
+    setMapMode("view");
+    openRealm();
+}
+
+function showCityInfo(house) {
+    if (!house) return;
+
+    const totalPopulation =
+        (Number(house.population?.free) || 0) +
+        (Number(house.population?.workers) || 0) +
+        (Number(house.population?.soldiers) || 0);
+
+    const crest = document.getElementById("cityInfoCrest");
+
+    if (house.crest) {
+        crest.innerHTML =
+            `<img src="${house.crest}" alt="Герб Дома">`;
+    } else {
+        crest.innerHTML = "♜";
+    }
+
+    document.getElementById("cityInfoRuler").textContent =
+        house.rulerName || "Неизвестный правитель";
+
+    document.getElementById("cityInfoHouse").textContent =
+        house.houseName || "Безымянный Дом";
+
+    document.getElementById("cityInfoRealm").textContent =
+        house.realmName || "Безымянное государство";
+
+    document.getElementById("cityInfoMotto").textContent =
+        house.motto ? "«" + house.motto + "»" : "—";
+
+    document.getElementById("cityInfoPopulation").textContent =
+        totalPopulation;
+
+    document.getElementById("cityInfoCoordinates").textContent =
+        "X: " + house.city.x + " · Y: " + house.city.y;
+
+    document.getElementById("cityInfoOverlay").style.display = "flex";
+}
+
+function closeCityInfo() {
+    document.getElementById("cityInfoOverlay").style.display = "none";
+}
+
+function closeCityInfoOutside(event) {
+    if (event.target.id === "cityInfoOverlay") {
+        closeCityInfo();
+    }
+}
+
+function returnToRealm() {
+    const house = getHouse();
+    if (house) {
+        openRealm();
+    } else {
+        openCreation();
+    }
+}
+
+function initMapControls() {
+    const map = document.getElementById("worldMap");
+
+    map.addEventListener("pointerdown", function(e) {
+        mapState.dragging = true;
+        mapState.moved = false;
+        mapState.lastPointerX = e.clientX;
+        mapState.lastPointerY = e.clientY;
+        map.setPointerCapture?.(e.pointerId);
+    });
+
+    map.addEventListener("pointermove", function(e) {
+        if (!mapState.dragging) return;
+
+        const dx = e.clientX - mapState.lastPointerX;
+        const dy = e.clientY - mapState.lastPointerY;
+
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
+            mapState.moved = true;
+        }
+
+        mapState.lastPointerX = e.clientX;
+        mapState.lastPointerY = e.clientY;
+
+        mapState.x -= dx / CELL_SIZE;
+        mapState.y -= dy / CELL_SIZE;
+
+        mapState.x = Math.max(-WORLD_SIZE/2 + 5, Math.min(WORLD_SIZE/2 - 5, mapState.x));
+        mapState.y = Math.max(-WORLD_SIZE/2 + 5, Math.min(WORLD_SIZE/2 - 5, mapState.y));
+
+        renderMapCells();
+        document.getElementById("mapCoords").textContent =
+            "X: " + Math.round(mapState.x) + " · Y: " + Math.round(mapState.y);
+    });
+
+    map.addEventListener("pointerup", function() {
+        mapState.dragging = false;
+        setTimeout(() => mapState.moved = false, 50);
+    });
+
+    map.addEventListener("pointercancel", function() {
+        mapState.dragging = false;
+    });
+}
+
+initMapControls();
+
+
+/* =====================================================
+   ПОЛУЧИТЬ ДОМ
+===================================================== */
+
+function getHouse() {
+
+    const savedHouse =
+        localStorage.getItem("theRealmsHouse");
+
+    if (!savedHouse) return null;
+
+    return JSON.parse(savedHouse);
+}
+
+
+/* =====================================================
+   СОХРАНИТЬ
+===================================================== */
+
+function saveHouseData(house) {
+
+    localStorage.setItem(
+        "theRealmsHouse",
+        JSON.stringify(house)
+    );
+}
+
+
+/* =====================================================
+   ПОДГОТОВКА ДАННЫХ
+===================================================== */
+
+function prepareHouse(house) {
+
+    if (!house.population) {
+
+        house.population = {
+
+            free: 100,
+            workers: 0,
+            soldiers: 0,
+            hunters: 0
+
+        };
+
+    }
+
+
+    if (typeof house.population.free !== "number")
+        house.population.free = 100;
+
+    if (typeof house.population.workers !== "number")
+        house.population.workers = 0;
+
+    if (typeof house.population.soldiers !== "number")
+        house.population.soldiers = 0;
+
+    if (typeof house.population.hunters !== "number")
+        house.population.hunters = 0;
+
+
+    if (!house.resources) {
+
+        house.resources = {
+
+            meat: 100,
+            wood: 50,
+            stone: 50,
+            gold: 0
+
+        };
+
+    }
+
+
+    if (typeof house.resources.meat !== "number")
+        house.resources.meat = 100;
+
+
+    if (!house.hunting) {
+
+        house.hunting = {
+
+            game: 100,
+            lastProduction: Date.now()
+
+        };
+
+    }
+
+
+    // Миграция старых сохранений: если город уже был основан
+    // до появления стартовой территории 3 × 3, автоматически
+    // выдаём ему одну клетку во все стороны.
+    if (house.city &&
+        typeof house.city.x === "number" &&
+        typeof house.city.y === "number") {
+
+        const cells =
+            house.territory &&
+            Array.isArray(house.territory.cells)
+                ? house.territory.cells
+                : [];
+
+        if (cells.length < 9) {
+
+            house.territory = {
+                cells: getInitialTerritoryCells(
+                    house.city.x,
+                    house.city.y
+                ),
+                forest: false
+            };
+
+            house.territory.forest = house.territory.cells.some(function(cell) {
+                return terrainAt(cell.x, cell.y) === "forest";
+            });
+
+            saveHouseData(house);
+
+        }
+
+    }
+
+
+    return house;
+}
+
+
+/* =====================================================
+   ПРОИЗВОДСТВО
+===================================================== */
+
+function processHunting(house) {
+
+    if (!hasForestForHouse(house)) {
+
+        house.hunting.lastProduction = Date.now();
+
+        saveHouseData(house);
+
+        return;
+    }
+
+
+    const hunters =
+        house.population.hunters;
+
+
+    if (hunters < HUNTING_MINIMUM) {
+
+        house.hunting.lastProduction = Date.now();
+
+        saveHouseData(house);
+
+        return;
+    }
+
+
+    const now = Date.now();
+
+    const elapsed =
+        now - house.hunting.lastProduction;
+
+
+    const completedCycles =
+        Math.floor(
+            elapsed / HUNTING_INTERVAL
+        );
+
+
+    if (completedCycles <= 0)
+        return;
+
+
+    const groups =
+        Math.floor(
+            hunters / HUNTING_GROUP_SIZE
+        );
+
+
+    const meatPerCycle =
+        groups * MEAT_PER_GROUP;
+
+
+    const possibleCycles =
+        Math.min(
+
+            completedCycles,
+
+            Math.floor(
+                house.hunting.game /
+                GAME_LOSS_PER_HUNT
+            )
+
+        );
+
+
+    if (possibleCycles > 0) {
+
+        house.resources.meat +=
+            meatPerCycle * possibleCycles;
+
+        house.hunting.game -=
+            GAME_LOSS_PER_HUNT * possibleCycles;
+
+        house.hunting.lastProduction +=
+            HUNTING_INTERVAL * possibleCycles;
+
+    }
+
+
+    saveHouseData(house);
+}
+
+
+/* =====================================================
+   ПРОИЗВОДСТВО — ОТКРЫТЬ
+===================================================== */
+
+function toggleProduction() {
+
+    document
+        .getElementById("productionSection")
+        .classList.toggle("open");
+
+}
+
+
+/* =====================================================
+   РЕСУРСЫ — ОТКРЫТЬ
+===================================================== */
+
+function toggleResourceCategory(id) {
+
+    document
+        .getElementById(id)
+        .classList.toggle("open");
+
+}
+
+
+/* =====================================================
+   ДОБАВИТЬ ОХОТНИКА
+===================================================== */
+
+function addHunter() {
+
+    let house = getHouse();
+    if (!house || !hasForestForHouse(house)) return;
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+
+    const availableWorkers =
+        house.population.workers -
+        house.population.hunters;
+
+
+    if (availableWorkers <= 0)
+        return;
+
+
+    if (
+        house.population.hunters >=
+        HUNTING_MAXIMUM
+    )
+        return;
+
+
+    house.population.hunters += 1;
+
+    house.hunting.lastProduction = Date.now();
+
+    saveHouseData(house);
+
+    updatePopulation();
+
+    updateHunting();
+}
+
+
+/* =====================================================
+   УБРАТЬ ОХОТНИКА
+===================================================== */
+
+function removeHunter() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+
+    if (house.population.hunters <= 0)
+        return;
+
+
+    house.population.hunters -= 1;
+
+    house.hunting.lastProduction = Date.now();
+
+    saveHouseData(house);
+
+    updatePopulation();
+
+    updateHunting();
+}
+
+
+/* =====================================================
+   СВОБОДНЫЙ → РАБОЧИЙ
+===================================================== */
+
+function moveFreeToWorker() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+
+    if (house.population.free <= 0)
+        return;
+
+
+    house.population.free -= 1;
+
+    house.population.workers += 1;
+
+    saveHouseData(house);
+
+    updatePopulation();
+
+    updateHunting();
+}
+
+
+/* =====================================================
+   РАБОЧИЙ → СВОБОДНЫЙ
+===================================================== */
+
+function moveWorkerToFree() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+
+    const ordinaryWorkers =
+        house.population.workers -
+        house.population.hunters;
+
+
+    if (ordinaryWorkers <= 0)
+        return;
+
+
+    house.population.workers -= 1;
+
+    house.population.free += 1;
+
+    saveHouseData(house);
+
+    updatePopulation();
+
+    updateHunting();
+}
+
+
+/* =====================================================
+   СВОБОДНЫЙ → ВОЕННЫЙ
+===================================================== */
+
+function moveFreeToSoldier() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+
+    if (house.population.free <= 0)
+        return;
+
+
+    house.population.free -= 1;
+
+    house.population.soldiers += 1;
+
+    saveHouseData(house);
+
+    updatePopulation();
+}
+
+
+/* =====================================================
+   ВОЕННЫЙ → СВОБОДНЫЙ
+===================================================== */
+
+function moveSoldierToFree() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+
+    if (house.population.soldiers <= 0)
+        return;
+
+
+    house.population.soldiers -= 1;
+
+    house.population.free += 1;
+
+    saveHouseData(house);
+
+    updatePopulation();
+}
+
+
+/* =====================================================
+   НАСЕЛЕНИЕ
+===================================================== */
+
+function updatePopulation() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+
+    const free =
+        house.population.free;
+
+    const workers =
+        house.population.workers;
+
+    const soldiers =
+        house.population.soldiers;
+
+
+    const total =
+        free +
+        workers +
+        soldiers;
+
+
+    document
+        .getElementById("freePopulation")
+        .textContent = free;
+
+
+    document
+        .getElementById("workerPopulation")
+        .textContent = workers;
+
+
+    document
+        .getElementById("soldierPopulation")
+        .textContent = soldiers;
+
+
+    document
+        .getElementById("populationTotal")
+        .textContent =
+        "Всего: " + total;
+
+
+    document
+        .getElementById("freeToWorkerButton")
+        .disabled =
+        free <= 0;
+
+
+    document
+        .getElementById("freeToSoldierButton")
+        .disabled =
+        free <= 0;
+
+
+    const ordinaryWorkers =
+        workers -
+        house.population.hunters;
+
+
+    document
+        .getElementById("workerToFreeButton")
+        .disabled =
+        ordinaryWorkers <= 0;
+
+
+    document
+        .getElementById("soldierToFreeButton")
+        .disabled =
+        soldiers <= 0;
+
+
+    updateResources();
+}
+
+
+/* =====================================================
+   ОХОТА
+===================================================== */
+
+function updateHunting() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+
+    if (!hasForestForHouse(house)) {
+
+        document
+            .getElementById("forestLocked")
+            .style.display = "block";
+
+
+        document
+            .getElementById("huntingAvailable")
+            .style.display = "none";
+
+
+        return;
+    }
+
+
+    document
+        .getElementById("forestLocked")
+        .style.display = "none";
+
+
+    document
+        .getElementById("huntingAvailable")
+        .style.display = "block";
+
+
+    processHunting(house);
+
+
+    const hunters =
+        house.population.hunters;
+
+
+    const game =
+        Math.round(
+            house.hunting.game
+        );
+
+
+    document
+        .getElementById("hunterCount")
+        .textContent = hunters;
+
+
+    document
+        .getElementById("gamePercent")
+        .textContent =
+        game + "%";
+
+
+    document
+        .getElementById("gameBar")
+        .style.width =
+        game + "%";
+
+
+    const availableWorkers =
+        house.population.workers -
+        house.population.hunters;
+
+
+    document
+        .getElementById("addHunterButton")
+        .disabled =
+
+        availableWorkers <= 0 ||
+        hunters >= HUNTING_MAXIMUM;
+
+
+    document
+        .getElementById("removeHunterButton")
+        .disabled =
+        hunters <= 0;
+
+
+    const status =
+        document.getElementById(
+            "huntingStatus"
+        );
+
+
+    if (hunters < HUNTING_MINIMUM) {
+
+        status.textContent =
+            "Недостаточно охотников. Требуется минимум 2.";
+
+    }
+
+    else {
+
+        const groups =
+            Math.floor(
+                hunters / HUNTING_GROUP_SIZE
+            );
+
+
+        const production =
+            groups * MEAT_PER_GROUP;
+
+
+        status.textContent =
+            "Активная охота: +" +
+            production +
+            " 🍖 каждые 2 часа.";
+
+    }
+
+
+    updateResources();
+}
+
+
+/* =====================================================
+   РЕСУРСЫ
+===================================================== */
+
+function updateResources() {
+
+    const house = getHouse();
+
+    if (!house) return;
+
+
+    document
+        .getElementById("foodValue")
+        .textContent =
+        Math.floor(
+            house.resources.meat
+        );
+}
+
+
+/* =====================================================
+   ДАННЫЕ НАСЕЛЕНИЯ
+===================================================== */
+
+const helpData = {
+
+    free: {
+
+        title:
+            "СВОБОДНОЕ НАСЕЛЕНИЕ",
+
+        description:
+            "Люди, не связанные службой или трудом. Они ждут своего предназначения.",
+
+        influence:
+            "Резерв государства. Могут быть назначены рабочими или военнослужащими.",
+
+        consumption:
+            "1 мясо каждые 5 часов."
+
+    },
+
+
+    worker: {
+
+        title:
+            "РАБОЧЕЕ НАСЕЛЕНИЕ",
+
+        description:
+            "Те, кто трудится ради Дома. Их руки добывают богатство, на котором растёт государство.",
+
+        influence:
+            "Производят ресурсы. В дальнейшем каждый рабочий сможет получить определённую профессию.",
+
+        consumption:
+            "1 мясо каждые 5 часов."
+
+    },
+
+
+    soldier: {
+
+        title:
+            "ВОЕННОСЛУЖАЩИЕ",
+
+        description:
+            "Те, кто взял оружие ради Дома. Они защищают его земли и готовы проливать кровь за её пределы.",
+
+        influence:
+            "Оборона государства, захват земель, военные походы и конфликты.",
+
+        consumption:
+            "2 мяса каждые 5 часов."
+
+    }
+
+};
+
+
+/* =====================================================
+   ДАННЫЕ РЕСУРСОВ
+===================================================== */
+
+const resourceData = {
+
+    meat: {
+
+        title:
+            "МЯСО",
+
+        description:
+            "Мясо — основной источник пищи для населения Дома. Без достаточных запасов пищи государство не сможет долго существовать.",
+
+        influence:
+            "Поддерживает жизнь населения.",
+
+        extraction:
+            "На текущем этапе мясо добывается охотой. Для охоты требуется клетка 🌲 Лес и назначенные охотники."
+
+    }
+
+};
+
+
+/* =====================================================
+   СПРАВКА НАСЕЛЕНИЯ
+===================================================== */
+
+function showHelp(type) {
+
+    const data =
+        helpData[type];
+
+
+    if (!data)
+        return;
+
+
+    document
+        .getElementById("helpTitle")
+        .textContent =
+        data.title;
+
+
+    document
+        .getElementById("helpDescription")
+        .textContent =
+        data.description;
+
+
+    document
+        .getElementById("helpDetailLabel")
+        .textContent =
+        "ВЛИЯНИЕ";
+
+
+    document
+        .getElementById("helpInfluence")
+        .textContent =
+        data.influence;
+
+
+    document
+        .getElementById("helpSecondLabel")
+        .textContent =
+        "ПОТРЕБЛЕНИЕ";
+
+
+    document
+        .getElementById("helpConsumption")
+        .textContent =
+        data.consumption;
+
+
+    document
+        .getElementById("helpOverlay")
+        .style.display =
+        "flex";
+}
+
+
+/* =====================================================
+   СПРАВКА РЕСУРСА
+===================================================== */
+
+function showResourceInfo(type) {
+
+    const data =
+        resourceData[type];
+
+
+    if (!data)
+        return;
+
+
+    document
+        .getElementById("helpTitle")
+        .textContent =
+        data.title;
+
+
+    document
+        .getElementById("helpDescription")
+        .textContent =
+        data.description;
+
+
+    document
+        .getElementById("helpDetailLabel")
+        .textContent =
+        "ВЛИЯНИЕ";
+
+
+    document
+        .getElementById("helpInfluence")
+        .textContent =
+        data.influence;
+
+
+    document
+        .getElementById("helpSecondLabel")
+        .textContent =
+        "ДОБЫВАНИЕ";
+
+
+    document
+        .getElementById("helpConsumption")
+        .textContent =
+        data.extraction;
+
+
+    document
+        .getElementById("helpOverlay")
+        .style.display =
+        "flex";
+}
+
+
+/* =====================================================
+   ЗАКРЫТЬ СПРАВКУ
+===================================================== */
+
+function closeHelp() {
+
+    document
+        .getElementById("helpOverlay")
+        .style.display =
+        "none";
+}
+
+
+function closeHelpOutside(event) {
+
+    if (
+        event.target.id ===
+        "helpOverlay"
+    ) {
+
+        closeHelp();
+
+    }
+
+}
+
+
+/* =====================================================
+   ОТКРЫТЬ ГОСУДАРСТВО
+===================================================== */
+
+function openRealm() {
+
+    let house =
+        getHouse();
+
+
+    if (!house) {
+
+        openCreation();
+
+        return;
+    }
+
+
+    house =
+        prepareHouse(house);
+
+
+    processHunting(house);
+
+    saveHouseData(house);
+
+
+    document
+        .getElementById("realmHouse")
+        .textContent =
+        house.houseName;
+
+
+    document
+        .getElementById("realmCountry")
+        .textContent =
+        house.realmName;
+
+
+    document
+        .getElementById("realmMotto")
+        .textContent =
+        "«" +
+        house.motto +
+        "»";
+
+
+    document
+        .getElementById("realmHistory")
+        .textContent =
+
+        house.description ||
+        "История этого Дома ещё только начинается.";
+
+
+    const crest =
+        document.getElementById(
+            "realmCrest"
+        );
+
+
+    if (house.crest) {
+
+        crest.innerHTML =
+            `
+            <img
+                src="${house.crest}"
+                alt="Герб Дома"
+            >
+            `;
+
+    }
+
+    else {
+
+        crest.innerHTML =
+            "♜";
+
+    }
+
+
+    const villageTitle =
+        document.getElementById("villageTitle");
+
+    const villageText =
+        document.getElementById("villageText");
+
+    const villageMapHint =
+        document.getElementById("villageMapHint");
+
+    if (house.city) {
+        villageTitle.textContent = "ПЕРВАЯ ДЕРЕВНЯ · ОСНОВАНА";
+        villageText.textContent =
+            "Ваш первый город основан. Вокруг него закреплены первые земли Дома.";
+        villageMapHint.textContent =
+            "ОТКРЫТЬ КАРТУ МИРА · X: " + house.city.x + " · Y: " + house.city.y + " · ›";
+    } else {
+        villageTitle.textContent = "ПЕРВАЯ ДЕРЕВНЯ";
+        villageText.textContent =
+            "Здесь начнётся строительство вашего будущего государства.";
+        villageMapHint.textContent =
+            "ОТКРЫТЬ КАРТУ МИРА · ›";
+    }
+
+
+    updatePopulation();
+
+    updateHunting();
+
+    updateResources();
+
+
+    document
+        .getElementById("introScreen")
+        .style.display =
+        "none";
+
+    document
+        .getElementById("mapScreen")
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById("creationScreen")
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById("realmScreen")
+        .style.display =
+        "block";
+
+
+    window.scrollTo(0, 0);
+}
+
+
+/* =====================================================
+   СБРОС
+===================================================== */
+
+function resetHouse() {
+
+    const confirmed =
+        confirm(
+            "Вы действительно хотите удалить существующий Дом и начать новую летопись?"
+        );
+
+
+    if (!confirmed)
+        return;
+
+
+    localStorage.removeItem(
+        "theRealmsHouse"
+    );
+
+
+    location.reload();
+}
+
+
+/* =====================================================
+   ПРОВЕРКА СОХРАНЕНИЯ
+===================================================== */
+
+function checkExistingHouse() {
+
+    const savedHouse =
+        localStorage.getItem(
+            "theRealmsHouse"
+        );
+
+
+    if (savedHouse) {
+        const house = prepareHouse(JSON.parse(savedHouse));
+
+        if (house.city && typeof house.city.x === "number" && typeof house.city.y === "number") {
+            openRealm();
+        } else {
+            openMapForFoundation();
+        }
+
+    }
+
+    else {
+
+        document
+            .getElementById("introScreen")
+            .style.display =
+            "block";
+
+
+        document
+            .getElementById("creationScreen")
+            .style.display =
+            "none";
+
+
+        document
+            .getElementById("realmScreen")
+            .style.display =
+            "none";
+
+    }
+
+}
+
+
+/* =====================================================
+   ПЕРИОДИЧЕСКОЕ ОБНОВЛЕНИЕ
+===================================================== */
+
+setInterval(
+
+    function() {
+
+        const house =
+            getHouse();
+
+
+        if (!house)
+            return;
+
+
+        processHunting(house);
+
         updatePopulation();
+
         updateHunting();
-        updateResources();
-    }
-    if (document.getElementById("mapScreen").style.display !== "none") {
-        drawMap();
-    }
-}, 1000);
+
+    },
+
+    1000
+
+);
+
+
+/* =====================================================
+   ЗАПУСК
+===================================================== */
+
+if (
+    user &&
+    Number(user.id) ===
+    ALLOWED_USER_ID
+) {
+
+    checkExistingHouse();
+
+}
 
 </script>
 

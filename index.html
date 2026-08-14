@@ -3,1152 +3,1196 @@
 
 <head>
 
-    <meta charset="UTF-8">
+<meta charset="UTF-8">
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-    >
+<meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+>
 
-    <title>The Realms</title>
+<title>The Realms</title>
 
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-    <style>
+<!-- Шрифт, максимально близкий к шрифту на первом экране -->
+<link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap"
+    rel="stylesheet"
+>
 
-        * {
-            box-sizing: border-box;
-            -webkit-tap-highlight-color: transparent;
-        }
+<style>
 
-        html,
-        body {
-            margin: 0;
-            padding: 0;
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
 
-            width: 100%;
-            min-height: 100%;
+html,
+body {
 
-            background: #090806;
-            color: #d8ccb8;
+    margin: 0;
+    padding: 0;
 
-            font-family:
-                Georgia,
-                "Times New Roman",
-                serif;
-        }
+    width: 100%;
+    min-height: 100%;
 
-        body {
-            overflow-x: hidden;
-        }
+    background: #090806;
+    color: #d8ccb8;
 
+    font-family:
+        "Cormorant Garamond",
+        Georgia,
+        serif;
+}
 
-        /* ================================================
-           ОБЩИЙ ЭКРАН
-        ================================================ */
+body {
+    overflow-x: hidden;
+}
 
-        .screen {
 
-            position: relative;
+/* =====================================================
+   ПЕРВЫЙ ЭКРАН
+===================================================== */
 
-            width: 100%;
-            min-height: 100vh;
-            min-height: 100dvh;
+#introScreen {
 
-            background: #090806;
+    position: relative;
 
-            overflow: hidden;
-        }
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
 
+    overflow: hidden;
 
-        /* ================================================
-           ПЕРВЫЙ ЭКРАН
-        ================================================ */
+    background: #000;
+}
 
-        #introScreen {
 
-            position: relative;
+#background {
 
-            width: 100vw;
-            height: 100vh;
-            height: 100dvh;
+    position: absolute;
 
-            overflow: hidden;
+    width: 100%;
+    height: 100%;
 
-            background: #000;
-        }
+    object-fit: cover;
+    object-position: center center;
 
+    display: block;
 
-        #background {
+    user-select: none;
+    -webkit-user-drag: none;
+}
 
-            position: absolute;
 
-            width: 100%;
-            height: 100%;
+/* Невидимая кнопка поверх кнопки на картинке */
 
-            object-fit: cover;
-            object-position: center center;
+#startButton {
 
-            display: block;
+    position: absolute;
 
-            user-select: none;
-            -webkit-user-drag: none;
-        }
+    left: 50%;
+    top: 87%;
 
+    transform: translate(-50%, -50%);
 
-        /* ================================================
-           КНОПКА НА ПЕРВОМ ЭКРАНЕ
-        ================================================ */
+    width: 52%;
+    height: 8%;
 
-        #startButton {
+    border: none;
+    outline: none;
 
-            position: absolute;
+    background: transparent;
 
-            top: 87%;
-            left: 50%;
+    cursor: pointer;
+}
 
-            transform:
-                translate(-50%, -50%);
+#startButton:active {
 
-            width: 46%;
-            height: 6.5%;
+    transform:
+        translate(-50%, -50%)
+        scale(0.97);
+}
 
-            border: none;
-            outline: none;
 
-            padding: 0;
+/* =====================================================
+   ВТОРОЙ ЭКРАН
+===================================================== */
 
-            background: transparent;
+#creationScreen {
 
-            cursor: pointer;
-        }
+    display: none;
 
+    width: 100%;
 
-        #startButton:active {
+    min-height: 100vh;
+    min-height: 100dvh;
 
-            transform:
-                translate(-50%, -50%)
-                scale(0.97);
-        }
+    padding:
+        22px
+        18px
+        30px;
 
+    overflow-y: auto;
 
-        /* ================================================
-           ВТОРОЙ ЭКРАН — СОЗДАНИЕ ДОМА
+    background-image:
 
-           ФОН:
-           creation-bg.jpg
-        ================================================ */
+        linear-gradient(
+            rgba(8, 7, 5, 0.28),
+            rgba(8, 7, 5, 0.28)
+        ),
 
-        #creationScreen {
+        url("creation-bg.jpg");
 
-            display: none;
+    background-size: cover;
 
-            min-height: 100vh;
-            min-height: 100dvh;
+    background-position:
+        center top;
 
-            padding:
-                28px
-                22px
-                35px;
+    background-repeat: no-repeat;
+}
 
-            overflow-y: auto;
 
-            background-image:
+/* =====================================================
+   РАМКА
+===================================================== */
 
-                linear-gradient(
-                    rgba(8, 7, 5, 0.25),
-                    rgba(8, 7, 5, 0.25)
-                ),
+.creationFrame {
 
-                url("creation-bg.jpg");
+    position: relative;
 
-            background-size: cover;
+    min-height:
+        calc(100vh - 52px);
 
-            background-position:
-                center top;
+    min-height:
+        calc(100dvh - 52px);
 
-            background-repeat: no-repeat;
-        }
+    padding:
+        24px
+        18px
+        28px;
 
+    border:
+        1px solid
+        rgba(157, 126, 72, 0.55);
 
-        /* ================================================
-           РАМКА
-        ================================================ */
+    background:
+        rgba(7, 6, 5, 0.20);
+}
 
-        .creationFrame {
 
-            position: relative;
+.creationFrame::before {
 
-            min-height:
-                calc(100vh - 63px);
+    content: "";
 
-            min-height:
-                calc(100dvh - 63px);
+    position: absolute;
 
-            padding:
-                30px
-                22px
-                32px;
+    inset: 6px;
 
-            border:
-                1px solid
-                rgba(157, 126, 72, 0.55);
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.25);
 
-            background:
-                rgba(8, 7, 5, 0.30);
-        }
+    pointer-events: none;
+}
 
 
-        .creationFrame::before {
+/* =====================================================
+   ЗАГОЛОВОК
+===================================================== */
 
-            content: "";
+.creationHeader {
 
-            position: absolute;
+    position: relative;
 
-            inset: 6px;
+    z-index: 2;
 
-            border:
-                1px solid
-                rgba(117, 94, 56, 0.25);
+    text-align: center;
 
-            pointer-events: none;
-        }
+    margin-bottom: 20px;
+}
 
 
-        /* ================================================
-           ЗАГОЛОВОК
-        ================================================ */
+.smallCrown {
 
-        .creationHeader {
+    color: #aa8b55;
 
-            position: relative;
+    font-size: 20px;
 
-            z-index: 2;
+    margin-bottom: 8px;
+}
 
-            text-align: center;
 
-            margin-bottom: 27px;
-        }
+.creationTitle {
 
+    margin: 0;
 
-        .smallCrown {
+    color: #ddd1bd;
 
-            color: #a88a55;
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-            font-size: 24px;
+    font-size: 20px;
 
-            margin-bottom: 13px;
-        }
+    font-weight: 500;
 
+    letter-spacing: 3px;
 
-        .creationTitle {
+    text-transform: uppercase;
+}
 
-            margin: 0;
 
-            color: #ded2bd;
+.creationSubtitle {
 
-            font-size: 24px;
+    margin-top: 7px;
 
-            font-weight: normal;
+    color: #958773;
 
-            letter-spacing: 4px;
+    font-family:
+        "Cormorant Garamond",
+        Georgia,
+        serif;
 
-            text-transform: uppercase;
-        }
+    font-size: 14px;
 
+    line-height: 1.35;
+}
 
-        .creationSubtitle {
 
-            margin-top: 12px;
+.goldDivider {
 
-            color: #8d806c;
+    display: flex;
 
-            font-size: 14px;
+    align-items: center;
 
-            line-height: 1.5;
-        }
+    gap: 8px;
 
+    margin:
+        13px auto 0;
 
-        .goldDivider {
+    width: 170px;
+}
 
-            display: flex;
 
-            align-items: center;
+.goldDivider span {
 
-            gap: 9px;
+    flex: 1;
 
-            margin:
-                19px auto 0;
+    height: 1px;
 
-            width: 190px;
-        }
+    background:
+        rgba(157, 126, 72, 0.55);
+}
 
 
-        .goldDivider span {
+.goldDiamond {
 
-            flex: 1;
+    color: #ad8b52;
 
-            height: 1px;
+    font-size: 7px;
+}
 
-            background:
-                rgba(157, 126, 72, 0.55);
-        }
 
+/* =====================================================
+   ФОРМА
+===================================================== */
 
-        .goldDiamond {
+.form {
 
-            color: #ae8d55;
+    position: relative;
 
-            font-size: 9px;
-        }
+    z-index: 2;
+}
 
 
-        /* ================================================
-           ФОРМА
-        ================================================ */
+.field {
 
-        .form {
+    margin-bottom: 14px;
+}
 
-            position: relative;
 
-            z-index: 2;
-        }
+.fieldLabel {
 
+    display: block;
 
-        .field {
+    margin-bottom: 6px;
 
-            margin-bottom: 19px;
-        }
+    color: #a89167;
 
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-        .fieldLabel {
+    font-size: 10px;
 
-            display: block;
+    font-weight: 500;
 
-            margin-bottom: 8px;
+    letter-spacing: 2px;
 
-            color: #a99168;
+    text-transform: uppercase;
+}
 
-            font-size: 11px;
 
-            letter-spacing: 2px;
+.fieldHint {
 
-            text-transform: uppercase;
-        }
+    display: block;
 
+    margin-top: 5px;
 
-        .fieldHint {
+    color: #665d51;
 
-            display: block;
+    font-family:
+        "Cormorant Garamond",
+        Georgia,
+        serif;
 
-            margin-top: 6px;
+    font-size: 11px;
+}
 
-            color: #61594e;
 
-            font-size: 11px;
-        }
+/* =====================================================
+   ПОЛЯ
+===================================================== */
 
+.input {
 
-        .input {
+    width: 100%;
 
-            width: 100%;
+    min-height: 43px;
 
-            min-height: 48px;
+    padding:
+        9px
+        12px;
 
-            padding:
-                12px
-                14px;
+    border:
+        1px solid
+        rgba(133, 108, 68, 0.55);
 
-            border:
-                1px solid
-                rgba(133, 108, 68, 0.55);
+    outline: none;
 
-            outline: none;
+    border-radius: 0;
 
-            border-radius: 0;
+    background:
+        rgba(24, 20, 16, 0.78);
 
-            background:
-                rgba(28, 23, 18, 0.78);
+    color: #d8ccb9;
 
-            color: #d9cdb9;
+    font-family:
+        "Cormorant Garamond",
+        Georgia,
+        serif;
 
-            font-family:
-                Georgia,
-                "Times New Roman",
-                serif;
+    font-size: 16px;
 
-            font-size: 16px;
-        }
+    line-height: 1.2;
+}
 
 
-        .input:focus {
+.input:focus {
 
-            border-color:
-                rgba(181, 150, 91, 0.9);
+    border-color:
+        rgba(181, 150, 91, 0.9);
 
-            background:
-                rgba(38, 31, 23, 0.88);
-        }
+    background:
+        rgba(35, 29, 22, 0.88);
+}
 
 
-        .input::placeholder {
+.input::placeholder {
 
-            color: #5e574d;
-        }
+    color: #625a50;
 
+    opacity: 1;
+}
 
-        textarea.input {
 
-            min-height: 80px;
+textarea.input {
 
-            resize: none;
-        }
+    min-height: 72px;
 
+    resize: none;
 
-        /* ================================================
-           ГЕРБ
-        ================================================ */
+    line-height: 1.35;
+}
 
-        .crestUpload {
 
-            display: flex;
+/* =====================================================
+   ГЕРБ
+===================================================== */
 
-            align-items: center;
+.crestUpload {
 
-            gap: 16px;
+    display: flex;
 
-            padding: 14px;
+    align-items: center;
 
-            border:
-                1px solid
-                rgba(133, 108, 68, 0.45);
+    gap: 13px;
 
-            background:
-                rgba(25, 21, 17, 0.72);
-        }
+    padding: 11px;
 
+    border:
+        1px solid
+        rgba(133, 108, 68, 0.45);
 
-        .crestPreview {
+    background:
+        rgba(25, 21, 17, 0.72);
+}
 
-            flex-shrink: 0;
 
-            width: 64px;
-            height: 64px;
+.crestPreview {
 
-            display: flex;
+    flex-shrink: 0;
 
-            align-items: center;
-            justify-content: center;
+    width: 58px;
+    height: 58px;
 
-            overflow: hidden;
+    display: flex;
 
-            border:
-                1px solid
-                rgba(163, 132, 77, 0.55);
+    align-items: center;
+    justify-content: center;
 
-            background:
-                #0c0a08;
+    overflow: hidden;
 
-            color: #776448;
+    border:
+        1px solid
+        rgba(163, 132, 77, 0.55);
 
-            font-size: 25px;
-        }
+    background:
+        #0c0a08;
 
+    color: #776448;
 
-        .crestPreview img {
+    font-size: 23px;
+}
 
-            width: 100%;
-            height: 100%;
 
-            object-fit: cover;
-        }
+.crestPreview img {
 
+    width: 100%;
+    height: 100%;
 
-        .uploadArea {
+    object-fit: cover;
+}
 
-            flex: 1;
-        }
 
+.uploadArea {
 
-        .uploadButton {
+    flex: 1;
+}
 
-            display: inline-block;
 
-            padding:
-                10px
-                13px;
+.uploadButton {
 
-            border:
-                1px solid
-                rgba(153, 122, 70, 0.65);
+    display: inline-block;
 
-            color: #c5b28f;
+    padding:
+        8px
+        11px;
 
-            font-size: 11px;
+    border:
+        1px solid
+        rgba(153, 122, 70, 0.65);
 
-            letter-spacing: 1.5px;
+    color: #c5b28f;
 
-            cursor: pointer;
-        }
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
+    font-size: 9px;
 
-        #crestInput {
+    letter-spacing: 1.5px;
 
-            display: none;
-        }
+    cursor: pointer;
+}
 
 
-        /* ================================================
-           КНОПКА СОЗДАНИЯ
-        ================================================ */
+#crestInput {
 
-        .continueButton {
+    display: none;
+}
 
-            width: 100%;
 
-            min-height: 57px;
+/* =====================================================
+   КНОПКА
+===================================================== */
 
-            margin-top: 11px;
+.continueButton {
 
-            border:
-                1px solid
-                rgba(174, 141, 82, 0.75);
+    width: 100%;
 
-            outline: none;
+    min-height: 53px;
 
-            background:
-                rgba(34, 28, 21, 0.92);
+    margin-top: 8px;
 
-            color: #d5c4a5;
+    border:
+        1px solid
+        rgba(174, 141, 82, 0.75);
 
-            font-family:
-                Georgia,
-                "Times New Roman",
-                serif;
+    outline: none;
 
-            font-size: 12px;
+    background:
+        rgba(30, 25, 19, 0.90);
 
-            letter-spacing: 3px;
+    color: #d5c4a5;
 
-            cursor: pointer;
-        }
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
+    font-size: 11px;
 
-        .continueButton:active {
+    font-weight: 500;
 
-            background:
-                rgba(74, 58, 35, 0.8);
+    letter-spacing: 3px;
 
-            transform:
-                scale(0.99);
-        }
+    cursor: pointer;
+}
 
 
-        /* ================================================
-           ОШИБКА
-        ================================================ */
+.continueButton:active {
 
-        .error {
+    background:
+        rgba(74, 58, 35, 0.8);
 
-            display: none;
+    transform: scale(0.99);
+}
 
-            margin-top: 12px;
 
-            padding: 10px;
+/* =====================================================
+   ОШИБКА
+===================================================== */
 
-            border:
-                1px solid
-                rgba(140, 73, 55, 0.5);
+.error {
 
-            color: #b98570;
+    display: none;
 
-            background:
-                rgba(80, 38, 28, 0.18);
+    margin-top: 10px;
 
-            font-size: 12px;
+    padding: 8px;
 
-            text-align: center;
-        }
+    border:
+        1px solid
+        rgba(140, 73, 55, 0.5);
 
+    color: #b98570;
 
-        /* ================================================
-           FOOTER
-        ================================================ */
+    background:
+        rgba(80, 38, 28, 0.18);
 
-        .creationFooter {
+    font-family:
+        "Cormorant Garamond",
+        Georgia,
+        serif;
 
-            margin-top: 23px;
+    font-size: 12px;
 
-            text-align: center;
+    text-align: center;
+}
 
-            color: #5e574d;
 
-            font-size: 10px;
+/* =====================================================
+   FOOTER
+===================================================== */
 
-            letter-spacing: 2px;
-        }
+.creationFooter {
 
+    margin-top: 17px;
 
-        /* ================================================
-           ЭКРАН ГОСУДАРСТВА
-        ================================================ */
+    text-align: center;
 
-        #realmScreen {
+    color: #665d51;
 
-            display: none;
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-            min-height: 100vh;
-            min-height: 100dvh;
+    font-size: 8px;
 
-            padding:
-                24px
-                20px
-                30px;
+    letter-spacing: 2px;
+}
 
-            overflow-y: auto;
 
-            background:
+/* =====================================================
+   ТРЕТИЙ ЭКРАН
+===================================================== */
 
-                radial-gradient(
-                    ellipse at top,
-                    rgba(119, 91, 49, 0.12),
-                    transparent 45%
-                ),
+#realmScreen {
 
-                #090806;
-        }
+    display: none;
 
+    min-height: 100vh;
+    min-height: 100dvh;
 
-        .realmFrame {
+    padding:
+        20px
+        18px
+        28px;
 
-            position: relative;
+    overflow-y: auto;
 
-            min-height:
-                calc(100vh - 54px);
+    background:
 
-            min-height:
-                calc(100dvh - 54px);
+        radial-gradient(
+            ellipse at top,
+            rgba(119, 91, 49, 0.12),
+            transparent 45%
+        ),
 
-            padding:
-                30px
-                20px
-                35px;
+        #090806;
+}
 
-            border:
-                1px solid
-                rgba(157, 126, 72, 0.55);
 
-            background:
-                rgba(12, 10, 8, 0.45);
-        }
+.realmFrame {
 
+    position: relative;
 
-        .realmFrame::before {
+    min-height:
+        calc(100vh - 48px);
 
-            content: "";
+    min-height:
+        calc(100dvh - 48px);
 
-            position: absolute;
+    padding:
+        26px
+        18px
+        30px;
 
-            inset: 6px;
+    border:
+        1px solid
+        rgba(157, 126, 72, 0.55);
 
-            border:
-                1px solid
-                rgba(117, 94, 56, 0.25);
+    background:
+        rgba(12, 10, 8, 0.45);
+}
 
-            pointer-events: none;
-        }
 
+.realmFrame::before {
 
-        /* ================================================
-           ГЕРБ
-        ================================================ */
+    content: "";
 
-        .realmCrest {
+    position: absolute;
 
-            position: relative;
+    inset: 6px;
 
-            z-index: 2;
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.25);
 
-            width: 105px;
-            height: 105px;
+    pointer-events: none;
+}
 
-            margin:
-                0 auto
-                20px;
 
-            display: flex;
+.realmCrest {
 
-            align-items: center;
-            justify-content: center;
+    position: relative;
 
-            overflow: hidden;
+    z-index: 2;
 
-            border:
-                1px solid
-                rgba(174, 143, 87, 0.65);
+    width: 92px;
+    height: 92px;
 
-            background:
-                #0b0907;
+    margin:
+        0 auto
+        15px;
 
-            color: #b99b63;
+    display: flex;
 
-            font-size: 40px;
-        }
+    align-items: center;
+    justify-content: center;
 
+    overflow: hidden;
 
-        .realmCrest img {
+    border:
+        1px solid
+        rgba(174, 143, 87, 0.65);
 
-            width: 100%;
-            height: 100%;
+    background:
+        #0b0907;
 
-            object-fit: cover;
-        }
+    color: #b99b63;
 
+    font-size: 35px;
+}
 
-        /* ================================================
-           НАЗВАНИЕ
-        ================================================ */
 
-        .realmHouse {
+.realmCrest img {
 
-            position: relative;
+    width: 100%;
+    height: 100%;
 
-            z-index: 2;
+    object-fit: cover;
+}
 
-            text-align: center;
 
-            color: #e1d5c0;
+.realmHouse {
 
-            font-size: 27px;
+    position: relative;
 
-            letter-spacing: 4px;
+    z-index: 2;
 
-            line-height: 1.25;
-        }
+    text-align: center;
 
+    color: #e1d5c0;
 
-        .realmCountry {
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-            position: relative;
+    font-size: 23px;
 
-            z-index: 2;
+    font-weight: 500;
 
-            margin-top: 10px;
+    letter-spacing: 3px;
 
-            text-align: center;
+    line-height: 1.2;
+}
 
-            color: #a68b5d;
 
-            font-size: 13px;
+.realmCountry {
 
-            letter-spacing: 3px;
+    position: relative;
 
-            text-transform: uppercase;
-        }
+    z-index: 2;
 
+    margin-top: 7px;
 
-        .realmMotto {
+    text-align: center;
 
-            position: relative;
+    color: #a68b5d;
 
-            z-index: 2;
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-            max-width: 340px;
+    font-size: 10px;
 
-            margin:
-                24px auto
-                28px;
+    letter-spacing: 2.5px;
 
-            color: #9b8e7b;
+    text-transform: uppercase;
+}
 
-            text-align: center;
 
-            font-size: 16px;
+.realmMotto {
 
-            font-style: italic;
+    position: relative;
 
-            line-height: 1.5;
-        }
+    z-index: 2;
 
+    max-width: 320px;
 
-        /* ================================================
-           РАЗДЕЛИТЕЛЬ
-        ================================================ */
+    margin:
+        18px auto
+        20px;
 
-        .realmDivider {
+    color: #9b8e7b;
 
-            position: relative;
+    text-align: center;
 
-            z-index: 2;
+    font-family:
+        "Cormorant Garamond",
+        Georgia,
+        serif;
 
-            display: flex;
+    font-size: 15px;
 
-            align-items: center;
+    font-style: italic;
 
-            gap: 10px;
+    line-height: 1.4;
+}
 
-            width: 210px;
 
-            margin:
-                0 auto
-                27px;
-        }
+.realmDivider {
 
+    position: relative;
 
-        .realmDivider span {
+    z-index: 2;
 
-            flex: 1;
+    display: flex;
 
-            height: 1px;
+    align-items: center;
 
-            background:
-                rgba(157, 126, 72, 0.45);
-        }
+    gap: 9px;
 
+    width: 190px;
 
-        .realmDivider div {
+    margin:
+        0 auto
+        20px;
+}
 
-            color: #ae8d55;
 
-            font-size: 9px;
-        }
+.realmDivider span {
 
+    flex: 1;
 
-        /* ================================================
-           ГОД
-        ================================================ */
+    height: 1px;
 
-        .realmYear {
+    background:
+        rgba(157, 126, 72, 0.45);
+}
 
-            position: relative;
 
-            z-index: 2;
+.realmDivider div {
 
-            text-align: center;
+    color: #ae8d55;
 
-            color: #a99168;
+    font-size: 7px;
+}
 
-            font-size: 12px;
 
-            letter-spacing: 4px;
-        }
+.realmYear {
 
+    position: relative;
 
-        /* ================================================
-           СТАТИСТИКА
-        ================================================ */
+    z-index: 2;
 
-        .stats {
+    text-align: center;
 
-            position: relative;
+    color: #a99168;
 
-            z-index: 2;
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-            display: grid;
+    font-size: 10px;
 
-            grid-template-columns:
-                repeat(2, 1fr);
+    letter-spacing: 4px;
+}
 
-            gap: 10px;
 
-            margin-top: 28px;
-        }
+.stats {
 
+    position: relative;
 
-        .stat {
+    z-index: 2;
 
-            min-height: 72px;
+    display: grid;
 
-            padding: 13px;
+    grid-template-columns:
+        repeat(2, 1fr);
 
-            border:
-                1px solid
-                rgba(117, 94, 56, 0.45);
+    gap: 8px;
 
-            background:
-                rgba(27, 22, 17, 0.65);
+    margin-top: 22px;
+}
 
-            text-align: center;
-        }
 
+.stat {
 
-        .statIcon {
+    min-height: 66px;
 
-            color: #a99168;
+    padding: 10px;
 
-            font-size: 17px;
-        }
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.45);
 
+    background:
+        rgba(27, 22, 17, 0.65);
 
-        .statName {
+    text-align: center;
+}
 
-            margin-top: 5px;
 
-            color: #71685c;
+.statIcon {
 
-            font-size: 9px;
+    color: #a99168;
 
-            letter-spacing: 1px;
+    font-size: 15px;
+}
 
-            text-transform: uppercase;
-        }
 
+.statName {
 
-        .statValue {
+    margin-top: 4px;
 
-            margin-top: 3px;
+    color: #71685c;
 
-            color: #cbbca4;
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-            font-size: 15px;
-        }
+    font-size: 7px;
 
+    letter-spacing: 1px;
 
-        /* ================================================
-           ПЕРВАЯ ДЕРЕВНЯ
-        ================================================ */
+    text-transform: uppercase;
+}
 
-        .village {
 
-            position: relative;
+.statValue {
 
-            z-index: 2;
+    margin-top: 2px;
 
-            margin-top: 22px;
+    color: #cbbca4;
 
-            padding:
-                18px
-                15px;
+    font-size: 14px;
+}
 
-            border:
-                1px solid
-                rgba(157, 126, 72, 0.5);
 
-            background:
-                rgba(29, 24, 18, 0.7);
+.village {
 
-            text-align: center;
-        }
+    position: relative;
 
+    z-index: 2;
 
-        .villageTitle {
+    margin-top: 18px;
 
-            color: #cdbb9d;
+    padding:
+        15px
+        13px;
 
-            font-size: 17px;
+    border:
+        1px solid
+        rgba(157, 126, 72, 0.5);
 
-            letter-spacing: 2px;
-        }
+    background:
+        rgba(29, 24, 18, 0.7);
 
+    text-align: center;
+}
 
-        .villageText {
 
-            margin-top: 9px;
+.villageTitle {
 
-            color: #7e7569;
+    color: #cdbb9d;
 
-            font-size: 13px;
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-            line-height: 1.5;
-        }
+    font-size: 13px;
 
+    letter-spacing: 2px;
+}
 
-        /* ================================================
-           ИСТОРИЯ
-        ================================================ */
 
-        .history {
+.villageText {
 
-            position: relative;
+    margin-top: 7px;
 
-            z-index: 2;
+    color: #7e7569;
 
-            margin-top: 22px;
+    font-size: 13px;
 
-            padding:
-                17px
-                15px;
+    line-height: 1.4;
+}
 
-            border:
-                1px solid
-                rgba(117, 94, 56, 0.35);
 
-            background:
-                rgba(20, 17, 14, 0.5);
-        }
+.history {
 
+    position: relative;
 
-        .historyTitle {
+    z-index: 2;
 
-            color: #a99168;
+    margin-top: 18px;
 
-            font-size: 10px;
+    padding:
+        14px
+        13px;
 
-            letter-spacing: 2px;
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.35);
 
-            text-transform: uppercase;
-        }
+    background:
+        rgba(20, 17, 14, 0.5);
+}
 
 
-        .historyText {
+.historyTitle {
 
-            margin-top: 9px;
+    color: #a99168;
 
-            color: #908474;
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-            font-size: 14px;
+    font-size: 8px;
 
-            line-height: 1.6;
-        }
+    letter-spacing: 2px;
 
+    text-transform: uppercase;
+}
 
-        /* ================================================
-           СБРОС
-        ================================================ */
 
-        .resetButton {
+.historyText {
 
-            position: relative;
+    margin-top: 7px;
 
-            z-index: 2;
+    color: #908474;
 
-            width: 100%;
+    font-family:
+        "Cormorant Garamond",
+        Georgia,
+        serif;
 
-            min-height: 45px;
+    font-size: 14px;
 
-            margin-top: 28px;
+    line-height: 1.5;
+}
 
-            border:
-                1px solid
-                rgba(99, 78, 48, 0.45);
 
-            background:
-                transparent;
+.resetButton {
 
-            color: #665e53;
+    position: relative;
 
-            font-family:
-                Georgia,
-                serif;
+    z-index: 2;
 
-            font-size: 10px;
+    width: 100%;
 
-            letter-spacing: 2px;
+    min-height: 42px;
 
-            cursor: pointer;
-        }
+    margin-top: 22px;
 
+    border:
+        1px solid
+        rgba(99, 78, 48, 0.45);
 
-        .resetButton:active {
+    background:
+        transparent;
 
-            background:
-                rgba(100, 70, 40, 0.15);
-        }
+    color: #665e53;
 
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-        /* ================================================
-           ЗАКРЫТЫЙ ДОСТУП
-        ================================================ */
+    font-size: 8px;
 
-        #locked {
+    letter-spacing: 2px;
 
-            display: none;
+    cursor: pointer;
+}
 
-            position: fixed;
 
-            inset: 0;
+/* =====================================================
+   ЗАКРЫТЫЙ ДОСТУП
+===================================================== */
 
-            z-index: 100;
+#locked {
 
-            background: #090806;
+    display: none;
 
-            align-items: center;
-            justify-content: center;
+    position: fixed;
 
-            text-align: center;
-        }
+    inset: 0;
 
+    z-index: 100;
 
-        .lockedContent {
+    background: #090806;
 
-            padding: 30px;
+    align-items: center;
+    justify-content: center;
 
-            max-width: 320px;
-        }
+    text-align: center;
+}
 
 
-        .lockedIcon {
+.lockedContent {
 
-            margin-bottom: 20px;
+    padding: 30px;
 
-            color: #a48755;
+    max-width: 320px;
+}
 
-            font-size: 42px;
-        }
 
+.lockedIcon {
 
-        .lockedTitle {
+    margin-bottom: 20px;
 
-            color: #d5c8b2;
+    color: #a48755;
 
-            font-size: 17px;
+    font-size: 42px;
+}
 
-            letter-spacing: 3px;
-        }
 
+.lockedTitle {
 
-        .lockedText {
+    color: #d5c8b2;
 
-            margin-top: 15px;
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
 
-            color: #777064;
+    font-size: 16px;
 
-            font-size: 14px;
+    letter-spacing: 3px;
+}
 
-            line-height: 1.6;
-        }
 
+.lockedText {
 
-        /* ================================================
-           НЕБОЛЬШИЕ ЭКРАНЫ
-        ================================================ */
+    margin-top: 15px;
 
-        @media (max-height: 700px) {
+    color: #777064;
 
-            #creationScreen,
-            #realmScreen {
+    font-family:
+        "Cormorant Garamond",
+        Georgia,
+        serif;
 
-                padding-top: 15px;
-            }
+    font-size: 14px;
 
-            .creationFrame,
-            .realmFrame {
+    line-height: 1.5;
+}
 
-                padding-top: 22px;
-            }
 
-            .creationHeader {
+/* =====================================================
+   МАЛЕНЬКИЕ ЭКРАНЫ
+===================================================== */
 
-                margin-bottom: 20px;
-            }
+@media (max-height: 700px) {
 
-            .field {
+    #creationScreen,
+    #realmScreen {
 
-                margin-bottom: 14px;
-            }
+        padding-top: 12px;
+    }
 
-            .input {
+    .creationFrame,
+    .realmFrame {
 
-                min-height: 44px;
-            }
+        padding-top: 18px;
+    }
 
-            textarea.input {
+    .creationHeader {
 
-                min-height: 65px;
-            }
-        }
+        margin-bottom: 15px;
+    }
 
-    </style>
+    .field {
+
+        margin-bottom: 10px;
+    }
+
+    .input {
+
+        min-height: 40px;
+    }
+
+    textarea.input {
+
+        min-height: 62px;
+    }
+}
+
+</style>
 
 </head>
 
@@ -1156,301 +1200,57 @@
 <body>
 
 
-    <!-- ================================================
-         ПЕРВЫЙ ЭКРАН
-    ================================================ -->
+<!-- =====================================================
+     ПЕРВЫЙ ЭКРАН
+===================================================== -->
 
-    <main id="introScreen">
+<main id="introScreen">
 
-        <img
-            id="background"
-            src="intro.jpg"
-            alt="The Realms"
-        >
-
-        <button
-            id="startButton"
-            aria-label="Начать летопись"
-            onclick="openCreation()"
-        ></button>
-
-    </main>
-
-
-    <!-- ================================================
-         ВТОРОЙ ЭКРАН
-    ================================================ -->
-
-    <main
-        id="creationScreen"
-        class="screen"
+    <img
+        id="background"
+        src="intro.jpg"
+        alt="The Realms"
     >
 
-        <div class="creationFrame">
+    <button
+        id="startButton"
+        aria-label="Начать летопись"
+        onclick="openCreation()"
+    ></button>
 
+</main>
 
-            <header class="creationHeader">
 
-                <div class="smallCrown">
-                    ♜
-                </div>
+<!-- =====================================================
+     ВТОРОЙ ЭКРАН
+===================================================== -->
 
-                <h1 class="creationTitle">
-                    Акт основания
-                </h1>
+<main
+    id="creationScreen"
+>
 
-                <div class="creationSubtitle">
-                    Так начинается история вашего Дома.
-                </div>
+    <div class="creationFrame">
 
-                <div class="goldDivider">
 
-                    <span></span>
+        <header class="creationHeader">
 
-                    <div class="goldDiamond">
-                        ◆
-                    </div>
-
-                    <span></span>
-
-                </div>
-
-            </header>
-
-
-            <form
-                class="form"
-                onsubmit="saveHouse(event)"
-            >
-
-
-                <div class="field">
-
-                    <label
-                        class="fieldLabel"
-                        for="rulerName"
-                    >
-                        Имя правителя
-                    </label>
-
-                    <input
-                        class="input"
-                        id="rulerName"
-                        type="text"
-                        maxlength="40"
-                        placeholder="Например, Эддард"
-                        autocomplete="off"
-                        required
-                    >
-
-                </div>
-
-
-                <div class="field">
-
-                    <label
-                        class="fieldLabel"
-                        for="houseName"
-                    >
-                        Название Дома
-                    </label>
-
-                    <input
-                        class="input"
-                        id="houseName"
-                        type="text"
-                        maxlength="40"
-                        placeholder="Например, Дом Вальд"
-                        autocomplete="off"
-                        required
-                    >
-
-                </div>
-
-
-                <div class="field">
-
-                    <label
-                        class="fieldLabel"
-                        for="realmName"
-                    >
-                        Название государства
-                    </label>
-
-                    <input
-                        class="input"
-                        id="realmName"
-                        type="text"
-                        maxlength="45"
-                        placeholder="Например, Северные земли"
-                        autocomplete="off"
-                        required
-                    >
-
-                </div>
-
-
-                <div class="field">
-
-                    <label
-                        class="fieldLabel"
-                        for="motto"
-                    >
-                        Девиз Дома
-                    </label>
-
-                    <input
-                        class="input"
-                        id="motto"
-                        type="text"
-                        maxlength="80"
-                        placeholder="Например, Земля помнит каждого"
-                        autocomplete="off"
-                        required
-                    >
-
-                </div>
-
-
-                <div class="field">
-
-                    <label class="fieldLabel">
-                        Герб Дома
-                    </label>
-
-                    <div class="crestUpload">
-
-                        <div
-                            class="crestPreview"
-                            id="crestPreview"
-                        >
-                            ♜
-                        </div>
-
-                        <div class="uploadArea">
-
-                            <label
-                                class="uploadButton"
-                                for="crestInput"
-                            >
-                                ВЫБРАТЬ ГЕРБ
-                            </label>
-
-                            <input
-                                id="crestInput"
-                                type="file"
-                                accept="image/*"
-                                onchange="previewCrest(event)"
-                            >
-
-                            <span class="fieldHint">
-                                Можно загрузить изображение с телефона.
-                            </span>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                <div class="field">
-
-                    <label
-                        class="fieldLabel"
-                        for="description"
-                    >
-                        История Дома
-                    </label>
-
-                    <textarea
-                        class="input"
-                        id="description"
-                        maxlength="300"
-                        placeholder="Расскажите, с чего началась история вашего Дома..."
-                    ></textarea>
-
-                </div>
-
-
-                <div
-                    id="error"
-                    class="error"
-                >
-                    Заполните обязательные поля.
-                </div>
-
-
-                <button
-                    class="continueButton"
-                    type="submit"
-                >
-                    СОЗДАТЬ ЛЕТОПИСЬ
-                </button>
-
-
-            </form>
-
-
-            <div class="creationFooter">
-                ГОД I · НАЧАЛО ДИНАСТИИ
-            </div>
-
-
-        </div>
-
-    </main>
-
-
-    <!-- ================================================
-         ТРЕТИЙ ЭКРАН — ГОСУДАРСТВО
-    ================================================ -->
-
-    <main
-        id="realmScreen"
-        class="screen"
-    >
-
-        <div class="realmFrame">
-
-
-            <div
-                class="realmCrest"
-                id="realmCrest"
-            >
+            <div class="smallCrown">
                 ♜
             </div>
 
+            <h1 class="creationTitle">
+                Акт основания
+            </h1>
 
-            <div
-                class="realmHouse"
-                id="realmHouse"
-            >
-                ДОМ
+            <div class="creationSubtitle">
+                Так начинается история вашего Дома.
             </div>
 
-
-            <div
-                class="realmCountry"
-                id="realmCountry"
-            >
-                ГОСУДАРСТВО
-            </div>
-
-
-            <div
-                class="realmMotto"
-                id="realmMotto"
-            >
-                «Мы храним то, что ещё не стало историей.»
-            </div>
-
-
-            <div class="realmDivider">
+            <div class="goldDivider">
 
                 <span></span>
 
-                <div>
+                <div class="goldDiamond">
                     ◆
                 </div>
 
@@ -1458,390 +1258,615 @@
 
             </div>
 
-
-            <div class="realmYear">
-                Г О Д &nbsp; I
-            </div>
+        </header>
 
 
-            <div class="stats">
+        <form
+            class="form"
+            onsubmit="saveHouse(event)"
+        >
 
 
-                <div class="stat">
+            <div class="field">
 
-                    <div class="statIcon">
-                        ♟
-                    </div>
-
-                    <div class="statName">
-                        Население
-                    </div>
-
-                    <div class="statValue">
-                        20
-                    </div>
-
-                </div>
-
-
-                <div class="stat">
-
-                    <div class="statIcon">
-                        🌾
-                    </div>
-
-                    <div class="statName">
-                        Еда
-                    </div>
-
-                    <div class="statValue">
-                        100
-                    </div>
-
-                </div>
-
-
-                <div class="stat">
-
-                    <div class="statIcon">
-                        🪵
-                    </div>
-
-                    <div class="statName">
-                        Дерево
-                    </div>
-
-                    <div class="statValue">
-                        100
-                    </div>
-
-                </div>
-
-
-                <div class="stat">
-
-                    <div class="statIcon">
-                        ◆
-                    </div>
-
-                    <div class="statName">
-                        Камень
-                    </div>
-
-                    <div class="statValue">
-                        50
-                    </div>
-
-                </div>
-
-
-            </div>
-
-
-            <div class="village">
-
-                <div class="villageTitle">
-                    ПЕРВАЯ ДЕРЕВНЯ
-                </div>
-
-                <div class="villageText">
-                    Здесь начнётся строительство
-                    вашего будущего государства.
-                </div>
-
-            </div>
-
-
-            <div class="history">
-
-                <div class="historyTitle">
-                    ЛЕТОПИСЬ ДОМА
-                </div>
-
-                <div
-                    class="historyText"
-                    id="realmHistory"
+                <label
+                    class="fieldLabel"
+                    for="rulerName"
                 >
+                    Имя правителя
+                </label>
+
+                <input
+                    class="input"
+                    id="rulerName"
+                    type="text"
+                    maxlength="40"
+                    placeholder="Например, Эддард"
+                    autocomplete="off"
+                    required
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label
+                    class="fieldLabel"
+                    for="houseName"
+                >
+                    Название Дома
+                </label>
+
+                <input
+                    class="input"
+                    id="houseName"
+                    type="text"
+                    maxlength="40"
+                    placeholder="Например, Дом Вальд"
+                    autocomplete="off"
+                    required
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label
+                    class="fieldLabel"
+                    for="realmName"
+                >
+                    Название государства
+                </label>
+
+                <input
+                    class="input"
+                    id="realmName"
+                    type="text"
+                    maxlength="45"
+                    placeholder="Например, Северные земли"
+                    autocomplete="off"
+                    required
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label
+                    class="fieldLabel"
+                    for="motto"
+                >
+                    Девиз Дома
+                </label>
+
+                <input
+                    class="input"
+                    id="motto"
+                    type="text"
+                    maxlength="80"
+                    placeholder="Например, Земля помнит каждого"
+                    autocomplete="off"
+                    required
+                >
+
+            </div>
+
+
+            <div class="field">
+
+                <label class="fieldLabel">
+                    Герб Дома
+                </label>
+
+                <div class="crestUpload">
+
+                    <div
+                        class="crestPreview"
+                        id="crestPreview"
+                    >
+                        ♜
+                    </div>
+
+                    <div class="uploadArea">
+
+                        <label
+                            class="uploadButton"
+                            for="crestInput"
+                        >
+                            ВЫБРАТЬ ГЕРБ
+                        </label>
+
+                        <input
+                            id="crestInput"
+                            type="file"
+                            accept="image/*"
+                            onchange="previewCrest(event)"
+                        >
+
+                        <span class="fieldHint">
+                            Можно загрузить изображение с телефона.
+                        </span>
+
+                    </div>
+
                 </div>
 
+            </div>
+
+
+            <div class="field">
+
+                <label
+                    class="fieldLabel"
+                    for="description"
+                >
+                    История Дома
+                </label>
+
+                <textarea
+                    class="input"
+                    id="description"
+                    maxlength="300"
+                    placeholder="Расскажите, с чего началась история вашего Дома..."
+                ></textarea>
+
+            </div>
+
+
+            <div
+                id="error"
+                class="error"
+            >
+                Заполните обязательные поля.
             </div>
 
 
             <button
-                class="resetButton"
-                onclick="resetHouse()"
+                class="continueButton"
+                type="submit"
             >
-                НАЧАТЬ ЛЕТОПИСЬ ЗАНОВО
+                СОЗДАТЬ ЛЕТОПИСЬ
             </button>
 
 
+        </form>
+
+
+        <div class="creationFooter">
+            ГОД I · НАЧАЛО ДИНАСТИИ
         </div>
 
-    </main>
+
+    </div>
+
+</main>
 
 
-    <!-- ================================================
-         ЗАКРЫТЫЙ ДОСТУП
-    ================================================ -->
+<!-- =====================================================
+     ТРЕТИЙ ЭКРАН
+===================================================== -->
 
-    <section id="locked">
+<main
+    id="realmScreen"
+>
 
-        <div class="lockedContent">
+    <div class="realmFrame">
 
-            <div class="lockedIcon">
-                ♜
+
+        <div
+            class="realmCrest"
+            id="realmCrest"
+        >
+            ♜
+        </div>
+
+
+        <div
+            class="realmHouse"
+            id="realmHouse"
+        >
+            ДОМ
+        </div>
+
+
+        <div
+            class="realmCountry"
+            id="realmCountry"
+        >
+            ГОСУДАРСТВО
+        </div>
+
+
+        <div
+            class="realmMotto"
+            id="realmMotto"
+        >
+            «Мы храним то, что ещё не стало историей.»
+        </div>
+
+
+        <div class="realmDivider">
+
+            <span></span>
+
+            <div>
+                ◆
             </div>
 
-            <div class="lockedTitle">
-                ЗАКРЫТОЕ ТЕСТИРОВАНИЕ
+            <span></span>
+
+        </div>
+
+
+        <div class="realmYear">
+            Г О Д &nbsp; I
+        </div>
+
+
+        <div class="stats">
+
+
+            <div class="stat">
+
+                <div class="statIcon">
+                    ♟
+                </div>
+
+                <div class="statName">
+                    Население
+                </div>
+
+                <div class="statValue">
+                    20
+                </div>
+
             </div>
 
-            <div class="lockedText">
-                Эта летопись ещё не открыта
-                для других правителей.
+
+            <div class="stat">
+
+                <div class="statIcon">
+                    🌾
+                </div>
+
+                <div class="statName">
+                    Еда
+                </div>
+
+                <div class="statValue">
+                    100
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="statIcon">
+                    🪵
+                </div>
+
+                <div class="statName">
+                    Дерево
+                </div>
+
+                <div class="statValue">
+                    100
+                </div>
+
+            </div>
+
+
+            <div class="stat">
+
+                <div class="statIcon">
+                    ◆
+                </div>
+
+                <div class="statName">
+                    Камень
+                </div>
+
+                <div class="statValue">
+                    50
+                </div>
+
+            </div>
+
+
+        </div>
+
+
+        <div class="village">
+
+            <div class="villageTitle">
+                ПЕРВАЯ ДЕРЕВНЯ
+            </div>
+
+            <div class="villageText">
+                Здесь начнётся строительство
+                вашего будущего государства.
             </div>
 
         </div>
 
-    </section>
+
+        <div class="history">
+
+            <div class="historyTitle">
+                ЛЕТОПИСЬ ДОМА
+            </div>
+
+            <div
+                class="historyText"
+                id="realmHistory"
+            >
+            </div>
+
+        </div>
 
 
-    <script>
+        <button
+            class="resetButton"
+            onclick="resetHouse()"
+        >
+            НАЧАТЬ ЛЕТОПИСЬ ЗАНОВО
+        </button>
 
 
-        /* ================================================
-           TELEGRAM
-        ================================================ */
+    </div>
 
-        const tg =
-            window.Telegram.WebApp;
-
-        tg.ready();
-
-        tg.expand();
+</main>
 
 
-        /* ================================================
-           ТВОЙ TELEGRAM ID
-        ================================================ */
+<!-- =====================================================
+     ЗАКРЫТЫЙ ДОСТУП
+===================================================== -->
 
-        const ALLOWED_USER_ID =
-            8608712290;
+<section id="locked">
+
+    <div class="lockedContent">
+
+        <div class="lockedIcon">
+            ♜
+        </div>
+
+        <div class="lockedTitle">
+            ЗАКРЫТОЕ ТЕСТИРОВАНИЕ
+        </div>
+
+        <div class="lockedText">
+            Эта летопись ещё не открыта
+            для других правителей.
+        </div>
+
+    </div>
+
+</section>
 
 
-        const user =
-            tg.initDataUnsafe.user;
+<script>
 
 
-        /* ================================================
-           ПРОВЕРКА ДОСТУПА
-        ================================================ */
+/* =====================================================
+   TELEGRAM
+===================================================== */
 
-        if (
-            !user ||
-            Number(user.id) !== ALLOWED_USER_ID
-        ) {
+const tg =
+    window.Telegram.WebApp;
+
+tg.ready();
+
+tg.expand();
+
+
+/* =====================================================
+   ТВОЙ TELEGRAM ID
+===================================================== */
+
+const ALLOWED_USER_ID =
+    8608712290;
+
+
+const user =
+    tg.initDataUnsafe.user;
+
+
+/* =====================================================
+   ПРОВЕРКА ДОСТУПА
+===================================================== */
+
+if (
+    !user ||
+    Number(user.id) !== ALLOWED_USER_ID
+) {
+
+    document
+        .getElementById("introScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("creationScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("realmScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("locked")
+        .style.display = "flex";
+}
+
+
+/* =====================================================
+   ОТКРЫТЬ СОЗДАНИЕ
+===================================================== */
+
+function openCreation() {
+
+    document
+        .getElementById("introScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("realmScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("creationScreen")
+        .style.display = "block";
+
+    window.scrollTo(0, 0);
+}
+
+
+/* =====================================================
+   ПРЕДПРОСМОТР ГЕРБА
+===================================================== */
+
+function previewCrest(event) {
+
+    const file =
+        event.target.files[0];
+
+    if (!file) {
+        return;
+    }
+
+
+    const reader =
+        new FileReader();
+
+
+    reader.onload =
+        function(event) {
 
             document
-                .getElementById("introScreen")
-                .style.display = "none";
+                .getElementById("crestPreview")
+                .innerHTML =
+                `
+                <img
+                    src="${event.target.result}"
+                    alt="Герб"
+                >
+                `;
 
-            document
-                .getElementById("creationScreen")
-                .style.display = "none";
+        };
 
-            document
-                .getElementById("realmScreen")
-                .style.display = "none";
 
-            document
-                .getElementById("locked")
-                .style.display = "flex";
-        }
+    reader.readAsDataURL(file);
+}
 
 
-        /* ================================================
-           ОТКРЫТЬ СОЗДАНИЕ
-        ================================================ */
+/* =====================================================
+   СОЗДАНИЕ ДОМА
+===================================================== */
 
-        function openCreation() {
+function saveHouse(event) {
 
-            document
-                .getElementById("introScreen")
-                .style.display = "none";
+    event.preventDefault();
 
-            document
-                .getElementById("realmScreen")
-                .style.display = "none";
 
-            document
-                .getElementById("creationScreen")
-                .style.display = "block";
+    const rulerName =
+        document
+            .getElementById("rulerName")
+            .value
+            .trim();
 
-            window.scrollTo(0, 0);
-        }
 
+    const houseName =
+        document
+            .getElementById("houseName")
+            .value
+            .trim();
 
-        /* ================================================
-           ПРЕДПРОСМОТР ГЕРБА
-        ================================================ */
 
-        function previewCrest(event) {
+    const realmName =
+        document
+            .getElementById("realmName")
+            .value
+            .trim();
 
-            const file =
-                event.target.files[0];
 
-            if (!file) {
-                return;
-            }
+    const motto =
+        document
+            .getElementById("motto")
+            .value
+            .trim();
 
 
-            const reader =
-                new FileReader();
+    const description =
+        document
+            .getElementById("description")
+            .value
+            .trim();
 
 
-            reader.onload =
-                function(event) {
+    if (
+        !rulerName ||
+        !houseName ||
+        !realmName ||
+        !motto
+    ) {
 
-                    document
-                        .getElementById("crestPreview")
-                        .innerHTML =
-                        `
-                        <img
-                            src="${event.target.result}"
-                            alt="Герб"
-                        >
-                        `;
+        document
+            .getElementById("error")
+            .style.display = "block";
 
-                };
+        return;
+    }
 
 
-            reader.readAsDataURL(file);
-        }
+    const crestInput =
+        document
+            .getElementById("crestInput");
 
 
-        /* ================================================
-           СОЗДАНИЕ ДОМА
-        ================================================ */
+    const crestFile =
+        crestInput.files[0];
 
-        function saveHouse(event) {
 
-            event.preventDefault();
+    const house = {
 
+        rulerName:
+            rulerName,
 
-            const rulerName =
-                document
-                    .getElementById("rulerName")
-                    .value
-                    .trim();
+        houseName:
+            houseName,
 
+        realmName:
+            realmName,
 
-            const houseName =
-                document
-                    .getElementById("houseName")
-                    .value
-                    .trim();
+        motto:
+            motto,
 
+        description:
+            description,
 
-            const realmName =
-                document
-                    .getElementById("realmName")
-                    .value
-                    .trim();
+        createdAt:
+            new Date().toISOString(),
 
+        crest:
+            null
+    };
 
-            const motto =
-                document
-                    .getElementById("motto")
-                    .value
-                    .trim();
 
+    if (crestFile) {
 
-            const description =
-                document
-                    .getElementById("description")
-                    .value
-                    .trim();
+        const reader =
+            new FileReader();
 
 
-            if (
-                !rulerName ||
-                !houseName ||
-                !realmName ||
-                !motto
-            ) {
+        reader.onload =
+            function(event) {
 
-                document
-                    .getElementById("error")
-                    .style.display = "block";
+                house.crest =
+                    event.target.result;
 
-                return;
-            }
-
-
-            const crestInput =
-                document
-                    .getElementById("crestInput");
-
-
-            const crestFile =
-                crestInput.files[0];
-
-
-            const house = {
-
-                rulerName:
-                    rulerName,
-
-                houseName:
-                    houseName,
-
-                realmName:
-                    realmName,
-
-                motto:
-                    motto,
-
-                description:
-                    description,
-
-                createdAt:
-                    new Date().toISOString(),
-
-                crest:
-                    null
-
-            };
-
-
-            if (crestFile) {
-
-                const reader =
-                    new FileReader();
-
-
-                reader.onload =
-                    function(event) {
-
-                        house.crest =
-                            event.target.result;
-
-
-                        localStorage.setItem(
-                            "theRealmsHouse",
-                            JSON.stringify(house)
-                        );
-
-
-                        openRealm();
-                    };
-
-
-                reader.readAsDataURL(crestFile);
-
-            }
-
-            else {
 
                 localStorage.setItem(
                     "theRealmsHouse",
@@ -1850,181 +1875,196 @@
 
 
                 openRealm();
-            }
+            };
 
-        }
 
+        reader.readAsDataURL(crestFile);
 
-        /* ================================================
-           ОТКРЫТЬ ГОСУДАРСТВО
-        ================================================ */
+    }
 
-        function openRealm() {
+    else {
 
-            const savedHouse =
-                localStorage.getItem(
-                    "theRealmsHouse"
-                );
+        localStorage.setItem(
+            "theRealmsHouse",
+            JSON.stringify(house)
+        );
 
 
-            if (!savedHouse) {
+        openRealm();
+    }
 
-                openCreation();
+}
 
-                return;
-            }
 
+/* =====================================================
+   ОТКРЫТЬ ГОСУДАРСТВО
+===================================================== */
 
-            const house =
-                JSON.parse(savedHouse);
+function openRealm() {
 
+    const savedHouse =
+        localStorage.getItem(
+            "theRealmsHouse"
+        );
 
-            document
-                .getElementById("realmHouse")
-                .textContent =
-                house.houseName;
 
+    if (!savedHouse) {
 
-            document
-                .getElementById("realmCountry")
-                .textContent =
-                house.realmName;
+        openCreation();
 
+        return;
+    }
 
-            document
-                .getElementById("realmMotto")
-                .textContent =
-                "«" +
-                house.motto +
-                "»";
 
+    const house =
+        JSON.parse(savedHouse);
 
-            document
-                .getElementById("realmHistory")
-                .textContent =
-                house.description ||
-                "История этого Дома ещё только начинается.";
 
+    document
+        .getElementById("realmHouse")
+        .textContent =
+        house.houseName;
 
-            const crest =
-                document
-                    .getElementById("realmCrest");
 
+    document
+        .getElementById("realmCountry")
+        .textContent =
+        house.realmName;
 
-            if (house.crest) {
 
-                crest.innerHTML =
-                    `
-                    <img
-                        src="${house.crest}"
-                        alt="Герб Дома"
-                    >
-                    `;
+    document
+        .getElementById("realmMotto")
+        .textContent =
+        "«" +
+        house.motto +
+        "»";
 
-            }
 
-            else {
+    document
+        .getElementById("realmHistory")
+        .textContent =
+        house.description ||
+        "История этого Дома ещё только начинается.";
 
-                crest.innerHTML = "♜";
-            }
 
+    const crest =
+        document
+            .getElementById("realmCrest");
 
-            document
-                .getElementById("introScreen")
-                .style.display = "none";
 
+    if (house.crest) {
 
-            document
-                .getElementById("creationScreen")
-                .style.display = "none";
+        crest.innerHTML =
+            `
+            <img
+                src="${house.crest}"
+                alt="Герб Дома"
+            >
+            `;
 
+    }
 
-            document
-                .getElementById("realmScreen")
-                .style.display = "block";
+    else {
 
+        crest.innerHTML = "♜";
+    }
 
-            window.scrollTo(0, 0);
-        }
 
+    document
+        .getElementById("introScreen")
+        .style.display = "none";
 
-        /* ================================================
-           ПРОВЕРКА СОХРАНЁННОГО ДОМА
-        ================================================ */
 
-        function checkExistingHouse() {
+    document
+        .getElementById("creationScreen")
+        .style.display = "none";
 
-            const savedHouse =
-                localStorage.getItem(
-                    "theRealmsHouse"
-                );
 
+    document
+        .getElementById("realmScreen")
+        .style.display = "block";
 
-            if (savedHouse) {
 
-                openRealm();
+    window.scrollTo(0, 0);
+}
 
-            }
 
-            else {
+/* =====================================================
+   ПРОВЕРКА СОХРАНЁННОГО ДОМА
+===================================================== */
 
-                document
-                    .getElementById("introScreen")
-                    .style.display = "block";
+function checkExistingHouse() {
 
-                document
-                    .getElementById("creationScreen")
-                    .style.display = "none";
+    const savedHouse =
+        localStorage.getItem(
+            "theRealmsHouse"
+        );
 
-                document
-                    .getElementById("realmScreen")
-                    .style.display = "none";
-            }
 
-        }
+    if (savedHouse) {
 
+        openRealm();
 
-        /* ================================================
-           СБРОС ДОМА
-        ================================================ */
+    }
 
-        function resetHouse() {
+    else {
 
-            const confirmed =
-                confirm(
-                    "Вы действительно хотите удалить существующий Дом и начать новую летопись?"
-                );
+        document
+            .getElementById("introScreen")
+            .style.display = "block";
 
+        document
+            .getElementById("creationScreen")
+            .style.display = "none";
 
-            if (!confirmed) {
-                return;
-            }
+        document
+            .getElementById("realmScreen")
+            .style.display = "none";
+    }
 
+}
 
-            localStorage.removeItem(
-                "theRealmsHouse"
-            );
 
+/* =====================================================
+   СБРОС ДОМА
+===================================================== */
 
-            location.reload();
-        }
+function resetHouse() {
 
+    const confirmed =
+        confirm(
+            "Вы действительно хотите удалить существующий Дом и начать новую летопись?"
+        );
 
-        /* ================================================
-           ЗАПУСК
-        ================================================ */
 
-        if (
-            user &&
-            Number(user.id) === ALLOWED_USER_ID
-        ) {
+    if (!confirmed) {
+        return;
+    }
 
-            checkExistingHouse();
 
-        }
+    localStorage.removeItem(
+        "theRealmsHouse"
+    );
 
-    </script>
 
+    location.reload();
+}
+
+
+/* =====================================================
+   ЗАПУСК
+===================================================== */
+
+if (
+    user &&
+    Number(user.id) === ALLOWED_USER_ID
+) {
+
+    checkExistingHouse();
+
+}
+
+</script>
 
 </body>
 

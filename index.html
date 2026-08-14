@@ -3405,7 +3405,12 @@ function saveHouse(event) {
             house.crest =
                 event.target.result;
 
-            saveHouseData(house);
+            if (!saveHouseData(house)) {
+                document.getElementById("error").textContent =
+                    "Не удалось сохранить летопись. Проверьте свободное место в браузере.";
+                document.getElementById("error").style.display = "block";
+                return;
+            }
 
             openAfterCreation(house);
 
@@ -3417,7 +3422,12 @@ function saveHouse(event) {
 
     else {
 
-        saveHouseData(house);
+        if (!saveHouseData(house)) {
+            document.getElementById("error").textContent =
+                "Не удалось сохранить летопись. Проверьте свободное место в браузере.";
+            document.getElementById("error").style.display = "block";
+            return;
+        }
 
         openAfterCreation(house);
 
@@ -4114,6 +4124,45 @@ initMapControls();
 /* =====================================================
    ПОЛУЧИТЬ ДОМ
 ===================================================== */
+
+
+function saveHouseData(house) {
+
+    if (!house)
+        return false;
+
+    try {
+
+        const data =
+            JSON.stringify(house);
+
+        localStorage.setItem(
+            "theRealmsHouse",
+            data
+        );
+
+        // Резервная копия создаётся только после
+        // успешной записи основного сохранения.
+        localStorage.setItem(
+            "theRealmsHouseBackup",
+            data
+        );
+
+        return true;
+
+    } catch (error) {
+
+        console.error(
+            "Ошибка сохранения летописи:",
+            error
+        );
+
+        return false;
+
+    }
+
+}
+
 
 function getHouse() {
 
@@ -5608,6 +5657,17 @@ setInterval(
     1000
 
 );
+
+
+
+window.addEventListener("error", function(event) {
+
+    console.error(
+        "Ошибка приложения:",
+        event.error || event.message
+    );
+
+});
 
 
 /* =====================================================

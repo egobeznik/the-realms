@@ -3007,6 +3007,17 @@ function demoAdvanceTime() {
 
     }
 
+    if (house.food) {
+
+        if (
+            typeof house.food.lastConsumption === "number"
+        ) {
+            house.food.lastConsumption -=
+                DEMO_TWO_HOURS;
+        }
+
+    }
+
     if (
         Array.isArray(house.huntingGrounds)
     ) {
@@ -3048,6 +3059,7 @@ function demoAdvanceTime() {
 
     processHunting(house);
     processForestry(house);
+    processFoodConsumption(house);
 
     saveHouseData(house);
 
@@ -3223,6 +3235,9 @@ const FORESTRY_INTERVAL = 2 * 60 * 60 * 1000;
 const FORESTRY_GROUP_SIZE = 4;
 const WOOD_PER_GROUP = 20;
 
+const FOOD_CONSUMPTION_INTERVAL =
+    5 * 60 * 60 * 1000;
+
 const FORESTRY_GROUND_DURABILITY_MAX = 100;
 const FORESTRY_GROUND_DURABILITY_LOSS = 10;
 const FORESTRY_GROUND_RECOVERY_MS = 24 * 60 * 60 * 1000;
@@ -3355,6 +3370,10 @@ function saveHouse(event) {
 
         forestry: {
             lastProduction: Date.now()
+        },
+
+        food: {
+            lastConsumption: Date.now()
         },
 
         forestryGrounds: []
@@ -4752,6 +4771,18 @@ function prepareHouse(house) {
         };
     }
 
+    if (!house.food) {
+        house.food = {
+            lastConsumption: Date.now()
+        };
+    }
+
+    if (
+        typeof house.food.lastConsumption !== "number"
+    ) {
+        house.food.lastConsumption = Date.now();
+    }
+
     if (!Array.isArray(house.forestryGrounds)) {
         house.forestryGrounds = [];
     }
@@ -4916,6 +4947,97 @@ function prepareHouse(house) {
     return house;
 }
 
+
+/* =====================================================
+   ПОТРЕБЛЕНИЕ ПИЩИ
+===================================================== */
+
+function processFoodConsumption(house) {
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const now = Date.now();
+
+    if (!house.food) {
+        house.food = {
+            lastConsumption: now
+        };
+    }
+
+    if (
+        typeof house.food.lastConsumption !== "number"
+    ) {
+        house.food.lastConsumption = now;
+        saveHouseData(house);
+        return;
+    }
+
+    const elapsed =
+        now - house.food.lastConsumption;
+
+    const completedCycles =
+        Math.floor(
+            elapsed /
+            FOOD_CONSUMPTION_INTERVAL
+        );
+
+    if (completedCycles <= 0) {
+        return;
+    }
+
+    const freePopulation =
+        Math.max(
+            0,
+            Math.floor(
+                house.population.free
+            )
+        );
+
+    const workingPopulation =
+        Math.max(
+            0,
+            Math.floor(
+                house.population.workers
+            )
+        );
+
+    const soldiers =
+        Math.max(
+            0,
+            Math.floor(
+                house.population.soldiers
+            )
+        );
+
+    /*
+       Охотники и лесорубы уже входят в рабочее население,
+       поэтому отдельно в потребление не добавляются.
+    */
+
+    const meatPerCycle =
+        freePopulation +
+        workingPopulation +
+        soldiers * 2;
+
+    const totalConsumption =
+        meatPerCycle *
+        completedCycles;
+
+    house.resources.meat =
+        Math.max(
+            0,
+            house.resources.meat -
+            totalConsumption
+        );
+
+    house.food.lastConsumption +=
+        FOOD_CONSUMPTION_INTERVAL *
+        completedCycles;
+
+    saveHouseData(house);
+}
 
 /* =====================================================
    ПРОИЗВОДСТВО
@@ -6261,8 +6383,10 @@ setInterval(function() {
     if (!house) return;
 
     processForestry(house);
+    processFoodConsumption(house);
     updatePopulation();
     updateForestry();
+    updateResources();
 
 }, 1000);
 

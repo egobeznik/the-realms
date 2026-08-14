@@ -741,8 +741,12 @@ textarea.input {
     text-align: left;
 }
 
+.productionHeader {
+    cursor: default;
+}
+
 .productionHeader:active {
-    background: rgba(75, 58, 35, 0.18);
+    background: transparent;
 }
 
 .productionHeaderLeft {
@@ -766,12 +770,12 @@ textarea.input {
 }
 
 .productionMenu {
-    display: none;
+    display: block;
     border-top: 1px solid rgba(117, 94, 56, 0.32);
 }
 
-.productionSection.open .productionMenu {
-    display: block;
+.productionArrow {
+    display: none;
 }
 
 .productionCard {
@@ -1252,14 +1256,16 @@ textarea.input {
 .mapCell .terrainMark { opacity: .9; }
 
 #mapBuildForestryButton {
-    width: auto;
+    width: calc(100% - 28px);
+    max-width: 390px;
     min-width: 0;
     height: 40px;
     min-height: 40px;
     padding: 0 12px;
-    left: auto;
-    right: 12px;
-    transform: none;
+    left: 50%;
+    right: auto;
+    bottom: calc(76px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1270,14 +1276,24 @@ textarea.input {
 }
 
 #mapBuildForestryButton:active {
-    transform: scale(0.95);
+    transform: translateX(-50%) scale(0.95);
+}
+
+#mapBuildForestryButton .forestryBuildIcon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+#mapBuildForestryButton .forestryBuildText {
+    font-family: "Cinzel", Georgia, serif;
 }
 .huntingGroundCell {
     box-shadow:
         inset 0 0 0 1px rgba(174, 141, 82, 0.28);
 }
 
-.huntingGroundMark {
+.huntingGroundMark,
+.forestryMark {
     position: absolute;
     right: 5px;
     bottom: 5px;
@@ -1296,6 +1312,11 @@ textarea.input {
     font-size: 12px;
     line-height: 1;
     filter: none;
+}
+
+.forestryCell {
+    box-shadow:
+        inset 0 0 0 1px rgba(174, 141, 82, 0.28);
 }
 
 
@@ -1391,14 +1412,16 @@ textarea.input {
 .mapFoundButton:disabled { opacity: .38; }
 /* Компактная кнопка строительства охотничьего угодья */
 #mapBuildHuntingButton {
-    width: auto;
+    width: calc(100% - 28px);
+    max-width: 390px;
     min-width: 0;
     height: 40px;
     min-height: 40px;
     padding: 0 12px;
-    left: auto;
-    right: 12px;
-    transform: none;
+    left: 50%;
+    right: auto;
+    bottom: calc(124px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -1419,7 +1442,7 @@ textarea.input {
 }
 
 #mapBuildHuntingButton:active {
-    transform: scale(0.95);
+    transform: translateX(-50%) scale(0.95);
 }
 
 .huntingGroundCategory {
@@ -2507,7 +2530,7 @@ textarea.input {
 
             <button
                 class="productionHeader"
-                onclick="toggleProduction()"
+                type="button"
             >
 
                 <div class="productionHeaderLeft">
@@ -2834,7 +2857,8 @@ textarea.input {
         aria-label="Построить лесничество"
         style="display:none;"
     >
-        🌲 ПОСТРОИТЬ ЛЕСНИЧЕСТВО
+        <span class="forestryBuildIcon">🪵</span>
+        <span class="forestryBuildText">ПОСТРОИТЬ ЛЕСНИЧЕСТВО</span>
     </button>
 
 </main>
@@ -3329,8 +3353,15 @@ function setMapMode(mode) {
     const buildButton =
         document.getElementById("mapBuildHuntingButton");
 
+    const forestryButton =
+        document.getElementById("mapBuildForestryButton");
+
     if (buildButton) {
         buildButton.style.display = "none";
+    }
+
+    if (forestryButton) {
+        forestryButton.style.display = "none";
     }
 
     const instruction = document.getElementById("mapInstruction");
@@ -3619,6 +3650,16 @@ function renderMapCells() {
                     <span class="cityMark">${crest}</span>
                     <span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>
                 `;
+            } else if (hasForestryAt(house, x, y)) {
+
+                cell.classList.add("forestryCell");
+
+                cell.innerHTML =
+                    '<span class="terrainMark">' +
+                        terrainIcon(type) +
+                    '</span>' +
+                    '<span class="forestryMark" title="Лесничество">🪵</span>';
+
             } else if (hasHuntingGroundAt(house, x, y)) {
 
                 cell.classList.add("huntingGroundCell");
@@ -3687,6 +3728,12 @@ function updateCellInfo(x, y) {
 
     const type = terrainAt(x, y);
     const house = getHouse();
+    const forestryGround = hasForestryAt(
+        house,
+        x,
+        y
+    );
+
     const huntingGround = hasHuntingGroundAt(
         house,
         x,
@@ -3695,7 +3742,37 @@ function updateCellInfo(x, y) {
 
     title.textContent = terrainName(type);
 
-    if (huntingGround) {
+    if (forestryGround) {
+
+        const ground =
+            house.forestryGrounds.find(function(item) {
+                return item.x === x && item.y === y;
+            });
+
+        const foresters =
+            ground && typeof ground.foresters === "number"
+                ? ground.foresters
+                : 0;
+
+        const production =
+            Math.floor(
+                foresters / FORESTRY_GROUP_SIZE
+            ) * WOOD_PER_GROUP;
+
+        text.textContent =
+            "ЛЕСНИЧЕСТВО · " +
+            "👷 Рабочих: " +
+            foresters +
+            " · 🌲 Добыча: +" +
+            production +
+            " / 2 ч.";
+
+        coords.textContent =
+            "X: " + x +
+            " · Y: " + y +
+            " · 🪵 ЛЕСНИЧЕСТВО";
+
+    } else if (huntingGround) {
 
         const ground =
             house.huntingGrounds.find(function(item) {
@@ -3781,10 +3858,28 @@ function updateMap() {
 
     updateCellInfo(mapState.selectedX, mapState.selectedY);
 
+    const huntingButton =
+        document.getElementById("mapBuildHuntingButton");
+
+    const forestryButton =
+        document.getElementById("mapBuildForestryButton");
+
     if (mapState.selectedX !== null) {
-        const type = terrainAt(mapState.selectedX, mapState.selectedY);
-        const forestNearby = hasNearbyForest(mapState.selectedX, mapState.selectedY);
-        const foundationMode = mapState.mode === "foundation";
+
+        const type =
+            terrainAt(
+                mapState.selectedX,
+                mapState.selectedY
+            );
+
+        const forestNearby =
+            hasNearbyForest(
+                mapState.selectedX,
+                mapState.selectedY
+            );
+
+        const foundationMode =
+            mapState.mode === "foundation";
 
         document.getElementById("mapSelectionInfo").textContent =
             "ВЫБРАНО · X: " + mapState.selectedX +
@@ -3795,44 +3890,64 @@ function updateMap() {
         document.getElementById("mapFoundButton").disabled =
             !foundationMode || isWaterTerrain(type);
 
-        const buildButton =
-            document.getElementById("mapBuildHuntingButton");
+        const house = getHouse();
 
-        if (buildButton) {
+        const huntingBuilt =
+            hasHuntingGroundAt(
+                house,
+                mapState.selectedX,
+                mapState.selectedY
+            );
 
-            const house = getHouse();
+        const forestryBuilt =
+            hasForestryAt(
+                house,
+                mapState.selectedX,
+                mapState.selectedY
+            );
 
-            const canBuild =
-                !foundationMode &&
-                type === "forest" &&
-                isTerritoryCell(
-                    house,
-                    mapState.selectedX,
-                    mapState.selectedY
-                ) &&
-                !hasHuntingGroundAt(
-                    house,
-                    mapState.selectedX,
-                    mapState.selectedY
-                );
+        const canBuild =
+            !foundationMode &&
+            type === "forest" &&
+            isTerritoryCell(
+                house,
+                mapState.selectedX,
+                mapState.selectedY
+            ) &&
+            !huntingBuilt &&
+            !forestryBuilt;
 
-            buildButton.style.display =
-                canBuild ? "block" : "none";
+        if (huntingButton) {
+            huntingButton.style.display =
+                canBuild ? "inline-flex" : "none";
+            huntingButton.disabled =
+                !canBuild;
+        }
 
-            buildButton.disabled = !canBuild;
+        if (forestryButton) {
+            forestryButton.style.display =
+                canBuild ? "inline-flex" : "none";
+            forestryButton.disabled =
+                !canBuild;
         }
 
     } else {
 
         document.getElementById("mapSelectionInfo").textContent =
-            mapState.mode === "view" ? "Нажмите на клетку карты" : "Выберите клетку на карте";
+            mapState.mode === "view"
+                ? "Нажмите на клетку карты"
+                : "Выберите клетку на карте";
+
         document.getElementById("mapFoundButton").disabled = true;
 
-        const buildButton =
-            document.getElementById("mapBuildHuntingButton");
+        if (huntingButton) {
+            huntingButton.style.display = "none";
+            huntingButton.disabled = true;
+        }
 
-        if (buildButton) {
-            buildButton.style.display = "none";
+        if (forestryButton) {
+            forestryButton.style.display = "none";
+            forestryButton.disabled = true;
         }
     }
 }
@@ -3907,56 +4022,8 @@ function buildHuntingGround() {
 
 
 function updateForestryBuildButton() {
-
-    const forestryButton =
-        document.getElementById(
-            "mapBuildForestryButton"
-        );
-
-    if (!forestryButton) return;
-
-    const huntingButton =
-        document.getElementById(
-            "mapBuildHuntingButton"
-        );
-
-    const house = getHouse();
-
-    if (
-        !house ||
-        mapState.selectedX === null ||
-        mapState.selectedY === null ||
-        mapState.mode === "foundation"
-    ) {
-        forestryButton.style.display = "none";
-        return;
-    }
-
-    const x = mapState.selectedX;
-    const y = mapState.selectedY;
-
-    const huntingBuilt =
-        hasHuntingGroundAt(house, x, y);
-
-    const forestryBuilt =
-        hasForestryAt(house, x, y);
-
-    const canBuild =
-        terrainAt(x, y) === "forest" &&
-        isTerritoryCell(house, x, y) &&
-        !huntingBuilt &&
-        !forestryBuilt;
-
-    forestryButton.style.display =
-        canBuild ? "inline-flex" : "none";
-
-    forestryButton.disabled = !canBuild;
-
-    if (huntingButton && (huntingBuilt || forestryBuilt)) {
-        huntingButton.style.display = "none";
-    }
+    updateMap();
 }
-
 
 function buildForestry() {
 
@@ -5672,13 +5739,13 @@ function openRealm() {
         document.getElementById("villageMapHint");
 
     if (house.city) {
-        villageTitle.textContent = "СТОЛИЦА";
+        villageTitle.textContent = "ЕДИНСТВЕННЫЙ ГОРОД - ОСНОВАН";
         villageText.textContent =
             "Ваш единственный город основан. Вокруг него закреплены первые земли Дома.";
         villageMapHint.textContent =
             "ОТКРЫТЬ КАРТУ МИРА · X: " + house.city.x + " · Y: " + house.city.y + " · ›";
     } else {
-        villageTitle.textContent = "СТОЛИЦА";
+        villageTitle.textContent = "ПЕРВАЯ ДЕРЕВНЯ";
         villageText.textContent =
             "Здесь начнётся строительство вашего будущего государства.";
         villageMapHint.textContent =
@@ -5848,7 +5915,6 @@ setInterval(function() {
     processForestry(house);
     updatePopulation();
     updateForestry();
-    updateForestryBuildButton();
 
 }, 1000);
 

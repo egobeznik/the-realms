@@ -3221,7 +3221,7 @@ const HUNTING_GROUND_GAME_LOSS = 5;
 const HUNTING_GROUND_RECOVERY_MS = 24 * 60 * 60 * 1000;
 const HUNTING_MAXIMUM = 10;
 const HUNTING_INTERVAL = 2 * 60 * 60 * 1000;
-const MEAT_PER_GROUP = 20;
+const MEAT_PER_GROUP = 30;
 const HUNTING_GROUP_SIZE = 2;
 const GAME_LOSS_PER_HUNT = 5;
 
@@ -3236,7 +3236,7 @@ const FORESTRY_GROUP_SIZE = 4;
 const WOOD_PER_GROUP = 20;
 
 const FOOD_CONSUMPTION_INTERVAL =
-    5 * 60 * 60 * 1000;
+    60 * 60 * 1000;
 
 const FORESTRY_GROUND_DURABILITY_MAX = 100;
 const FORESTRY_GROUND_DURABILITY_LOSS = 10;
@@ -5018,8 +5018,8 @@ function processFoodConsumption(house) {
 
     const meatPerCycle =
         freePopulation +
-        workingPopulation +
-        soldiers * 2;
+        workingPopulation * 2 +
+        soldiers * 4;
 
     const totalConsumption =
         meatPerCycle *

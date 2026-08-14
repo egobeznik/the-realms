@@ -564,7 +564,7 @@ textarea.input {
 
 
 /* =====================================================
-   ТРЕТИЙ ЭКРАН — ГОСУДАРСТВО
+   ТРЕТИЙ ЭКРАН
 ===================================================== */
 
 #realmScreen {
@@ -638,7 +638,7 @@ textarea.input {
 
 
 /* =====================================================
-   ВЕРХ ГОСУДАРСТВА
+   ВЕРХ
 ===================================================== */
 
 .realmCrest {
@@ -817,7 +817,7 @@ textarea.input {
 
 
 /* =====================================================
-   ОСНОВНЫЕ БЛОКИ
+   ОБЩИЕ СЕКЦИИ
 ===================================================== */
 
 .realmSection {
@@ -933,7 +933,6 @@ textarea.input {
 
 
 .populationInfo {
-
     min-width: 0;
 }
 
@@ -982,10 +981,6 @@ textarea.input {
 }
 
 
-/* =====================================================
-   КНОПКА СПРАВКИ
-===================================================== */
-
 .helpButton {
 
     width: 28px;
@@ -1020,10 +1015,6 @@ textarea.input {
     transform: scale(0.94);
 }
 
-
-/* =====================================================
-   КНОПКИ РАСПРЕДЕЛЕНИЯ
-===================================================== */
 
 .populationActions {
 
@@ -1165,7 +1156,265 @@ textarea.input {
 
 
 /* =====================================================
-   ПЕРВАЯ ДЕРЕВНЯ
+   ПРОИЗВОДСТВО
+===================================================== */
+
+.productionCard {
+
+    margin: 10px;
+
+    padding: 12px;
+
+    border:
+        1px solid
+        rgba(157, 126, 72, 0.42);
+
+    background:
+        rgba(26, 22, 17, 0.65);
+}
+
+
+.productionTop {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+}
+
+
+.productionIcon {
+
+    width: 42px;
+    height: 42px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.45);
+
+    font-size: 22px;
+}
+
+
+.productionTitle {
+
+    color: #cbb99a;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 11px;
+
+    letter-spacing: 1.5px;
+}
+
+
+.productionSubtitle {
+
+    margin-top: 3px;
+
+    color: #736a5e;
+
+    font-size: 11px;
+}
+
+
+.productionInfo {
+
+    margin-top: 12px;
+
+    padding-top: 10px;
+
+    border-top:
+        1px solid
+        rgba(117, 94, 56, 0.25);
+}
+
+
+.productionLine {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    margin-bottom: 5px;
+
+    color: #85796a;
+
+    font-size: 12px;
+}
+
+
+.productionLine strong {
+
+    color: #b8a27a;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 9px;
+}
+
+
+.productionStatus {
+
+    margin-top: 9px;
+
+    padding: 8px;
+
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.28);
+
+    background:
+        rgba(10, 9, 7, 0.4);
+
+    color: #8c7d68;
+
+    font-size: 11px;
+
+    text-align: center;
+}
+
+
+.hunterControl {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 8px;
+
+    margin-top: 10px;
+}
+
+
+.hunterButton {
+
+    width: 40px;
+    height: 36px;
+
+    border:
+        1px solid
+        rgba(142, 116, 70, 0.55);
+
+    background:
+        rgba(37, 30, 22, 0.8);
+
+    color: #b69a68;
+
+    font-size: 18px;
+
+    cursor: pointer;
+}
+
+
+.hunterButton:active {
+
+    transform: scale(0.94);
+
+    background:
+        rgba(82, 61, 35, 0.75);
+}
+
+
+.hunterButton:disabled {
+
+    opacity: 0.25;
+
+    cursor: default;
+}
+
+
+.hunterCount {
+
+    flex: 1;
+
+    text-align: center;
+}
+
+
+.hunterCountNumber {
+
+    color: #d0c0a5;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 17px;
+}
+
+
+.hunterCountText {
+
+    margin-top: 2px;
+
+    color: #70675b;
+
+    font-size: 10px;
+}
+
+
+.forestBar {
+
+    margin-top: 10px;
+}
+
+
+.forestBarLabel {
+
+    display: flex;
+
+    justify-content: space-between;
+
+    margin-bottom: 5px;
+
+    color: #746b5d;
+
+    font-size: 10px;
+}
+
+
+.forestBarOuter {
+
+    width: 100%;
+
+    height: 5px;
+
+    background:
+        rgba(45, 39, 30, 0.8);
+}
+
+
+.forestBarInner {
+
+    width: 100%;
+
+    height: 100%;
+
+    background:
+        #77633f;
+
+    transition: width 0.4s ease;
+}
+
+
+/* =====================================================
+   ДЕРЕВНЯ
 ===================================================== */
 
 .village {
@@ -1219,7 +1468,7 @@ textarea.input {
 
 
 /* =====================================================
-   ИСТОРИЯ
+   ЛЕТОПИСЬ
 ===================================================== */
 
 .history {
@@ -1273,45 +1522,7 @@ textarea.input {
 
 
 /* =====================================================
-   СБРОС
-===================================================== */
-
-.resetButton {
-
-    position: relative;
-
-    z-index: 2;
-
-    width: 100%;
-
-    min-height: 42px;
-
-    margin-top: 22px;
-
-    border:
-        1px solid
-        rgba(99, 78, 48, 0.45);
-
-    background:
-        transparent;
-
-    color: #665e53;
-
-    font-family:
-        "Cinzel",
-        Georgia,
-        serif;
-
-    font-size: 8px;
-
-    letter-spacing: 2px;
-
-    cursor: pointer;
-}
-
-
-/* =====================================================
-   ВСПЛЫВАЮЩАЯ СПРАВКА
+   СПРАВКА
 ===================================================== */
 
 #helpOverlay {
@@ -1324,8 +1535,7 @@ textarea.input {
 
     z-index: 500;
 
-    padding:
-        20px;
+    padding: 20px;
 
     background:
         rgba(0, 0, 0, 0.72);
@@ -1473,6 +1683,44 @@ textarea.input {
 
 
 /* =====================================================
+   СБРОС
+===================================================== */
+
+.resetButton {
+
+    position: relative;
+
+    z-index: 2;
+
+    width: 100%;
+
+    min-height: 42px;
+
+    margin-top: 22px;
+
+    border:
+        1px solid
+        rgba(99, 78, 48, 0.45);
+
+    background:
+        transparent;
+
+    color: #665e53;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 8px;
+
+    letter-spacing: 2px;
+
+    cursor: pointer;
+}
+
+
+/* =====================================================
    ЗАКРЫТЫЙ ДОСТУП
 ===================================================== */
 
@@ -1540,10 +1788,6 @@ textarea.input {
 }
 
 
-/* =====================================================
-   МАЛЕНЬКИЕ ЭКРАНЫ
-===================================================== */
-
 @media (max-height: 700px) {
 
     #creationScreen,
@@ -1561,12 +1805,6 @@ textarea.input {
     .populationRow {
 
         min-height: 52px;
-    }
-
-    .populationActions {
-
-        padding-top: 5px;
-        padding-bottom: 7px;
     }
 }
 
@@ -1721,7 +1959,7 @@ textarea.input {
                     id="motto"
                     type="text"
                     maxlength="80"
-                    placeholder="Например, Мы храним то, что ещё не стало историей"
+                    placeholder="Мы храним то, что ещё не стало историей"
                     autocomplete="off"
                     required
                 >
@@ -1826,10 +2064,6 @@ textarea.input {
     <div class="realmFrame">
 
 
-        <!-- =============================================
-             ГЕРБ И НАЗВАНИЕ
-        ============================================== -->
-
         <div
             class="realmCrest"
             id="realmCrest"
@@ -1866,9 +2100,7 @@ textarea.input {
 
             <span></span>
 
-            <div>
-                ◆
-            </div>
+            <div>◆</div>
 
             <span></span>
 
@@ -1880,9 +2112,9 @@ textarea.input {
         </div>
 
 
-        <!-- =============================================
+        <!-- =================================================
              НАСЕЛЕНИЕ
-        ============================================== -->
+        ================================================== -->
 
         <section class="realmSection">
 
@@ -1917,7 +2149,7 @@ textarea.input {
                     </div>
 
                     <div class="populationConsumption">
-                        🍞 1 еда / 5 часов
+                        🍖 1 мясо / 5 часов
                     </div>
 
                 </div>
@@ -1975,7 +2207,7 @@ textarea.input {
                     </div>
 
                     <div class="populationConsumption">
-                        🍞 1 еда / 5 часов
+                        🍖 1 мясо / 5 часов
                     </div>
 
                 </div>
@@ -2025,7 +2257,7 @@ textarea.input {
                     </div>
 
                     <div class="populationConsumption">
-                        🍞 2 еды / 5 часов
+                        🍖 2 мяса / 5 часов
                     </div>
 
                 </div>
@@ -2062,9 +2294,9 @@ textarea.input {
         </section>
 
 
-        <!-- =============================================
+        <!-- =================================================
              РЕСУРСЫ
-        ============================================== -->
+        ================================================== -->
 
         <section class="realmSection">
 
@@ -2087,11 +2319,11 @@ textarea.input {
                 <div class="resource">
 
                     <div class="resourceIcon">
-                        🍞
+                        🍖
                     </div>
 
                     <div class="resourceName">
-                        ЕДА
+                        МЯСО
                     </div>
 
                     <div
@@ -2160,9 +2392,191 @@ textarea.input {
         </section>
 
 
-        <!-- =============================================
+        <!-- =================================================
+             ПРОИЗВОДСТВО
+        ================================================== -->
+
+        <section class="realmSection">
+
+            <div class="sectionHeader">
+
+                <div class="sectionTitle">
+                    ПРОИЗВОДСТВО
+                </div>
+
+                <div class="sectionTotal">
+                    ДОСТУПНО: 1
+                </div>
+
+            </div>
+
+
+            <div class="productionCard">
+
+
+                <div class="productionTop">
+
+                    <div class="productionIcon">
+                        🏹
+                    </div>
+
+                    <div>
+
+                        <div class="productionTitle">
+                            ОХОТА
+                        </div>
+
+                        <div class="productionSubtitle">
+                            Добыча мяса в лесных угодьях
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <div class="productionInfo">
+
+
+                    <div class="productionLine">
+
+                        <span>
+                            Требование
+                        </span>
+
+                        <strong>
+                            🌲 ЛЕС
+                        </strong>
+
+                    </div>
+
+
+                    <div class="productionLine">
+
+                        <span>
+                            Минимум
+                        </span>
+
+                        <strong>
+                            2 охотника
+                        </strong>
+
+                    </div>
+
+
+                    <div class="productionLine">
+
+                        <span>
+                            Производство
+                        </span>
+
+                        <strong>
+                            +20 🍖 / 2 ч.
+                        </strong>
+
+                    </div>
+
+
+                    <div class="productionLine">
+
+                        <span>
+                            Вместимость леса
+                        </span>
+
+                        <strong>
+                            10 охотников
+                        </strong>
+
+                    </div>
+
+
+                    <div
+                        class="productionStatus"
+                        id="huntingStatus"
+                    >
+                        Охота не ведётся
+                    </div>
+
+
+                    <div class="hunterControl">
+
+
+                        <button
+                            class="hunterButton"
+                            onclick="removeHunter()"
+                            id="removeHunterButton"
+                        >
+                            −
+                        </button>
+
+
+                        <div class="hunterCount">
+
+                            <div
+                                class="hunterCountNumber"
+                                id="hunterCount"
+                            >
+                                0
+                            </div>
+
+                            <div class="hunterCountText">
+                                ОХОТНИКОВ
+                            </div>
+
+                        </div>
+
+
+                        <button
+                            class="hunterButton"
+                            onclick="addHunter()"
+                            id="addHunterButton"
+                        >
+                            +
+                        </button>
+
+
+                    </div>
+
+
+                    <div class="forestBar">
+
+                        <div class="forestBarLabel">
+
+                            <span>
+                                🦌 Дичь в лесу
+                            </span>
+
+                            <span
+                                id="gamePercent"
+                            >
+                                100%
+                            </span>
+
+                        </div>
+
+
+                        <div class="forestBarOuter">
+
+                            <div
+                                class="forestBarInner"
+                                id="gameBar"
+                            >
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
              ПЕРВАЯ ДЕРЕВНЯ
-        ============================================== -->
+        ================================================== -->
 
         <div class="village">
 
@@ -2178,9 +2592,9 @@ textarea.input {
         </div>
 
 
-        <!-- =============================================
+        <!-- =================================================
              ЛЕТОПИСЬ
-        ============================================== -->
+        ================================================== -->
 
         <div class="history">
 
@@ -2196,10 +2610,6 @@ textarea.input {
 
         </div>
 
-
-        <!-- =============================================
-             СБРОС
-        ============================================== -->
 
         <button
             class="resetButton"
@@ -2231,17 +2641,14 @@ textarea.input {
         >
         </div>
 
-
         <div class="helpWindowDivider">
         </div>
-
 
         <div
             class="helpWindowDescription"
             id="helpDescription"
         >
         </div>
-
 
         <div class="helpDetails">
 
@@ -2358,6 +2765,35 @@ if (
 
 
 /* =====================================================
+   НАСТРОЙКИ ОХОТЫ
+===================================================== */
+
+const HUNTING_MINIMUM =
+    2;
+
+const HUNTING_MAXIMUM =
+    10;
+
+const HUNTING_INTERVAL =
+    2 * 60 * 60 * 1000;
+
+const MEAT_PER_GROUP =
+    20;
+
+const HUNTING_GROUP_SIZE =
+    2;
+
+const GAME_LOSS_PER_HUNT =
+    5;
+
+const GAME_RESTORE_INTERVAL =
+    60 * 60 * 1000;
+
+const GAME_RESTORE_AMOUNT =
+    2;
+
+
+/* =====================================================
    ОТКРЫТЬ СОЗДАНИЕ
 ===================================================== */
 
@@ -2380,7 +2816,7 @@ function openCreation() {
 
 
 /* =====================================================
-   ПРЕДПРОСМОТР ГЕРБА
+   ГЕРБ
 ===================================================== */
 
 function previewCrest(event) {
@@ -2485,6 +2921,10 @@ function saveHouse(event) {
         crestInput.files[0];
 
 
+    const now =
+        Date.now();
+
+
     const house = {
 
         rulerName:
@@ -2514,18 +2954,31 @@ function saveHouse(event) {
 
             workers: 0,
 
-            soldiers: 0
+            soldiers: 0,
+
+            hunters: 0
         },
 
         resources: {
 
-            food: 100,
+            meat: 100,
 
             wood: 50,
 
             stone: 50,
 
             gold: 0
+        },
+
+        hunting: {
+
+            game: 100,
+
+            lastProduction:
+                now,
+
+            lastGameRestore:
+                now
         }
 
     };
@@ -2544,11 +2997,7 @@ function saveHouse(event) {
                     event.target.result;
 
 
-                localStorage.setItem(
-                    "theRealmsHouse",
-                    JSON.stringify(house)
-                );
-
+                saveHouseData(house);
 
                 openRealm();
             };
@@ -2560,11 +3009,7 @@ function saveHouse(event) {
 
     else {
 
-        localStorage.setItem(
-            "theRealmsHouse",
-            JSON.stringify(house)
-        );
-
+        saveHouseData(house);
 
         openRealm();
     }
@@ -2573,7 +3018,7 @@ function saveHouse(event) {
 
 
 /* =====================================================
-   ПОЛУЧИТЬ ДАННЫЕ ДОМА
+   ПОЛУЧИТЬ ДОМ
 ===================================================== */
 
 function getHouse() {
@@ -2594,7 +3039,7 @@ function getHouse() {
 
 
 /* =====================================================
-   СОХРАНИТЬ ДАННЫЕ ДОМА
+   СОХРАНИТЬ ДОМ
 ===================================================== */
 
 function saveHouseData(house) {
@@ -2607,26 +3052,10 @@ function saveHouseData(house) {
 
 
 /* =====================================================
-   ОТКРЫТЬ ГОСУДАРСТВО
+   МИГРАЦИЯ СТАРОГО СОХРАНЕНИЯ
 ===================================================== */
 
-function openRealm() {
-
-    const house =
-        getHouse();
-
-
-    if (!house) {
-
-        openCreation();
-
-        return;
-    }
-
-
-    /* -----------------------------------------------
-       Защита старых сохранений
-    ------------------------------------------------ */
+function prepareHouse(house) {
 
     if (!house.population) {
 
@@ -2634,8 +3063,19 @@ function openRealm() {
 
             free: 100,
             workers: 0,
-            soldiers: 0
+            soldiers: 0,
+            hunters: 0
         };
+    }
+
+
+    if (
+        typeof house.population.hunters
+        !== "number"
+    ) {
+
+        house.population.hunters =
+            0;
     }
 
 
@@ -2643,7 +3083,7 @@ function openRealm() {
 
         house.resources = {
 
-            food: 100,
+            meat: 100,
             wood: 50,
             stone: 50,
             gold: 0
@@ -2651,111 +3091,199 @@ function openRealm() {
     }
 
 
-    saveHouseData(house);
+    if (
+        typeof house.resources.meat
+        !== "number"
+    ) {
+
+        house.resources.meat =
+            100;
+    }
 
 
-    /* -----------------------------------------------
-       Данные дома
-    ------------------------------------------------ */
+    if (!house.hunting) {
 
-    document
-        .getElementById("realmHouse")
-        .textContent =
-        house.houseName;
+        house.hunting = {
 
+            game: 100,
 
-    document
-        .getElementById("realmCountry")
-        .textContent =
-        house.realmName;
+            lastProduction:
+                Date.now(),
 
-
-    document
-        .getElementById("realmMotto")
-        .textContent =
-        "«" +
-        house.motto +
-        "»";
+            lastGameRestore:
+                Date.now()
+        };
+    }
 
 
-    document
-        .getElementById("realmHistory")
-        .textContent =
-        house.description ||
-        "История этого Дома ещё только начинается.";
+    if (
+        typeof house.hunting.game
+        !== "number"
+    ) {
+
+        house.hunting.game =
+            100;
+    }
 
 
-    /* -----------------------------------------------
-       Герб
-    ------------------------------------------------ */
+    if (
+        typeof house.hunting.lastProduction
+        !== "number"
+    ) {
 
-    const crest =
-        document
-            .getElementById("realmCrest");
+        house.hunting.lastProduction =
+            Date.now();
+    }
 
 
-    if (house.crest) {
+    if (
+        typeof house.hunting.lastGameRestore
+        !== "number"
+    ) {
 
-        crest.innerHTML =
-            `
-            <img
-                src="${house.crest}"
-                alt="Герб Дома"
-            >
-            `;
+        house.hunting.lastGameRestore =
+            Date.now();
+    }
+
+
+    return house;
+}
+
+
+/* =====================================================
+   ПРОИЗВОДСТВО ОХОТЫ
+===================================================== */
+
+function processHunting(house) {
+
+    const hunters =
+        house.population.hunters;
+
+
+    const now =
+        Date.now();
+
+
+    if (
+        hunters >= HUNTING_MINIMUM &&
+        hunters <= HUNTING_MAXIMUM
+    ) {
+
+        const elapsed =
+            now -
+            house.hunting.lastProduction;
+
+
+        const completedCycles =
+            Math.floor(
+                elapsed /
+                HUNTING_INTERVAL
+            );
+
+
+        if (completedCycles > 0) {
+
+            const groups =
+                Math.floor(
+                    hunters /
+                    HUNTING_GROUP_SIZE
+                );
+
+
+            const meatPerCycle =
+                groups *
+                MEAT_PER_GROUP;
+
+
+            const possibleCycles =
+                Math.min(
+                    completedCycles,
+                    Math.floor(
+                        house.hunting.game /
+                        GAME_LOSS_PER_HUNT
+                    )
+                );
+
+
+            if (possibleCycles > 0) {
+
+                house.resources.meat +=
+                    meatPerCycle *
+                    possibleCycles;
+
+
+                house.hunting.game -=
+                    GAME_LOSS_PER_HUNT *
+                    possibleCycles;
+
+
+                house.hunting.lastProduction +=
+                    HUNTING_INTERVAL *
+                    possibleCycles;
+            }
+
+            else {
+
+                house.hunting.lastProduction =
+                    now;
+            }
+
+        }
 
     }
 
     else {
 
-        crest.innerHTML = "♜";
+        house.hunting.lastProduction =
+            now;
     }
 
 
-    /* -----------------------------------------------
-       Обновить население
-    ------------------------------------------------ */
+    /* =================================================
+       ВОССТАНОВЛЕНИЕ ДИЧИ
+    ================================================== */
 
-    updatePopulation();
-
-
-    /* -----------------------------------------------
-       Обновить ресурсы
-    ------------------------------------------------ */
-
-    updateResources();
+    const restoreElapsed =
+        now -
+        house.hunting.lastGameRestore;
 
 
-    /* -----------------------------------------------
-       Показать экран
-    ------------------------------------------------ */
-
-    document
-        .getElementById("introScreen")
-        .style.display = "none";
+    const restoreCycles =
+        Math.floor(
+            restoreElapsed /
+            GAME_RESTORE_INTERVAL
+        );
 
 
-    document
-        .getElementById("creationScreen")
-        .style.display = "none";
+    if (restoreCycles > 0) {
+
+        house.hunting.game =
+            Math.min(
+                100,
+
+                house.hunting.game +
+                GAME_RESTORE_AMOUNT *
+                restoreCycles
+            );
 
 
-    document
-        .getElementById("realmScreen")
-        .style.display = "block";
+        house.hunting.lastGameRestore +=
+            GAME_RESTORE_INTERVAL *
+            restoreCycles;
+    }
 
 
-    window.scrollTo(0, 0);
+    saveHouseData(house);
 }
 
 
 /* =====================================================
-   ОБНОВЛЕНИЕ НАСЕЛЕНИЯ
+   ДОБАВИТЬ ОХОТНИКА
 ===================================================== */
 
-function updatePopulation() {
+function addHunter() {
 
-    const house =
+    let house =
         getHouse();
 
 
@@ -2764,72 +3292,84 @@ function updatePopulation() {
     }
 
 
-    const free =
-        house.population.free;
-
-    const workers =
-        house.population.workers;
-
-    const soldiers =
-        house.population.soldiers;
+    house =
+        prepareHouse(house);
 
 
-    const total =
-        free +
-        workers +
-        soldiers;
+    if (
+        house.population.free <= 0
+    ) {
+        return;
+    }
 
 
-    document
-        .getElementById("freePopulation")
-        .textContent =
-        free;
+    if (
+        house.population.hunters >=
+        HUNTING_MAXIMUM
+    ) {
+        return;
+    }
 
 
-    document
-        .getElementById("workerPopulation")
-        .textContent =
-        workers;
+    house.population.free -= 1;
+
+    house.population.workers -= 1;
+
+    house.population.hunters += 1;
 
 
-    document
-        .getElementById("soldierPopulation")
-        .textContent =
-        soldiers;
+    house.hunting.lastProduction =
+        Date.now();
 
 
-    document
-        .getElementById("populationTotal")
-        .textContent =
-        "Всего: " + total;
+    saveHouseData(house);
+
+    updatePopulation();
+
+    updateHunting();
+}
 
 
-    /* -----------------------------------------------
-       Кнопки
-    ------------------------------------------------ */
+/* =====================================================
+   УБРАТЬ ОХОТНИКА
+===================================================== */
 
-    document
-        .getElementById("freeToWorkerButton")
-        .disabled =
-        free <= 0;
+function removeHunter() {
 
-
-    document
-        .getElementById("freeToSoldierButton")
-        .disabled =
-        free <= 0;
+    let house =
+        getHouse();
 
 
-    document
-        .getElementById("workerToFreeButton")
-        .disabled =
-        workers <= 0;
+    if (!house) {
+        return;
+    }
 
 
-    document
-        .getElementById("soldierToFreeButton")
-        .disabled =
-        soldiers <= 0;
+    house =
+        prepareHouse(house);
+
+
+    if (
+        house.population.hunters <= 0
+    ) {
+        return;
+    }
+
+
+    house.population.hunters -= 1;
+
+    house.population.workers += 1;
+
+
+    house.hunting.lastProduction =
+        Date.now();
+
+
+    saveHouseData(house);
+
+    updatePopulation();
+
+    updateHunting();
 }
 
 
@@ -2839,7 +3379,7 @@ function updatePopulation() {
 
 function moveFreeToWorker() {
 
-    const house =
+    let house =
         getHouse();
 
 
@@ -2848,7 +3388,13 @@ function moveFreeToWorker() {
     }
 
 
-    if (house.population.free <= 0) {
+    house =
+        prepareHouse(house);
+
+
+    if (
+        house.population.free <= 0
+    ) {
         return;
     }
 
@@ -2861,6 +3407,8 @@ function moveFreeToWorker() {
     saveHouseData(house);
 
     updatePopulation();
+
+    updateHunting();
 }
 
 
@@ -2870,7 +3418,7 @@ function moveFreeToWorker() {
 
 function moveWorkerToFree() {
 
-    const house =
+    let house =
         getHouse();
 
 
@@ -2879,10 +3427,21 @@ function moveWorkerToFree() {
     }
 
 
-    if (house.population.workers <= 0) {
+    house =
+        prepareHouse(house);
+
+
+    if (
+        house.population.workers <= 0
+    ) {
         return;
     }
 
+
+    /*
+       Нельзя забрать человека,
+       который уже является охотником.
+    */
 
     house.population.workers -= 1;
 
@@ -2892,6 +3451,8 @@ function moveWorkerToFree() {
     saveHouseData(house);
 
     updatePopulation();
+
+    updateHunting();
 }
 
 
@@ -2901,7 +3462,7 @@ function moveWorkerToFree() {
 
 function moveFreeToSoldier() {
 
-    const house =
+    let house =
         getHouse();
 
 
@@ -2910,7 +3471,13 @@ function moveFreeToSoldier() {
     }
 
 
-    if (house.population.free <= 0) {
+    house =
+        prepareHouse(house);
+
+
+    if (
+        house.population.free <= 0
+    ) {
         return;
     }
 
@@ -2932,7 +3499,7 @@ function moveFreeToSoldier() {
 
 function moveSoldierToFree() {
 
-    const house =
+    let house =
         getHouse();
 
 
@@ -2941,7 +3508,13 @@ function moveSoldierToFree() {
     }
 
 
-    if (house.population.soldiers <= 0) {
+    house =
+        prepareHouse(house);
+
+
+    if (
+        house.population.soldiers <= 0
+    ) {
         return;
     }
 
@@ -2954,6 +3527,224 @@ function moveSoldierToFree() {
     saveHouseData(house);
 
     updatePopulation();
+}
+
+
+/* =====================================================
+   ОБНОВЛЕНИЕ НАСЕЛЕНИЯ
+===================================================== */
+
+function updatePopulation() {
+
+    let house =
+        getHouse();
+
+
+    if (!house) {
+        return;
+    }
+
+
+    house =
+        prepareHouse(house);
+
+
+    const free =
+        house.population.free;
+
+
+    const workers =
+        house.population.workers;
+
+
+    const soldiers =
+        house.population.soldiers;
+
+
+    const hunters =
+        house.population.hunters;
+
+
+    const total =
+        free +
+        workers +
+        soldiers +
+        hunters;
+
+
+    document
+        .getElementById("freePopulation")
+        .textContent =
+        free;
+
+
+    /*
+       В рабочее население входят
+       в том числе охотники.
+    */
+
+    const totalWorkers =
+        workers +
+        hunters;
+
+
+    document
+        .getElementById("workerPopulation")
+        .textContent =
+        totalWorkers;
+
+
+    document
+        .getElementById("soldierPopulation")
+        .textContent =
+        soldiers;
+
+
+    document
+        .getElementById("populationTotal")
+        .textContent =
+        "Всего: " + total;
+
+
+    document
+        .getElementById("freeToWorkerButton")
+        .disabled =
+        free <= 0;
+
+
+    document
+        .getElementById("freeToSoldierButton")
+        .disabled =
+        free <= 0;
+
+
+    /*
+       Нельзя перевести охотника
+       обычной кнопкой рабочего.
+    */
+
+    document
+        .getElementById("workerToFreeButton")
+        .disabled =
+        workers <= 0;
+
+
+    document
+        .getElementById("soldierToFreeButton")
+        .disabled =
+        soldiers <= 0;
+
+
+    updateResources();
+}
+
+
+/* =====================================================
+   ОБНОВЛЕНИЕ ОХОТЫ
+===================================================== */
+
+function updateHunting() {
+
+    let house =
+        getHouse();
+
+
+    if (!house) {
+        return;
+    }
+
+
+    house =
+        prepareHouse(house);
+
+
+    processHunting(house);
+
+
+    const hunters =
+        house.population.hunters;
+
+
+    const game =
+        Math.round(
+            house.hunting.game
+        );
+
+
+    document
+        .getElementById("hunterCount")
+        .textContent =
+        hunters;
+
+
+    document
+        .getElementById("gamePercent")
+        .textContent =
+        game + "%";
+
+
+    document
+        .getElementById("gameBar")
+        .style.width =
+        game + "%";
+
+
+    document
+        .getElementById("addHunterButton")
+        .disabled =
+        (
+            house.population.free <= 0 ||
+            hunters >= HUNTING_MAXIMUM
+        );
+
+
+    document
+        .getElementById("removeHunterButton")
+        .disabled =
+        hunters <= 0;
+
+
+    const status =
+        document
+            .getElementById("huntingStatus");
+
+
+    if (hunters < HUNTING_MINIMUM) {
+
+        status.textContent =
+            "Недостаточно охотников. Требуется минимум 2.";
+
+    }
+
+    else if (game <= 0) {
+
+        status.textContent =
+            "Дичь исчерпана. Лес восстанавливает запасы.";
+
+    }
+
+    else {
+
+        const groups =
+            Math.floor(
+                hunters /
+                HUNTING_GROUP_SIZE
+            );
+
+
+        const production =
+            groups *
+            MEAT_PER_GROUP;
+
+
+        status.textContent =
+            "Активная охота: +" +
+            production +
+            " 🍖 каждые 2 часа.";
+    }
+
+
+    updateResources();
 }
 
 
@@ -2975,7 +3766,9 @@ function updateResources() {
     document
         .getElementById("foodValue")
         .textContent =
-        house.resources.food;
+        Math.floor(
+            house.resources.meat
+        );
 }
 
 
@@ -2997,7 +3790,7 @@ const helpData = {
             "Резерв государства. Могут быть назначены рабочими или военнослужащими.",
 
         consumption:
-            "1 единица еды каждые 5 часов."
+            "1 мясо каждые 5 часов."
 
     },
 
@@ -3011,10 +3804,10 @@ const helpData = {
             "Те, кто трудится ради Дома. Их руки добывают богатство, на котором растёт государство.",
 
         influence:
-            "Производят ресурсы. В дальнейшем их можно будет распределять по различным занятиям.",
+            "Производят ресурсы. В дальнейшем каждый рабочий сможет получить определённую профессию.",
 
         consumption:
-            "1 единица еды каждые 5 часов."
+            "1 мясо каждые 5 часов."
 
     },
 
@@ -3025,13 +3818,13 @@ const helpData = {
             "ВОЕННОСЛУЖАЩИЕ",
 
         description:
-            "Те, кто взял оружие ради Дома. Они защищают его земли и готовы проливать кровь за его границы.",
+            "Те, кто взял оружие ради Дома. Они защищают его земли и готовы проливать кровь за её пределы.",
 
         influence:
             "Оборона государства, захват земель, военные походы и конфликты.",
 
         consumption:
-            "2 единицы еды каждые 5 часов."
+            "2 мяса каждые 5 часов."
 
     }
 
@@ -3039,7 +3832,7 @@ const helpData = {
 
 
 /* =====================================================
-   ОТКРЫТЬ СПРАВКУ
+   СПРАВКА
 ===================================================== */
 
 function showHelp(type) {
@@ -3084,10 +3877,6 @@ function showHelp(type) {
 }
 
 
-/* =====================================================
-   ЗАКРЫТЬ СПРАВКУ
-===================================================== */
-
 function closeHelp() {
 
     document
@@ -3096,10 +3885,6 @@ function closeHelp() {
         "none";
 }
 
-
-/* =====================================================
-   ЗАКРЫТЬ ПО НАЖАТИЮ ВНЕ ОКНА
-===================================================== */
 
 function closeHelpOutside(event) {
 
@@ -3110,6 +3895,114 @@ function closeHelpOutside(event) {
 
         closeHelp();
     }
+}
+
+
+/* =====================================================
+   ОТКРЫТЬ ГОСУДАРСТВО
+===================================================== */
+
+function openRealm() {
+
+    let house =
+        getHouse();
+
+
+    if (!house) {
+
+        openCreation();
+
+        return;
+    }
+
+
+    house =
+        prepareHouse(house);
+
+
+    processHunting(house);
+
+
+    saveHouseData(house);
+
+
+    document
+        .getElementById("realmHouse")
+        .textContent =
+        house.houseName;
+
+
+    document
+        .getElementById("realmCountry")
+        .textContent =
+        house.realmName;
+
+
+    document
+        .getElementById("realmMotto")
+        .textContent =
+        "«" +
+        house.motto +
+        "»";
+
+
+    document
+        .getElementById("realmHistory")
+        .textContent =
+        house.description ||
+        "История этого Дома ещё только начинается.";
+
+
+    const crest =
+        document
+            .getElementById("realmCrest");
+
+
+    if (house.crest) {
+
+        crest.innerHTML =
+            `
+            <img
+                src="${house.crest}"
+                alt="Герб Дома"
+            >
+            `;
+
+    }
+
+    else {
+
+        crest.innerHTML =
+            "♜";
+    }
+
+
+    updatePopulation();
+
+    updateHunting();
+
+    updateResources();
+
+
+    document
+        .getElementById("introScreen")
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById("creationScreen")
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById("realmScreen")
+        .style.display =
+        "block";
+
+
+    window.scrollTo(0, 0);
 }
 
 
@@ -3140,7 +4033,7 @@ function resetHouse() {
 
 
 /* =====================================================
-   ПРОВЕРКА СОХРАНЁННОГО ДОМА
+   ПРОВЕРКА СОХРАНЕНИЯ
 ===================================================== */
 
 function checkExistingHouse() {
@@ -3161,17 +4054,48 @@ function checkExistingHouse() {
 
         document
             .getElementById("introScreen")
-            .style.display = "block";
+            .style.display =
+            "block";
 
         document
             .getElementById("creationScreen")
-            .style.display = "none";
+            .style.display =
+            "none";
 
         document
             .getElementById("realmScreen")
-            .style.display = "none";
+            .style.display =
+            "none";
     }
 }
+
+
+/* =====================================================
+   ОБНОВЛЕНИЕ ТАЙМЕРОВ
+===================================================== */
+
+setInterval(
+    function() {
+
+        const house =
+            getHouse();
+
+
+        if (!house) {
+            return;
+        }
+
+
+        processHunting(house);
+
+        updatePopulation();
+
+        updateHunting();
+
+    },
+
+    1000
+);
 
 
 /* =====================================================
@@ -3180,7 +4104,8 @@ function checkExistingHouse() {
 
 if (
     user &&
-    Number(user.id) === ALLOWED_USER_ID
+    Number(user.id) ===
+    ALLOWED_USER_ID
 ) {
 
     checkExistingHouse();

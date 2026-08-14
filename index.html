@@ -1250,6 +1250,28 @@ textarea.input {
 }
 
 .mapCell .terrainMark { opacity: .9; }
+
+#mapBuildForestryButton {
+    width: auto;
+    min-width: 0;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 12px;
+    left: auto;
+    right: 12px;
+    transform: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    white-space: nowrap;
+    font-size: 9px;
+    letter-spacing: 1.1px;
+}
+
+#mapBuildForestryButton:active {
+    transform: scale(0.95);
+}
 .huntingGroundCell {
     box-shadow:
         inset 0 0 0 1px rgba(174, 141, 82, 0.28);
@@ -2428,9 +2450,51 @@ textarea.input {
                 </div>
 
             </div>
+            <div
+                class="resourceCategory"
+                id="woodCategory"
+            >
+                <button
+                    class="resourceCategoryHeader"
+                    onclick="toggleResourceCategory('woodCategory')"
+                >
+                    <div class="resourceCategoryLeft">
+                        <span class="resourceCategoryIcon">🌲</span>
+                        <span>МАТЕРИАЛЫ</span>
+                    </div>
+                    <span class="resourceCategoryArrow">▼</span>
+                </button>
+
+                <div class="resourceCategoryContent">
+                    <div
+                        class="resourceItem"
+                        onclick="showResourceInfo('wood')"
+                        role="button"
+                        tabindex="0"
+                    >
+                        <div class="resourceItemIcon">🌲</div>
+
+                        <div class="resourceItemInfo">
+                            <div class="resourceItemName">ЛЕС</div>
+                            <div class="resourceItemDescription">
+                                Основной строительный материал
+                            </div>
+                            <div class="resourceItemDescription">
+                                Постройте лесничество на клетке Лес, чтобы добывать лес.
+                            </div>
+                        </div>
+
+                        <div class="resourceItemValue" id="woodValue">50</div>
+
+                        <button
+                            class="resourceInfoButton"
+                            onclick="event.stopPropagation(); showResourceInfo('wood')"
+                        >ⓘ</button>
+                    </div>
+                </div>
+            </div>
 
         </section>
-
 
         <!-- =================================================
              ПРОИЗВОДСТВО
@@ -2502,6 +2566,38 @@ textarea.input {
                         id="huntingGroundCategoryMenu"
                     >
                         <div id="huntingGroundList"></div>
+                    </div>
+                </div>
+                </div>
+
+                <div
+                    class="huntingGroundCategory"
+                    id="forestryCategory"
+                >
+                    <button
+                        type="button"
+                        class="huntingGroundCategoryHeader"
+                        onclick="toggleForestryCategory()"
+                    >
+                        <div class="huntingGroundCategoryLeft">
+                            <div class="huntingGroundCategoryIcon">🌲</div>
+                            <div>
+                                <div class="huntingGroundCategoryTitle">
+                                    ДОБЫЧА ЛЕСА
+                                </div>
+                                <div class="huntingGroundCategorySubtitle">
+                                    Лесничества · назначение рабочих
+                                </div>
+                            </div>
+                        </div>
+                        <span class="huntingGroundCategoryArrow">▼</span>
+                    </button>
+
+                    <div
+                        class="huntingGroundCategoryMenu"
+                        id="forestryCategoryMenu"
+                    >
+                        <div id="forestryList"></div>
                     </div>
                 </div>
 
@@ -2730,6 +2826,17 @@ textarea.input {
         <span class="huntingBuildText">ПОСТРОИТЬ ОХОТНИЧЬЕ УГОДЬЕ</span>
     </button>
 
+    <button
+        class="mapFoundButton"
+        id="mapBuildForestryButton"
+        onclick="buildForestry()"
+        title="Построить лесничество"
+        aria-label="Построить лесничество"
+        style="display:none;"
+    >
+        🌲 ПОСТРОИТЬ ЛЕСНИЧЕСТВО
+    </button>
+
 </main>
 
 <!-- =====================================================
@@ -2865,6 +2972,18 @@ function hasHuntingGroundForHouse(house) {
 }
 
 
+function hasForestryAt(house, x, y) {
+
+    if (!house || !Array.isArray(house.forestryGrounds)) {
+        return false;
+    }
+
+    return house.forestryGrounds.some(function(ground) {
+        return ground.x === x && ground.y === y;
+    });
+}
+
+
 function hasHuntingGroundAt(house, x, y) {
     if (!house || !Array.isArray(house.huntingGrounds)) {
         return false;
@@ -2954,6 +3073,16 @@ const HUNTING_INTERVAL = 2 * 60 * 60 * 1000;
 const MEAT_PER_GROUP = 20;
 const HUNTING_GROUP_SIZE = 2;
 const GAME_LOSS_PER_HUNT = 5;
+
+/* =====================================================
+   ДОБЫЧА ЛЕСА
+===================================================== */
+
+const FORESTRY_MINIMUM = 4;
+const FORESTRY_MAXIMUM = 20;
+const FORESTRY_INTERVAL = 2 * 60 * 60 * 1000;
+const FORESTRY_GROUP_SIZE = 4;
+const WOOD_PER_GROUP = 20;
 
 
 /* =====================================================
@@ -3056,7 +3185,8 @@ function saveHouse(event) {
 
             soldiers: 0,
 
-            hunters: 0
+            hunters: 0,
+            foresters: 0
 
         },
 
@@ -3078,7 +3208,13 @@ function saveHouse(event) {
 
             lastProduction: Date.now()
 
-        }
+        },
+
+        forestry: {
+            lastProduction: Date.now()
+        },
+
+        forestryGrounds: []
 
     };
 
@@ -3770,6 +3906,290 @@ function buildHuntingGround() {
 }
 
 
+function updateForestryBuildButton() {
+
+    const forestryButton =
+        document.getElementById(
+            "mapBuildForestryButton"
+        );
+
+    if (!forestryButton) return;
+
+    const huntingButton =
+        document.getElementById(
+            "mapBuildHuntingButton"
+        );
+
+    const house = getHouse();
+
+    if (
+        !house ||
+        mapState.selectedX === null ||
+        mapState.selectedY === null ||
+        mapState.mode === "foundation"
+    ) {
+        forestryButton.style.display = "none";
+        return;
+    }
+
+    const x = mapState.selectedX;
+    const y = mapState.selectedY;
+
+    const huntingBuilt =
+        hasHuntingGroundAt(house, x, y);
+
+    const forestryBuilt =
+        hasForestryAt(house, x, y);
+
+    const canBuild =
+        terrainAt(x, y) === "forest" &&
+        isTerritoryCell(house, x, y) &&
+        !huntingBuilt &&
+        !forestryBuilt;
+
+    forestryButton.style.display =
+        canBuild ? "inline-flex" : "none";
+
+    forestryButton.disabled = !canBuild;
+
+    if (huntingButton && (huntingBuilt || forestryBuilt)) {
+        huntingButton.style.display = "none";
+    }
+}
+
+
+function buildForestry() {
+
+    if (
+        mapState.selectedX === null ||
+        mapState.selectedY === null
+    ) {
+        return;
+    }
+
+    let house = getHouse();
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const x = mapState.selectedX;
+    const y = mapState.selectedY;
+
+    if (terrainAt(x, y) !== "forest") return;
+    if (!isTerritoryCell(house, x, y)) return;
+
+    if (hasHuntingGroundAt(house, x, y)) return;
+    if (hasForestryAt(house, x, y)) return;
+
+    house.forestryGrounds.push({
+        x: x,
+        y: y,
+        builtAt: new Date().toISOString(),
+        foresters: 0
+    });
+
+    saveHouseData(house);
+    updateMap();
+    updateForestry();
+}
+
+
+function toggleForestryCategory() {
+
+    const category =
+        document.getElementById("forestryCategory");
+
+    if (category) {
+        category.classList.toggle("open");
+    }
+
+    updateForestry();
+}
+
+
+function updateForestry() {
+
+    let house = getHouse();
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const list =
+        document.getElementById("forestryList");
+
+    if (!list) return;
+
+    list.innerHTML = "";
+
+    if (house.forestryGrounds.length === 0) {
+
+        list.innerHTML =
+            '<div class="huntingGroundEmpty">' +
+            'Лесничеств пока нет.<br>' +
+            'Выберите принадлежащую Дому клетку Лес и постройте лесничество.' +
+            '</div>';
+
+        updateResources();
+        return;
+    }
+
+    const totalForesters =
+        house.forestryGrounds.reduce(
+            function(total, ground) {
+                return total + ground.foresters;
+            },
+            0
+        );
+
+    house.population.foresters =
+        totalForesters;
+
+    const availableWorkers =
+        house.population.workers -
+        house.population.hunters -
+        totalForesters;
+
+    house.forestryGrounds.forEach(function(ground, index) {
+
+        const item =
+            document.createElement("div");
+
+        item.className =
+            "huntingGroundItem";
+
+        const groups =
+            Math.floor(
+                ground.foresters /
+                FORESTRY_GROUP_SIZE
+            );
+
+        const production =
+            groups *
+            WOOD_PER_GROUP;
+
+        const statusText =
+            ground.foresters < FORESTRY_MINIMUM
+                ? "Недостаточно рабочих. Требуется минимум 4."
+                : "Активная добыча: +" +
+                  production +
+                  " 🌲 каждые 2 часа.";
+
+        item.innerHTML =
+            '<div class="huntingGroundItemTop">' +
+                '<div>' +
+                    '<div class="huntingGroundItemName">' +
+                        'ЛЕСНИЧЕСТВО ' +
+                        (index + 1) +
+                    '</div>' +
+                    '<div class="huntingGroundItemCoords">' +
+                        '🌲 Лес · X: ' +
+                        ground.x +
+                        ' · Y: ' +
+                        ground.y +
+                    '</div>' +
+                '</div>' +
+                '<div style="font-size:17px;">🌲</div>' +
+            '</div>' +
+
+            '<div class="huntingGroundControl">' +
+
+                '<button class="hunterButton" type="button"' +
+                    ' onclick="removeForesterFromGround(' +
+                    index + ')"' +
+                    (ground.foresters <= 0 ? ' disabled' : '') +
+                '>−</button>' +
+
+                '<div class="huntingGroundCount">' +
+                    '<div class="huntingGroundCountNumber">' +
+                        ground.foresters +
+                        ' / ' +
+                        FORESTRY_MAXIMUM +
+                    '</div>' +
+                    '<div class="huntingGroundCountText">' +
+                        'РАБОЧИХ' +
+                    '</div>' +
+                '</div>' +
+
+                '<button class="hunterButton" type="button"' +
+                    ' onclick="addForesterToGround(' +
+                    index + ')"' +
+                    (
+                        availableWorkers <= 0 ||
+                        ground.foresters >= FORESTRY_MAXIMUM
+                            ? ' disabled'
+                            : ''
+                    ) +
+                '>+</button>' +
+
+            '</div>' +
+
+            '<div class="huntingGroundItemStatus">' +
+                statusText +
+            '</div>';
+
+        list.appendChild(item);
+    });
+
+    saveHouseData(house);
+    updateResources();
+}
+
+
+function addForesterToGround(index) {
+
+    let house = getHouse();
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const ground =
+        house.forestryGrounds[index];
+
+    if (!ground) return;
+
+    const availableWorkers =
+        house.population.workers -
+        house.population.hunters -
+        house.population.foresters;
+
+    if (availableWorkers <= 0) return;
+    if (ground.foresters >= FORESTRY_MAXIMUM) return;
+
+    ground.foresters += 1;
+    house.population.foresters += 1;
+
+    saveHouseData(house);
+    updatePopulation();
+    updateForestry();
+}
+
+
+function removeForesterFromGround(index) {
+
+    let house = getHouse();
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const ground =
+        house.forestryGrounds[index];
+
+    if (!ground || ground.foresters <= 0) return;
+
+    ground.foresters -= 1;
+
+    house.population.foresters =
+        Math.max(
+            0,
+            house.population.foresters - 1
+        );
+
+    saveHouseData(house);
+    updatePopulation();
+    updateForestry();
+}
+
+
 function showHuntingGrounds() {
 
     const category =
@@ -4014,6 +4434,9 @@ function prepareHouse(house) {
     if (typeof house.population.hunters !== "number")
         house.population.hunters = 0;
 
+    if (typeof house.population.foresters !== "number")
+        house.population.foresters = 0;
+
 
     if (!house.resources) {
 
@@ -4032,6 +4455,9 @@ function prepareHouse(house) {
     if (typeof house.resources.meat !== "number")
         house.resources.meat = 100;
 
+    if (typeof house.resources.wood !== "number")
+        house.resources.wood = 50;
+
 
     if (!house.hunting) {
 
@@ -4043,6 +4469,30 @@ function prepareHouse(house) {
         };
 
     }
+
+    if (!house.forestry) {
+        house.forestry = {
+            lastProduction: Date.now()
+        };
+    }
+
+    if (!Array.isArray(house.forestryGrounds)) {
+        house.forestryGrounds = [];
+    }
+
+    house.forestryGrounds.forEach(function(ground) {
+        if (typeof ground.foresters !== "number") {
+            ground.foresters = 0;
+        }
+
+        ground.foresters = Math.max(
+            0,
+            Math.min(
+                FORESTRY_MAXIMUM,
+                Math.floor(ground.foresters)
+            )
+        );
+    });
 
 
     if (!Array.isArray(house.huntingGrounds)) {
@@ -4290,6 +4740,62 @@ function processHunting(house) {
      */
     house.hunting.lastProduction +=
         HUNTING_INTERVAL *
+        completedCycles;
+
+    saveHouseData(house);
+}
+
+
+/* =====================================================
+   ДОБЫЧА ЛЕСА
+===================================================== */
+
+function processForestry(house) {
+
+    if (
+        !house ||
+        !Array.isArray(house.forestryGrounds) ||
+        house.forestryGrounds.length === 0
+    ) {
+        return;
+    }
+
+    const now = Date.now();
+
+    const elapsed =
+        now - house.forestry.lastProduction;
+
+    const completedCycles =
+        Math.floor(
+            elapsed / FORESTRY_INTERVAL
+        );
+
+    if (completedCycles <= 0) return;
+
+    let totalProduction = 0;
+
+    house.forestryGrounds.forEach(function(ground) {
+
+        if (ground.foresters < FORESTRY_MINIMUM) {
+            return;
+        }
+
+        const productionPerCycle =
+            Math.floor(
+                ground.foresters /
+                FORESTRY_GROUP_SIZE
+            ) *
+            WOOD_PER_GROUP;
+
+        totalProduction +=
+            productionPerCycle *
+            completedCycles;
+    });
+
+    house.resources.wood += totalProduction;
+
+    house.forestry.lastProduction +=
+        FORESTRY_INTERVAL *
         completedCycles;
 
     saveHouseData(house);
@@ -4824,6 +5330,13 @@ function updateResources() {
         Math.floor(
             house.resources.meat
         );
+
+    document
+        .getElementById("woodValue")
+        .textContent =
+        Math.floor(
+            house.resources.wood
+        );
 }
 
 
@@ -4905,6 +5418,22 @@ const resourceData = {
 
         extraction:
             "На текущем этапе мясо добывается охотой. Для охоты требуется клетка 🌲 Лес и назначенные охотники."
+
+    },
+
+    wood: {
+
+        title:
+            "ЛЕС",
+
+        description:
+            "Лес — природный ресурс, используемый для строительства и развития Дома.",
+
+        influence:
+            "Используется для строительства и развития.",
+
+        extraction:
+            "Добывается в лесу. Для добычи требуется построить лесничество и назначить рабочих."
 
     }
 
@@ -5143,13 +5672,13 @@ function openRealm() {
         document.getElementById("villageMapHint");
 
     if (house.city) {
-        villageTitle.textContent = "ЕДИНСТВЕННЫЙ ГОРОД - ОСНОВАН";
+        villageTitle.textContent = "СТОЛИЦА";
         villageText.textContent =
             "Ваш единственный город основан. Вокруг него закреплены первые земли Дома.";
         villageMapHint.textContent =
             "ОТКРЫТЬ КАРТУ МИРА · X: " + house.city.x + " · Y: " + house.city.y + " · ›";
     } else {
-        villageTitle.textContent = "ПЕРВАЯ ДЕРЕВНЯ";
+        villageTitle.textContent = "СТОЛИЦА";
         villageText.textContent =
             "Здесь начнётся строительство вашего будущего государства.";
         villageMapHint.textContent =
@@ -5305,6 +5834,24 @@ if (
     checkExistingHouse();
 
 }
+
+/* =====================================================
+   ДОПОЛНИТЕЛЬНОЕ ОБНОВЛЕНИЕ ДОБЫЧИ ЛЕСА
+===================================================== */
+
+setInterval(function() {
+
+    const house = getHouse();
+
+    if (!house) return;
+
+    processForestry(house);
+    updatePopulation();
+    updateForestry();
+    updateForestryBuildButton();
+
+}, 1000);
+
 
 </script>
 

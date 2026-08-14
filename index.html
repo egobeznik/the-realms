@@ -1250,6 +1250,11 @@ textarea.input {
 }
 
 .mapCell .terrainMark { opacity: .9; }
+.huntingGroundMark {
+    filter: drop-shadow(0 0 4px rgba(180, 145, 80, 0.55));
+    font-size: 18px;
+}
+
 
 .mapTopBar {
     position: absolute;
@@ -1341,6 +1346,174 @@ textarea.input {
 
 .mapFoundButton:active { transform: translateX(-50%) scale(.98); }
 .mapFoundButton:disabled { opacity: .38; }
+/* Компактная кнопка строительства охотничьего угодья */
+#mapBuildHuntingButton {
+    width: 46px;
+    min-width: 46px;
+    height: 40px;
+    min-height: 40px;
+    padding: 0;
+    left: auto;
+    right: 12px;
+    transform: none;
+    font-size: 17px;
+    letter-spacing: 0;
+}
+
+#mapBuildHuntingButton:active {
+    transform: scale(0.95);
+}
+
+.huntingGroundCategory {
+    margin: 10px;
+    border: 1px solid rgba(157, 126, 72, 0.42);
+    background: rgba(26, 22, 17, 0.65);
+}
+
+.huntingGroundCategoryHeader {
+    width: 100%;
+    min-height: 48px;
+    padding: 9px 11px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    border: none;
+    background: transparent;
+    color: #bca57b;
+    text-align: left;
+    cursor: pointer;
+}
+
+.huntingGroundCategoryHeader:active {
+    background: rgba(75, 58, 35, 0.18);
+}
+
+.huntingGroundCategoryLeft {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-width: 0;
+}
+
+.huntingGroundCategoryIcon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(117, 94, 56, 0.45);
+    font-size: 17px;
+}
+
+.huntingGroundCategoryTitle {
+    color: #cbb99a;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+}
+
+.huntingGroundCategorySubtitle {
+    margin-top: 3px;
+    color: #736a5e;
+    font-size: 10px;
+}
+
+.huntingGroundCategoryArrow {
+    color: #94784c;
+    font-size: 12px;
+    transition: transform 0.2s ease;
+}
+
+.huntingGroundCategory.open .huntingGroundCategoryArrow {
+    transform: rotate(180deg);
+}
+
+.huntingGroundCategoryMenu {
+    display: none;
+    padding: 0 10px 10px;
+    border-top: 1px solid rgba(117, 94, 56, 0.25);
+}
+
+.huntingGroundCategory.open .huntingGroundCategoryMenu {
+    display: block;
+}
+
+.huntingGroundItem {
+    margin-top: 8px;
+    padding: 10px;
+    border: 1px solid rgba(117, 94, 56, 0.30);
+    background: rgba(10, 9, 7, 0.34);
+}
+
+.huntingGroundItemTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.huntingGroundItemName {
+    color: #c2b292;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+.huntingGroundItemCoords {
+    margin-top: 3px;
+    color: #6f665b;
+    font-size: 9px;
+}
+
+.huntingGroundItemStatus {
+    margin-top: 7px;
+    padding-top: 7px;
+    border-top: 1px solid rgba(117, 94, 56, 0.20);
+    color: #837666;
+    font-size: 10px;
+    line-height: 1.35;
+    text-align: center;
+}
+
+.huntingGroundControl {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 8px;
+}
+
+.huntingGroundControl .hunterButton {
+    width: 34px;
+    height: 32px;
+    font-size: 16px;
+}
+
+.huntingGroundCount {
+    flex: 1;
+    text-align: center;
+}
+
+.huntingGroundCountNumber {
+    color: #d0c0a5;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 16px;
+}
+
+.huntingGroundCountText {
+    margin-top: 1px;
+    color: #70675b;
+    font-size: 9px;
+}
+
+.huntingGroundEmpty {
+    padding: 12px 8px;
+    color: #756b60;
+    font-size: 10px;
+    line-height: 1.4;
+    text-align: center;
+}
+
 
 .mapLegend {
     position: absolute;
@@ -2240,187 +2413,42 @@ textarea.input {
 
             <div class="productionMenu">
 
-                <div class="productionCard">
-
-                    <div class="productionTop">
-
-                        <div class="productionIcon">
-                            🏹
-                        </div>
-
-                        <div>
-
-                            <div class="productionTitle">
-                                ОХОТА
-                            </div>
-
-                            <div class="productionSubtitle">
-                                Добыча мяса в лесных угодьях
-                            </div>
-
-                        </div>
-
-                    </div>
-
-
-                    <div class="productionInfo">
-
-
-                        <div class="productionLine">
-
-                            <span>
-                                Требование
-                            </span>
-
-                            <strong>
-                                🏹 ОХОТНИЧЬЕ УГОДЬЕ
-                            </strong>
-
-                        </div>
-
-
-                        <div class="productionLine">
-
-                            <span>
-                                Минимум
-                            </span>
-
-                            <strong>
-                                2 охотника
-                            </strong>
-
-                        </div>
-
-
-                        <div class="productionLine">
-
-                            <span>
-                                Производство
-                            </span>
-
-                            <strong>
-                                +20 🍖 / 2 ч.
-                            </strong>
-
-                        </div>
-
-
-                        <div class="productionLine">
-
-                            <span>
-                                Вместимость
-                            </span>
-
-                            <strong>
-                                10 охотников
-                            </strong>
-
-                        </div>
-
-
-                        <div
-                            id="forestLocked"
-                            class="noForest"
-                        >
-
-                            <span class="noForestIcon">
-                                🌲
-                            </span>
-
-                            <div class="noForestTitle">
-                                ОХОТА НЕДОСТУПНА
+                <div
+                    class="huntingGroundCategory"
+                    id="huntingGroundCategory"
+                >
+                    <button
+                        type="button"
+                        class="huntingGroundCategoryHeader"
+                        onclick="toggleHuntingGroundCategory()"
+                    >
+                        <div class="huntingGroundCategoryLeft">
+                            <div class="huntingGroundCategoryIcon">
+                                🏹
                             </div>
 
                             <div>
-                                Для добычи мяса необходимо
-                                построить охотничье угодье
-                                на клетке Лес.
-                            </div>
+                                <div class="huntingGroundCategoryTitle">
+                                    ОХОТА
+                                </div>
 
+                                <div class="huntingGroundCategorySubtitle">
+                                    Охотничьи угодья · назначение охотников
+                                </div>
+                            </div>
                         </div>
 
+                        <span class="huntingGroundCategoryArrow">
+                            ▼
+                        </span>
+                    </button>
 
-                        <div
-                            id="huntingAvailable"
-                            style="display:none;"
-                        >
-
-                            <div
-                                class="productionStatus"
-                                id="huntingStatus"
-                            >
-                                Охота не ведётся
-                            </div>
-
-
-                            <div class="hunterControl">
-
-                                <button
-                                    class="hunterButton"
-                                    onclick="removeHunter()"
-                                    id="removeHunterButton"
-                                >
-                                    −
-                                </button>
-
-
-                                <div class="hunterCount">
-
-                                    <div
-                                        class="hunterCountNumber"
-                                        id="hunterCount"
-                                    >
-                                        0
-                                    </div>
-
-                                    <div class="hunterCountText">
-                                        ОХОТНИКОВ
-                                    </div>
-
-                                </div>
-
-
-                                <button
-                                    class="hunterButton"
-                                    onclick="addHunter()"
-                                    id="addHunterButton"
-                                >
-                                    +
-                                </button>
-
-                            </div>
-
-
-                            <div class="forestBar">
-
-                                <div class="forestBarLabel">
-
-                                    <span>
-                                        🦌 Дичь в лесу
-                                    </span>
-
-                                    <span id="gamePercent">
-                                        100%
-                                    </span>
-
-                                </div>
-
-
-                                <div class="forestBarOuter">
-
-                                    <div
-                                        class="forestBarInner"
-                                        id="gameBar"
-                                    ></div>
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
+                    <div
+                        class="huntingGroundCategoryMenu"
+                        id="huntingGroundCategoryMenu"
+                    >
+                        <div id="huntingGroundList"></div>
                     </div>
-
                 </div>
 
             </div>
@@ -2640,9 +2668,11 @@ textarea.input {
         class="mapFoundButton"
         id="mapBuildHuntingButton"
         onclick="buildHuntingGround()"
+        title="Построить охотничье угодье"
+        aria-label="Построить охотничье угодье"
         style="display:none;"
     >
-        ПОСТРОИТЬ ОХОТНИЧЬЕ УГОДЬЕ
+        🏹
     </button>
 
 </main>
@@ -3330,8 +3360,19 @@ function renderMapCells() {
                     <span class="cityMark">${crest}</span>
                     <span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>
                 `;
+            } else if (hasHuntingGroundAt(house, x, y)) {
+
+                cell.classList.add("huntingGroundCell");
+
+                cell.innerHTML =
+                    '<span class="terrainMark huntingGroundMark">🏹</span>';
+
             } else {
-                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span>';
+
+                cell.innerHTML =
+                    '<span class="terrainMark">' +
+                    terrainIcon(type) +
+                    '</span>';
             }
 
             if (mapState.selectedX === x && mapState.selectedY === y) {
@@ -3522,65 +3563,38 @@ function buildHuntingGround() {
 
 function showHuntingGrounds() {
 
-    let house = getHouse();
-    if (!house) return;
+    const category =
+        document.getElementById(
+            "huntingGroundCategory"
+        );
 
-    house = prepareHouse(house);
-
-    const list =
-        document.getElementById("huntingGroundsList");
-
-    const hint =
-        document.getElementById("huntingGroundsHint");
-
-    list.innerHTML = "";
-
-    if (house.huntingGrounds.length === 0) {
-
-        hint.textContent =
-            "Постройте охотничье угодье на клетке Лес, чтобы добывать мясо.";
-
-        list.innerHTML =
-            '<div style="padding:14px 10px;border:1px solid rgba(112,77,61,.42);background:rgba(64,37,28,.15);color:#89766a;font-size:12px;line-height:1.45;text-align:center;">Охотничьих угодий пока нет.</div>';
-
-    } else {
-
-        hint.textContent =
-            "Ваши охотничьи угодья.";
-
-        house.huntingGrounds.forEach(function(ground, index) {
-
-            const item =
-                document.createElement("div");
-
-            item.style.cssText =
-                "margin-bottom:8px;padding:11px 12px;border:1px solid rgba(117,94,56,.36);background:rgba(28,23,18,.68);";
-
-            item.innerHTML =
-                '<div style="color:#c8baa2;font-family:\'Cinzel\',Georgia,serif;font-size:9px;letter-spacing:1px;">ОХОТНИЧЬЕ УГОДЬЕ ' +
-                (index + 1) +
-                '</div>' +
-                '<div style="margin-top:4px;color:#8b7c68;font-size:11px;">🌲 Лес · X: ' +
-                ground.x +
-                ' · Y: ' +
-                ground.y +
-                '</div>';
-
-            list.appendChild(item);
-        });
+    if (category) {
+        category.classList.add("open");
     }
 
-    document.getElementById("huntingGroundsOverlay").style.display = "flex";
+    updateHunting();
 }
 
 
 function closeHuntingGrounds() {
-    document.getElementById("huntingGroundsOverlay").style.display = "none";
+
+    const overlay =
+        document.getElementById(
+            "huntingGroundsOverlay"
+        );
+
+    if (overlay) {
+        overlay.style.display = "none";
+    }
 }
 
 
 function closeHuntingGroundsOutside(event) {
-    if (event.target.id === "huntingGroundsOverlay") {
+
+    if (
+        event.target.id ===
+        "huntingGroundsOverlay"
+    ) {
         closeHuntingGrounds();
     }
 }
@@ -3828,6 +3842,57 @@ function prepareHouse(house) {
 
     }
 
+    house.huntingGrounds.forEach(function(ground) {
+
+        if (typeof ground.hunters !== "number") {
+            ground.hunters = 0;
+        }
+
+        ground.hunters = Math.max(
+            0,
+            Math.min(
+                HUNTING_MAXIMUM,
+                Math.floor(ground.hunters)
+            )
+        );
+    });
+
+    /* Совместимость со старым сохранением:
+       старых глобальных охотников переносим в первое угодье. */
+    if (
+        house.huntingGrounds.length > 0 &&
+        house.population.hunters > 0
+    ) {
+
+        const assignedHunters =
+            house.huntingGrounds.reduce(
+                function(total, ground) {
+                    return total + ground.hunters;
+                },
+                0
+            );
+
+        if (assignedHunters === 0) {
+
+            house.huntingGrounds[0].hunters =
+                Math.min(
+                    HUNTING_MAXIMUM,
+                    house.population.hunters
+                );
+        }
+    }
+
+    const totalAssignedHunters =
+        house.huntingGrounds.reduce(
+            function(total, ground) {
+                return total + ground.hunters;
+            },
+            0
+        );
+
+    house.population.hunters =
+        totalAssignedHunters;
+
 
     // Миграция старых сохранений: если город уже был основан
     // до появления стартовой территории 3 × 3, автоматически
@@ -3876,79 +3941,86 @@ function processHunting(house) {
     if (!hasHuntingGroundForHouse(house)) {
 
         house.hunting.lastProduction = Date.now();
-
         saveHouseData(house);
 
         return;
     }
 
-
     const hunters =
-        house.population.hunters;
+        house.huntingGrounds.reduce(
+            function(total, ground) {
+                return total + ground.hunters;
+            },
+            0
+        );
 
+    house.population.hunters = hunters;
 
     if (hunters < HUNTING_MINIMUM) {
 
         house.hunting.lastProduction = Date.now();
-
         saveHouseData(house);
 
         return;
     }
-
 
     const now = Date.now();
 
     const elapsed =
         now - house.hunting.lastProduction;
 
-
     const completedCycles =
         Math.floor(
             elapsed / HUNTING_INTERVAL
         );
 
+    if (completedCycles <= 0) return;
 
-    if (completedCycles <= 0)
-        return;
+    const productionPerCycle =
+        house.huntingGrounds.reduce(
+            function(total, ground) {
 
+                if (ground.hunters < HUNTING_MINIMUM) {
+                    return total;
+                }
 
-    const groups =
-        Math.floor(
-            hunters / HUNTING_GROUP_SIZE
+                return total +
+                    Math.floor(
+                        ground.hunters /
+                        HUNTING_GROUP_SIZE
+                    ) *
+                    MEAT_PER_GROUP;
+
+            },
+            0
         );
-
-
-    const meatPerCycle =
-        groups * MEAT_PER_GROUP;
-
 
     const possibleCycles =
         Math.min(
-
             completedCycles,
-
             Math.floor(
                 house.hunting.game /
                 GAME_LOSS_PER_HUNT
             )
-
         );
 
-
-    if (possibleCycles > 0) {
+    if (
+        possibleCycles > 0 &&
+        productionPerCycle > 0
+    ) {
 
         house.resources.meat +=
-            meatPerCycle * possibleCycles;
+            productionPerCycle *
+            possibleCycles;
 
         house.hunting.game -=
-            GAME_LOSS_PER_HUNT * possibleCycles;
+            GAME_LOSS_PER_HUNT *
+            possibleCycles;
 
         house.hunting.lastProduction +=
-            HUNTING_INTERVAL * possibleCycles;
-
+            HUNTING_INTERVAL *
+            possibleCycles;
     }
-
 
     saveHouseData(house);
 }
@@ -3981,72 +4053,82 @@ function toggleResourceCategory(id) {
 
 
 /* =====================================================
-   ДОБАВИТЬ ОХОТНИКА
+   ОХОТНИЧЬИ УГОДЬЯ — ОТКРЫТЬ
 ===================================================== */
 
-function addHunter() {
+function toggleHuntingGroundCategory() {
 
-    let house = getHouse();
-    if (!house || !hasHuntingGroundForHouse(house)) return;
-
-    if (!house) return;
-
-    house = prepareHouse(house);
-
-
-    const availableWorkers =
-        house.population.workers -
-        house.population.hunters;
-
-
-    if (availableWorkers <= 0)
-        return;
-
-
-    if (
-        house.population.hunters >=
-        HUNTING_MAXIMUM
-    )
-        return;
-
-
-    house.population.hunters += 1;
-
-    house.hunting.lastProduction = Date.now();
-
-    saveHouseData(house);
-
-    updatePopulation();
+    document
+        .getElementById("huntingGroundCategory")
+        .classList.toggle("open");
 
     updateHunting();
 }
 
 
 /* =====================================================
-   УБРАТЬ ОХОТНИКА
+   НАЗНАЧИТЬ ОХОТНИКА В УГОДЬЕ
 ===================================================== */
 
-function removeHunter() {
+function addHunterToGround(index) {
 
     let house = getHouse();
-
     if (!house) return;
 
     house = prepareHouse(house);
 
+    const ground =
+        house.huntingGrounds[index];
 
-    if (house.population.hunters <= 0)
-        return;
+    if (!ground) return;
+
+    const availableWorkers =
+        house.population.workers -
+        house.population.hunters;
+
+    if (availableWorkers <= 0) return;
+    if (ground.hunters >= HUNTING_MAXIMUM) return;
+
+    ground.hunters += 1;
+    house.population.hunters += 1;
+    house.hunting.lastProduction = Date.now();
+
+    saveHouseData(house);
+
+    updatePopulation();
+    updateHunting();
+}
 
 
-    house.population.hunters -= 1;
+/* =====================================================
+   СНЯТЬ ОХОТНИКА С УГОДЬЯ
+===================================================== */
+
+function removeHunterFromGround(index) {
+
+    let house = getHouse();
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const ground =
+        house.huntingGrounds[index];
+
+    if (!ground || ground.hunters <= 0) return;
+
+    ground.hunters -= 1;
+
+    house.population.hunters =
+        Math.max(
+            0,
+            house.population.hunters - 1
+        );
 
     house.hunting.lastProduction = Date.now();
 
     saveHouseData(house);
 
     updatePopulation();
-
     updateHunting();
 }
 
@@ -4258,119 +4340,128 @@ function updatePopulation() {
 function updateHunting() {
 
     let house = getHouse();
-
     if (!house) return;
 
     house = prepareHouse(house);
 
+    const list =
+        document.getElementById(
+            "huntingGroundList"
+        );
 
-    if (!hasHuntingGroundForHouse(house)) {
+    if (!list) return;
 
-        document
-            .getElementById("forestLocked")
-            .style.display = "block";
+    list.innerHTML = "";
 
+    if (house.huntingGrounds.length === 0) {
 
-        document
-            .getElementById("huntingAvailable")
-            .style.display = "none";
+        list.innerHTML =
+            '<div class="huntingGroundEmpty">' +
+            'Охотничьих угодий пока нет.<br>' +
+            'Выберите принадлежащую Дому клетку Лес на карте и постройте угодье.' +
+            '</div>';
 
-
+        updateResources();
         return;
     }
 
-
-    document
-        .getElementById("forestLocked")
-        .style.display = "none";
-
-
-    document
-        .getElementById("huntingAvailable")
-        .style.display = "block";
-
-
-    processHunting(house);
-
-
-    const hunters =
-        house.population.hunters;
-
-
-    const game =
-        Math.round(
-            house.hunting.game
+    const totalHunters =
+        house.huntingGrounds.reduce(
+            function(total, ground) {
+                return total + ground.hunters;
+            },
+            0
         );
-
-
-    document
-        .getElementById("hunterCount")
-        .textContent = hunters;
-
-
-    document
-        .getElementById("gamePercent")
-        .textContent =
-        game + "%";
-
-
-    document
-        .getElementById("gameBar")
-        .style.width =
-        game + "%";
-
 
     const availableWorkers =
         house.population.workers -
-        house.population.hunters;
+        totalHunters;
 
+    house.population.hunters =
+        totalHunters;
 
-    document
-        .getElementById("addHunterButton")
-        .disabled =
+    house.huntingGrounds.forEach(
+        function(ground, index) {
 
-        availableWorkers <= 0 ||
-        hunters >= HUNTING_MAXIMUM;
+            const item =
+                document.createElement("div");
 
+            item.className =
+                "huntingGroundItem";
 
-    document
-        .getElementById("removeHunterButton")
-        .disabled =
-        hunters <= 0;
+            const groups =
+                Math.floor(
+                    ground.hunters /
+                    HUNTING_GROUP_SIZE
+                );
 
+            const production =
+                groups *
+                MEAT_PER_GROUP;
 
-    const status =
-        document.getElementById(
-            "huntingStatus"
-        );
+            const statusText =
+                ground.hunters < HUNTING_MINIMUM
+                    ? "Недостаточно охотников. Требуется минимум 2."
+                    : "Активная охота: +" +
+                      production +
+                      " 🍖 каждые 2 часа.";
 
+            item.innerHTML =
+                '<div class="huntingGroundItemTop">' +
+                    '<div>' +
+                        '<div class="huntingGroundItemName">' +
+                            'ОХОТНИЧЬЕ УГОДЬЕ ' +
+                            (index + 1) +
+                        '</div>' +
+                        '<div class="huntingGroundItemCoords">' +
+                            '🌲 Лес · X: ' +
+                            ground.x +
+                            ' · Y: ' +
+                            ground.y +
+                        '</div>' +
+                    '</div>' +
+                    '<div style="font-size:17px;">🏹</div>' +
+                '</div>' +
 
-    if (hunters < HUNTING_MINIMUM) {
+                '<div class="huntingGroundControl">' +
 
-        status.textContent =
-            "Недостаточно охотников. Требуется минимум 2.";
+                    '<button class="hunterButton" type="button"' +
+                        ' onclick="removeHunterFromGround(' +
+                        index + ')"' +
+                        (ground.hunters <= 0 ? ' disabled' : '') +
+                    '>−</button>' +
 
-    }
+                    '<div class="huntingGroundCount">' +
+                        '<div class="huntingGroundCountNumber">' +
+                            ground.hunters +
+                            ' / ' +
+                            HUNTING_MAXIMUM +
+                        '</div>' +
+                        '<div class="huntingGroundCountText">' +
+                            'ОХОТНИКОВ' +
+                        '</div>' +
+                    '</div>' +
 
-    else {
+                    '<button class="hunterButton" type="button"' +
+                        ' onclick="addHunterToGround(' +
+                        index + ')"' +
+                        (
+                            availableWorkers <= 0 ||
+                            ground.hunters >= HUNTING_MAXIMUM
+                                ? ' disabled'
+                                : ''
+                        ) +
+                    '>+</button>' +
 
-        const groups =
-            Math.floor(
-                hunters / HUNTING_GROUP_SIZE
-            );
+                '</div>' +
 
+                '<div class="huntingGroundItemStatus">' +
+                    statusText +
+                '</div>';
 
-        const production =
-            groups * MEAT_PER_GROUP;
-
-
-        status.textContent =
-            "Активная охота: +" +
-            production +
-            " 🍖 каждые 2 часа.";
-
-    }
-
+            list.appendChild(item);
+        }
+    );
 
     updateResources();
 }

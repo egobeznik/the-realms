@@ -3,240 +3,87 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>The Realms</title>
 
-    <!-- Telegram Mini App API -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
     <style>
-        * {
-            box-sizing: border-box;
-        }
-
         body {
             margin: 0;
             min-height: 100vh;
             background: #11100e;
             color: #e8dfcf;
             font-family: Georgia, serif;
-
             display: flex;
             align-items: center;
             justify-content: center;
-        }
-
-        .game {
-            width: 100%;
-            max-width: 500px;
-            min-height: 100vh;
-
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-
-            padding: 30px;
             text-align: center;
         }
 
+        .game {
+            padding: 30px;
+        }
+
         .symbol {
-            font-size: 64px;
-            margin-bottom: 25px;
+            font-size: 60px;
         }
 
-        .title {
-            font-size: 42px;
-            letter-spacing: 8px;
-            text-transform: uppercase;
-            margin-bottom: 12px;
+        h1 {
+            font-size: 36px;
+            letter-spacing: 6px;
         }
 
-        .subtitle {
+        p {
             color: #9d927e;
-            font-size: 15px;
-            letter-spacing: 3px;
-            margin-bottom: 55px;
         }
 
-        .line {
-            width: 180px;
-            height: 1px;
-            background: #756b59;
-            margin-bottom: 35px;
-        }
-
-        .button {
+        .id {
+            margin-top: 30px;
+            padding: 15px;
             border: 1px solid #756b59;
-            background: transparent;
-            color: #e8dfcf;
-
-            padding: 16px 42px;
-
-            font-family: Georgia, serif;
-            font-size: 14px;
-            letter-spacing: 3px;
-
-            cursor: pointer;
-        }
-
-        .button:active {
-            background: #29251f;
-        }
-
-        .year {
-            position: absolute;
-            bottom: 25px;
-            color: #655d50;
-            font-size: 11px;
-            letter-spacing: 2px;
-        }
-
-        .access-denied {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            gap: 15px;
-        }
-
-        .access-denied .icon {
-            font-size: 50px;
-        }
-
-        .access-denied h2 {
-            margin: 0;
-            font-size: 24px;
-            letter-spacing: 3px;
-        }
-
-        .access-denied p {
-            margin: 0;
-            color: #9d927e;
-            font-size: 14px;
-        }
-
-        #user-info {
-            margin-top: 25px;
-            color: #655d50;
-            font-size: 11px;
+            color: #c9b99d;
         }
     </style>
 </head>
 
 <body>
 
-<main class="game">
+<div class="game">
 
-    <!-- Экран игры -->
-    <div id="game-screen">
+    <div class="symbol">♜</div>
 
-        <div class="symbol">♜</div>
+    <h1>THE REALMS</h1>
 
-        <div class="title">The Realms</div>
+    <p>ЛЕТОПИСЬ НАЧИНАЕТСЯ ЗДЕСЬ</p>
 
-        <div class="subtitle">
-            ЛЕТОПИСЬ НАЧИНАЕТСЯ ЗДЕСЬ
-        </div>
-
-        <div class="line"></div>
-
-        <button class="button" onclick="startGame()">
-            СОЗДАТЬ ДОМ
-        </button>
-
-        <div id="user-info"></div>
-
+    <div class="id" id="user">
+        Проверка Telegram...
     </div>
 
-
-    <!-- Экран для тех, кому доступ запрещён -->
-    <div id="access-denied" class="access-denied">
-
-        <div class="icon">🔒</div>
-
-        <h2>ЗАКРЫТОЕ ТЕСТИРОВАНИЕ</h2>
-
-        <p>
-            Доступ к игре пока ограничен.
-        </p>
-
-    </div>
-
-
-    <div class="year">
-        THE FIRST AGE
-    </div>
-
-</main>
-
+</div>
 
 <script>
 
-    // ==========================================
-    // TELEGRAM MINI APP
-    // ==========================================
-
     const tg = window.Telegram.WebApp;
 
-    // Сообщаем Telegram, что приложение запущено
     tg.ready();
-
-    // Разворачиваем Mini App
     tg.expand();
-
-
-    // ==========================================
-    // ПОЛЬЗОВАТЕЛЬ TELEGRAM
-    // ==========================================
 
     const user = tg.initDataUnsafe.user;
 
+    if (user) {
 
-    // ==========================================
-    // ВАЖНО:
-    // СЮДА ПОКА НИЧЕГО НЕ ВПИСЫВАЕМ.
-    // Сначала узнаем твой Telegram ID.
-    // ==========================================
-
-    const ALLOWED_USER_ID = null;
-
-
-    // ==========================================
-    // ПРОВЕРКА ДОСТУПА
-    // ==========================================
-
-    if (!user) {
-
-        document.getElementById("game-screen").style.display = "none";
-        document.getElementById("access-denied").style.display = "flex";
+        document.getElementById("user").innerHTML =
+            "Добро пожаловать, " +
+            user.first_name +
+            "<br><br>" +
+            "Telegram ID: " +
+            user.id;
 
     } else {
 
-        console.log("Telegram User ID:", user.id);
-
-        document.getElementById("user-info").innerText =
-            "Telegram ID: " + user.id;
-
-        /*
-        Пока показываем игру любому пользователю,
-        чтобы получить твой ID.
-
-        После того как мы его узнаем,
-        установим ALLOWED_USER_ID.
-        */
-
-    }
-
-
-    // ==========================================
-    // КНОПКА
-    // ==========================================
-
-    function startGame() {
-
-        alert(
-            "Акт основания Дома начнётся здесь."
-        );
+        document.getElementById("user").innerHTML =
+            "Игра должна быть открыта через Telegram.";
 
     }
 

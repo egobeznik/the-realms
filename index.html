@@ -774,98 +774,6 @@ textarea.input {
     display: block;
 }
 
-.huntingSubHeader {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: calc(100% - 20px);
-    margin: 10px;
-    min-height: 48px;
-    padding: 9px 12px;
-    border: 1px solid rgba(157, 126, 72, 0.42);
-    background: rgba(26, 22, 17, 0.65);
-    color: #cbb99a;
-    font-family: "Cinzel", Georgia, serif;
-    font-size: 10px;
-    letter-spacing: 1.5px;
-    cursor: pointer;
-    text-align: left;
-}
-
-.huntingSubHeader:active {
-    transform: scale(.99);
-    background: rgba(75, 58, 35, .25);
-}
-
-.huntingSubLeft {
-    display: flex;
-    align-items: center;
-    gap: 9px;
-}
-
-.huntingSubArrow {
-    color: #94784c;
-    transition: transform .2s ease;
-}
-
-.huntingSubHeader.open .huntingSubArrow {
-    transform: rotate(180deg);
-}
-
-.huntingGroundList {
-    display: none;
-    padding: 0 0 4px;
-}
-.productionHint {
-    margin: 0 10px 8px;
-    padding: 10px 11px;
-    border-left: 1px solid rgba(157,126,72,.45);
-    border-right: 1px solid rgba(117,94,56,.22);
-    background: rgba(20,17,13,.45);
-    color: #786f62;
-    font-size: 10px;
-    line-height: 1.45;
-}
-
-.productionHint strong {
-    display: block;
-    margin-bottom: 5px;
-    color: #a68d63;
-    font-family: "Cinzel", Georgia, serif;
-    font-size: 8px;
-    letter-spacing: 1.3px;
-}
-
-.huntingGroundList.open {
-    display: block;
-}
-
-.productionCellSummary {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 10px;
-    margin-top: 8px;
-    padding: 8px 10px;
-    border: 1px solid rgba(117,94,56,.28);
-    background: rgba(25,21,17,.5);
-    color: #897d6d;
-    font-size: 10px;
-}
-
-.productionCellSummary strong {
-    color: #b8a27a;
-    font-family: "Cinzel", Georgia, serif;
-    font-size: 9px;
-}
-
-.cellInfoHint {
-    margin-top: 7px;
-    color: #6f675b;
-    font-size: 10px;
-    line-height: 1.35;
-}
-
 .productionCard {
     margin: 10px;
     padding: 12px;
@@ -1051,4 +959,100 @@ textarea.input {
     border: 1px solid rgba(157, 126, 72, 0.5);
     background: rgba(29, 24, 18, 0.7);
     text-align: center;
-    color: inh
+    color: inherit;
+    font: inherit;
+    cursor: pointer;
+}
+
+.village:active {
+    background: rgba(58, 46, 29, 0.78);
+    transform: scale(0.995);
+}
+
+.villageTitle {
+    color: #cdbb9d;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 13px;
+    letter-spacing: 2px;
+}
+
+.villageText {
+    margin-top: 7px;
+    color: #7e7569;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.villageMapHint {
+    margin-top: 11px;
+    color: #a58b60;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 1.8px;
+}
+
+
+/* =====================================================
+   ЛЕТОПИСЬ
+===================================================== */
+
+.history {
+    position: relative;
+    z-index: 2;
+    margin-top: 18px;
+    padding: 14px 13px;
+    border: 1px solid rgba(117, 94, 56, 0.35);
+    background: rgba(20, 17, 14, 0.5);
+}
+
+.historyTitle {
+    color: #a99168;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.historyText {
+    margin-top: 7px;
+    color: #908474;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+
+/* =====================================================
+   ОКНО ИНФОРМАЦИИ
+===================================================== */
+
+#helpOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 500;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.72);
+    align-items: center;
+    justify-content: center;
+}
+
+.helpWindow {
+    width: 100%;
+    max-width: 360px;
+    padding: 23px 18px 18px;
+    border: 1px solid rgba(174, 141, 82, 0.65);
+    background: #110e0a;
+    box-shadow: 0 12px 45px rgba(0, 0, 0, 0.65);
+}
+
+.helpWindowTitle {
+    color: #d3c2a3;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 14px;
+    letter-spacing: 2px;
+    text-align: center;
+}
+
+.helpWindowDivider {
+    width: 130px;
+    h

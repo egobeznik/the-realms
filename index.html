@@ -5020,7 +5020,8 @@ function moveWorkerToFree() {
 
     const ordinaryWorkers =
         house.population.workers -
-        house.population.hunters;
+        house.population.hunters -
+        house.population.foresters;
 
 
     if (ordinaryWorkers <= 0)

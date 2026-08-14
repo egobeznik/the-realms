@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>The Realms</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: #11100e;
+            color: #e8dfcf;
+            font-family: Georgia, serif;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .game {
+            width: 100%;
+            max-width: 500px;
+            min-height: 100vh;
+
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+
+            padding: 30px;
+            text-align: center;
+        }
+
+        .symbol {
+            font-size: 64px;
+            margin-bottom: 25px;
+        }
+
+        .title {
+            font-size: 42px;
+            letter-spacing: 8px;
+            text-transform: uppercase;
+            margin-bottom: 12px;
+        }
+
+        .subtitle {
+            color: #9d927e;
+            font-size: 15px;
+            letter-spacing: 3px;
+            margin-bottom: 55px;
+        }
+
+        .line {
+            width: 180px;
+            height: 1px;
+            background: #756b59;
+            margin-bottom: 35px;
+        }
+
+        .button {
+            border: 1px solid #756b59;
+            background: transparent;
+            color: #e8dfcf;
+
+            padding: 16px 42px;
+
+            font-family: Georgia, serif;
+            font-size: 14px;
+            letter-spacing: 3px;
+
+            cursor: pointer;
+        }
+
+        .button:active {
+            background: #29251f;
+        }
+
+        .year {
+            position: absolute;
+            bottom: 25px;
+            color: #655d50;
+            font-size: 11px;
+            letter-spacing: 2px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <main class="game">
+
+        <div class="symbol">♜</div>
+
+        <div class="title">The Realms</div>
+
+        <div class="subtitle">
+            ЛЕТОПИСЬ НАЧИНАЕТСЯ ЗДЕСЬ
+        </div>
+
+        <div class="line"></div>
+
+        <button class="button" onclick="startGame()">
+            СОЗДАТЬ ДОМ
+        </button>
+
+        <div class="year">
+            THE FIRST AGE
+        </div>
+
+    </main>
+
+    <script>
+        function startGame() {
+            alert("Здесь начнётся создание твоего Дома.");
+        }
+    </script>
+
+</body>
+</html>

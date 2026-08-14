@@ -726,58 +726,31 @@ textarea.input {
 
 function processForestry(house) {
 
-    if (!house.forestry) {
-        house.forestry = {
-            lastProduction: Date.now()
-        };
-    }
-
     if (!house.forestryGrounds.length) {
-
         house.forestry.lastProduction = Date.now();
         saveHouseData(house);
-
         return;
     }
 
     const now = Date.now();
 
-    house.forestryGrounds.forEach(
-        function(ground) {
-            updateForestryGroundRecovery(
-                ground,
-                now
-            );
-        }
-    );
+    house.forestryGrounds.forEach(function(ground) {
+        updateForestryGroundRecovery(ground, now);
+    });
 
-    const foresters =
-        house.forestryGrounds.reduce(
-            function(total, ground) {
-                return total + ground.foresters;
-            },
-            0
-        );
+    const totalForesters = house.forestryGrounds.reduce(function(total, ground) {
+        return total + ground.foresters;
+    }, 0);
 
-    house.population.foresters =
-        foresters;
+    house.population.foresters = totalForesters;
 
-    if (foresters < FORESTRY_MINIMUM) {
-
+    if (totalForesters < FORESTRY_MINIMUM) {
         house.forestry.lastProduction = now;
         saveHouseData(house);
-
         return;
     }
 
-    const elapsed =
-        now - house.forestry.lastProduction;
-
-    const completedCycles =
-        Math.floor(
-            elapsed / FORESTRY_INTERVAL
-        );
-
+    const completedCycles = Math.floor((now - house.forestry.lastProduction) / FORESTRY_INTERVAL);
     if (completedCycles <= 0) {
         saveHouseData(house);
         return;
@@ -785,58 +758,24 @@ function processForestry(house) {
 
     let totalProduction = 0;
 
-    house.forestryGrounds.forEach(
-        function(ground) {
+    house.forestryGrounds.forEach(function(ground) {
+        if (ground.foresters < FORESTRY_MINIMUM || ground.forestLife <= 0) return;
 
-            if (
-                ground.foresters <
-                    FORESTRY_MINIMUM ||
-                ground.forestLife <= 0
-            ) {
-                return;
-            }
+        const productionPerCycle = Math.floor(ground.foresters / FORESTRY_GROUP_SIZE) * WOOD_PER_GROUP;
+        const availableCycles = Math.min(completedCycles, Math.floor(ground.forestLife / FORESTRY_GROUND_LIFE_LOSS));
+        if (availableCycles <= 0) return;
 
-            const productionPerCycle =
-                Math.floor(
-                    ground.foresters /
-                    FORESTRY_GROUP_SIZE
-                ) *
-                WOOD_PER_GROUP;
+        totalProduction += productionPerCycle * availableCycles;
+        ground.forestLife -= FORESTRY_GROUND_LIFE_LOSS * availableCycles;
 
-            const availableCycles =
-                Math.min(
-                    completedCycles,
-                    Math.floor(
-                        ground.forestLife /
-                        FORESTRY_GROUND_LIFE_LOSS
-                    )
-                );
-
-            if (availableCycles <= 0) return;
-
-            totalProduction +=
-                productionPerCycle *
-                availableCycles;
-
-            ground.forestLife -=
-                FORESTRY_GROUND_LIFE_LOSS *
-                availableCycles;
-
-            if (ground.forestLife <= 0) {
-
-                ground.forestLife = 0;
-                ground.recoveryStartedAt = now;
-            }
+        if (ground.forestLife <= 0) {
+            ground.forestLife = 0;
+            ground.recoveryStartedAt = now;
         }
-    );
+    });
 
-    house.resources.wood +=
-        totalProduction;
-
-    house.forestry.lastProduction +=
-        FORESTRY_INTERVAL *
-        completedCycles;
-
+    house.resources.wood += totalProduction;
+    house.forestry.lastProduction += FORESTRY_INTERVAL * completedCycles;
     saveHouseData(house);
 }
 
@@ -1489,7 +1428,12 @@ function processForestry(house) {
 .mapFoundButton:active { transform: translateX(-50%) scale(.98); }
 .mapFoundButton:disabled { opacity: .38; }
 /* Компактная кнопка строительства охотничьего угодья */
+.forestryGroundCell { box-shadow: inset 0 0 0 1px rgba(112,126,82,.24); }
+.forestryGroundMark { position:absolute; right:5px; bottom:5px; z-index:5; width:23px; height:23px; display:flex; align-items:center; justify-content:center; border:1px solid rgba(112,126,82,.72); border-radius:50%; background:rgba(12,16,10,.9); box-shadow:0 2px 7px rgba(0,0,0,.55); font-size:12px; line-height:1; }
+#mapBuildForestryButton { bottom:calc(82px + env(safe-area-inset-bottom)); width:auto; min-width:0; height:40px; padding:0 12px; left:auto; right:12px; transform:none; white-space:nowrap; font-size:9px; letter-spacing:1.1px; }
+#mapBuildForestryButton:active { transform:scale(.95); }
 #mapBuildHuntingButton {
+    bottom: calc(130px + env(safe-area-inset-bottom));
     width: auto;
     min-width: 0;
     height: 40px;
@@ -1515,10 +1459,6 @@ function processForestry(house) {
 
 #mapBuildHuntingButton .huntingBuildText {
     font-family: "Cinzel", Georgia, serif;
-}
-
-#mapBuildHuntingButton {
-    bottom: calc(82px + env(safe-area-inset-bottom));
 }
 
 #mapBuildHuntingButton:active {
@@ -1691,60 +1631,6 @@ function processForestry(house) {
     font-size: 10px;
     line-height: 1.4;
     text-align: center;
-}
-
-.forestryGroundMark {
-    position: absolute;
-    right: 32px;
-    bottom: 5px;
-    z-index: 5;
-    width: 23px;
-    height: 23px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid rgba(112, 126, 82, 0.72);
-    border-radius: 50%;
-    background: rgba(12, 16, 10, 0.90);
-    box-shadow: 0 2px 7px rgba(0,0,0,.55);
-    font-size: 12px;
-    line-height: 1;
-}
-
-.forestryGroundCell {
-    box-shadow: inset 0 0 0 1px rgba(112,126,82,.24);
-}
-
-#mapBuildForestryButton {
-    bottom: calc(130px + env(safe-area-inset-bottom));
-    width: auto;
-    min-width: 0;
-    height: 40px;
-    min-height: 40px;
-    padding: 0 12px;
-    left: auto;
-    right: 12px;
-    transform: none;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 7px;
-    white-space: nowrap;
-    font-size: 9px;
-    letter-spacing: 1.1px;
-}
-
-#mapBuildForestryButton .forestryBuildIcon {
-    font-size: 16px;
-    line-height: 1;
-}
-
-#mapBuildForestryButton .forestryBuildText {
-    font-family: "Cinzel", Georgia, serif;
-}
-
-#mapBuildForestryButton:active {
-    transform: scale(0.95);
 }
 
 
@@ -2608,59 +2494,22 @@ function processForestry(house) {
 
             </div>
 
-            <div
-                class="resourceCategory"
-                id="materialsCategory"
-            >
-                <button
-                    class="resourceCategoryHeader"
-                    onclick="toggleResourceCategory('materialsCategory')"
-                >
-                    <div class="resourceCategoryLeft">
-                        <span class="resourceCategoryIcon">🪵</span>
-                        <span>МАТЕРИАЛЫ</span>
-                    </div>
+            <div class="resourceCategory" id="materialsCategory">
+                <button class="resourceCategoryHeader" onclick="toggleResourceCategory('materialsCategory')">
+                    <div class="resourceCategoryLeft"><span class="resourceCategoryIcon">🪵</span><span>МАТЕРИАЛЫ</span></div>
                     <span class="resourceCategoryArrow">▼</span>
                 </button>
-
                 <div class="resourceCategoryContent">
-
-                    <div
-                        class="resourceItem"
-                        onclick="showForestry()"
-                        role="button"
-                        tabindex="0"
-                        onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showForestry(); }"
-                    >
+                    <div class="resourceItem" onclick="showResourceInfo('wood')" role="button" tabindex="0">
                         <div class="resourceItemIcon">🪵</div>
-
                         <div class="resourceItemInfo">
                             <div class="resourceItemName">ДЕРЕВО</div>
-
-                            <div class="resourceItemDescription">
-                                Основной строительный материал
-                            </div>
-
-                            <div class="resourceItemDescription">
-                                Постройте лесничество на клетке Лес, чтобы добывать дерево.
-                            </div>
+                            <div class="resourceItemDescription">Основной строительный материал</div>
+                            <div class="resourceItemDescription">Постройте лесничество на клетке Лес, чтобы добывать дерево.</div>
                         </div>
-
-                        <div
-                            class="resourceItemValue"
-                            id="woodValue"
-                        >
-                            50
-                        </div>
-
-                        <button
-                            class="resourceInfoButton"
-                            onclick="event.stopPropagation(); showResourceInfo('wood')"
-                        >
-                            ⓘ
-                        </button>
+                        <div class="resourceItemValue" id="woodValue">50</div>
+                        <button class="resourceInfoButton" onclick="event.stopPropagation(); showResourceInfo('wood')">ⓘ</button>
                     </div>
-
                 </div>
             </div>
 
@@ -2740,36 +2589,18 @@ function processForestry(house) {
                     </div>
                 </div>
 
-                <div
-                    class="huntingGroundCategory"
-                    id="forestryCategory"
-                >
-                    <button
-                        type="button"
-                        class="huntingGroundCategoryHeader"
-                        onclick="toggleForestryCategory()"
-                    >
+                <div class="huntingGroundCategory" id="forestryCategory">
+                    <button type="button" class="huntingGroundCategoryHeader" onclick="toggleForestryCategory()">
                         <div class="huntingGroundCategoryLeft">
                             <div class="huntingGroundCategoryIcon">🪵</div>
-
                             <div>
-                                <div class="huntingGroundCategoryTitle">
-                                    ЛЕСНИЧЕСТВО
-                                </div>
-
-                                <div class="huntingGroundCategorySubtitle">
-                                    Лесничества · назначение рабочих
-                                </div>
+                                <div class="huntingGroundCategoryTitle">ЛЕСНИЧЕСТВО</div>
+                                <div class="huntingGroundCategorySubtitle">Лесничества · назначение рабочих</div>
                             </div>
                         </div>
-
                         <span class="huntingGroundCategoryArrow">▼</span>
                     </button>
-
-                    <div
-                        class="huntingGroundCategoryMenu"
-                        id="forestryCategoryMenu"
-                    >
+                    <div class="huntingGroundCategoryMenu" id="forestryCategoryMenu">
                         <div id="forestryList"></div>
                     </div>
                 </div>
@@ -2999,16 +2830,8 @@ function processForestry(house) {
         <span class="huntingBuildText">ПОСТРОИТЬ ОХОТНИЧЬЕ УГОДЬЕ</span>
     </button>
 
-    <button
-        class="mapFoundButton mapBuildForestryButton"
-        id="mapBuildForestryButton"
-        onclick="buildForestry()"
-        title="Построить лесничество"
-        aria-label="Построить лесничество"
-        style="display:none;"
-    >
-        <span class="forestryBuildIcon">🪵</span>
-        <span class="forestryBuildText">ПОСТРОИТЬ ЛЕСНИЧЕСТВО</span>
+    <button class="mapFoundButton" id="mapBuildForestryButton" onclick="buildForestry()" title="Построить лесничество" aria-label="Построить лесничество" style="display:none;">
+        🪵 ПОСТРОИТЬ ЛЕСНИЧЕСТВО
     </button>
 
 </main>
@@ -3156,58 +2979,87 @@ function hasHuntingGroundAt(house, x, y) {
     });
 }
 
-
 function hasForestryAt(house, x, y) {
-
-    if (!house || !Array.isArray(house.forestryGrounds)) {
-        return false;
-    }
-
-    return house.forestryGrounds.some(function(ground) {
-        return ground.x === x && ground.y === y;
-    });
+    if (!house || !Array.isArray(house.forestryGrounds)) return false;
+    return house.forestryGrounds.some(function(ground) { return ground.x === x && ground.y === y; });
 }
-
 
 function updateForestryGroundRecovery(ground, now) {
-
     if (!ground) return;
-
-    if (ground.forestLife > 0) {
-        ground.recoveryStartedAt = null;
-        return;
-    }
-
-    if (ground.recoveryStartedAt === null) {
-        ground.recoveryStartedAt = now;
-        return;
-    }
-
-    if (
-        now - ground.recoveryStartedAt >=
-        FORESTRY_GROUND_RECOVERY_MS
-    ) {
-        ground.forestLife = 100;
+    if (ground.forestLife > 0) { ground.recoveryStartedAt = null; return; }
+    if (ground.recoveryStartedAt === null) ground.recoveryStartedAt = now;
+    if (now - ground.recoveryStartedAt >= FORESTRY_GROUND_RECOVERY_MS) {
+        ground.forestLife = FORESTRY_GROUND_LIFE_MAX;
         ground.recoveryStartedAt = null;
     }
 }
 
-
 function getForestryRecoveryLeft(ground, now) {
+    if (!ground || ground.forestLife > 0 || ground.recoveryStartedAt === null) return 0;
+    return Math.max(0, FORESTRY_GROUND_RECOVERY_MS - (now - ground.recoveryStartedAt));
+}
 
-    if (
-        !ground ||
-        ground.forestLife > 0 ||
-        ground.recoveryStartedAt === null
-    ) {
-        return 0;
+function toggleForestryCategory() {
+    const category = document.getElementById("forestryCategory");
+    if (category) category.classList.toggle("open");
+    updateForestry();
+}
+
+function addForesterToGround(index) {
+    let house = getHouse();
+    if (!house) return;
+    house = prepareHouse(house);
+    const ground = house.forestryGrounds[index];
+    if (!ground) return;
+    const availableWorkers = house.population.workers - house.population.hunters - house.population.foresters;
+    if (availableWorkers <= 0 || ground.foresters >= FORESTRY_MAXIMUM) return;
+    ground.foresters += 1;
+    house.population.foresters += 1;
+    house.forestry.lastProduction = Date.now();
+    saveHouseData(house);
+    updatePopulation();
+    updateForestry();
+}
+
+function removeForesterFromGround(index) {
+    let house = getHouse();
+    if (!house) return;
+    house = prepareHouse(house);
+    const ground = house.forestryGrounds[index];
+    if (!ground || ground.foresters <= 0) return;
+    ground.foresters -= 1;
+    house.population.foresters = Math.max(0, house.population.foresters - 1);
+    house.forestry.lastProduction = Date.now();
+    saveHouseData(house);
+    updatePopulation();
+    updateForestry();
+}
+
+function updateForestry() {
+    let house = getHouse();
+    if (!house) return;
+    house = prepareHouse(house);
+    const list = document.getElementById("forestryList");
+    if (!list) return;
+    const now = Date.now();
+    house.forestryGrounds.forEach(function(ground) { updateForestryGroundRecovery(ground, now); });
+    list.innerHTML = "";
+    if (house.forestryGrounds.length === 0) {
+        list.innerHTML = '<div class="huntingGroundEmpty">Лесничеств пока нет.<br>Выберите принадлежащую Дому клетку Лес на карте и постройте лесничество.</div>';
+        return;
     }
-
-    return Math.max(
-        0,
-        FORESTRY_GROUND_RECOVERY_MS -
-        (now - ground.recoveryStartedAt)
-    );
+    const totalForesters = house.forestryGrounds.reduce(function(total, ground) { return total + ground.foresters; }, 0);
+    const availableWorkers = house.population.workers - house.population.hunters - totalForesters;
+    house.population.foresters = totalForesters;
+    house.forestryGrounds.forEach(function(ground, index) {
+        const item = document.createElement("div");
+        item.className = "huntingGroundItem";
+        const production = Math.floor(ground.foresters / FORESTRY_GROUP_SIZE) * WOOD_PER_GROUP;
+        let status = ground.forestLife <= 0 ? "Лес закончился. Восстановление: " + formatHuntingGroundRecovery(getForestryRecoveryLeft(ground, now)) + "." : (ground.foresters < FORESTRY_MINIMUM ? "Недостаточно рабочих. Требуется минимум 4." : "Активная заготовка: +" + production + " 🪵 каждые 2 часа.");
+        item.innerHTML = '<div class="huntingGroundItemTop"><div><div class="huntingGroundItemName">ЛЕСНИЧЕСТВО ' + (index + 1) + '</div><div class="huntingGroundItemCoords">🌲 Лес · X: ' + ground.x + ' · Y: ' + ground.y + '</div></div><div style="font-size:17px;">🪵</div></div>' + '<div style="margin-top:8px;color:#857866;font-size:9px;display:flex;justify-content:space-between;"><span>' + (ground.forestLife <= 0 ? "♻️ ВОССТАНОВЛЕНИЕ" : "🌲 ЛЕС") + '</span><strong style="color:#c4ae87;">' + ground.forestLife + '%</strong></div>' + '<div style="height:5px;margin-top:5px;border:1px solid rgba(117,94,56,.32);background:rgba(10,9,7,.65);"><div style="height:100%;width:' + ground.forestLife + '%;background:rgba(157,126,72,.75);"></div></div>' + '<div class="huntingGroundControl"><button class="hunterButton" type="button" onclick="removeForesterFromGround(' + index + ')"' + (ground.foresters <= 0 ? ' disabled' : '') + '>−</button><div class="huntingGroundCount"><div class="huntingGroundCountNumber">' + ground.foresters + ' / ' + FORESTRY_MAXIMUM + '</div><div class="huntingGroundCountText">РАБОЧИХ</div></div><button class="hunterButton" type="button" onclick="addForesterToGround(' + index + ')"' + (availableWorkers <= 0 || ground.foresters >= FORESTRY_MAXIMUM ? ' disabled' : '') + '>+</button></div><div class="huntingGroundItemStatus">' + status + '</div>';
+        list.appendChild(item);
+    });
+    saveHouseData(house);
 }
 
 function updateHuntingGroundRecovery(ground, now) {
@@ -3295,6 +3147,7 @@ const FORESTRY_MAXIMUM = 20;
 const FORESTRY_INTERVAL = 2 * 60 * 60 * 1000;
 const FORESTRY_GROUP_SIZE = 4;
 const WOOD_PER_GROUP = 20;
+const FORESTRY_GROUND_LIFE_MAX = 100;
 const FORESTRY_GROUND_LIFE_LOSS = 5;
 const FORESTRY_GROUND_RECOVERY_MS = 24 * 60 * 60 * 1000;
 
@@ -3400,7 +3253,6 @@ function saveHouse(event) {
             soldiers: 0,
 
             hunters: 0,
-
             foresters: 0
 
         },
@@ -3540,13 +3392,6 @@ function setMapMode(mode) {
 
     if (buildButton) {
         buildButton.style.display = "none";
-    }
-
-    const forestryButton =
-        document.getElementById("mapBuildForestryButton");
-
-    if (forestryButton) {
-        forestryButton.style.display = "none";
     }
 
     const instruction = document.getElementById("mapInstruction");
@@ -3835,27 +3680,28 @@ function renderMapCells() {
                     <span class="cityMark">${crest}</span>
                     <span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>
                 `;
+            } else if (hasHuntingGroundAt(house, x, y)) {
+
+                cell.classList.add("huntingGroundCell");
+
+                cell.innerHTML =
+                    '<span class="terrainMark">' + terrainIcon(type) + '</span>' +
+                    '<span class="huntingGroundMark" title="Охотничье угодье">🏹</span>';
+
+            } else if (hasForestryAt(house, x, y)) {
+
+                cell.classList.add("forestryGroundCell");
+
+                cell.innerHTML =
+                    '<span class="terrainMark">' + terrainIcon(type) + '</span>' +
+                    '<span class="forestryGroundMark" title="Лесничество">🪵</span>';
+
             } else {
 
                 cell.innerHTML =
                     '<span class="terrainMark">' +
                     terrainIcon(type) +
                     '</span>';
-
-                if (hasHuntingGroundAt(house, x, y)) {
-
-                    cell.classList.add("huntingGroundCell");
-
-                    cell.innerHTML +=
-                        '<span class="huntingGroundMark" title="Охотничье угодье">🏹</span>';
-
-                } else if (hasForestryAt(house, x, y)) {
-
-                    cell.classList.add("forestryGroundCell");
-
-                    cell.innerHTML +=
-                        '<span class="forestryGroundMark" title="Лесничество">🪵</span>';
-                }
             }
 
             if (mapState.selectedX === x && mapState.selectedY === y) {
@@ -3990,52 +3836,16 @@ function updateCellInfo(x, y) {
             " · Y: " + y;
     }
 
-    const forestryGround =
-        house && Array.isArray(house.forestryGrounds)
-            ? house.forestryGrounds.find(function(item) {
-                return item.x === x && item.y === y;
-            })
-            : null;
+    const forestryGround = house && Array.isArray(house.forestryGrounds)
+        ? house.forestryGrounds.find(function(item) { return item.x === x && item.y === y; })
+        : null;
 
     if (forestryGround) {
-
-        updateForestryGroundRecovery(
-            forestryGround,
-            Date.now()
-        );
-
-        const foresters =
-            typeof forestryGround.foresters === "number"
-                ? forestryGround.foresters
-                : 0;
-
-        const woodProduction =
-            Math.floor(
-                foresters / FORESTRY_GROUP_SIZE
-            ) *
-            WOOD_PER_GROUP;
-
-        const forestryText =
-            forestryGround.forestLife <= 0
-                ? "🪵 Лесничество · 🌲 Лес: 0% · 👷 Рабочих: " +
-                  foresters +
-                  " · Добыча приостановлена"
-                : "🪵 Лесничество · 🌲 Лес: " +
-                  forestryGround.forestLife +
-                  "% · 👷 Рабочих: " +
-                  foresters +
-                  " · 🪵 Добыча: +" +
-                  woodProduction +
-                  " / 2 ч.";
-
-        text.textContent =
-            text.textContent +
-            " | " +
-            forestryText;
-
-        coords.textContent =
-            coords.textContent +
-            " · 🪵 ЛЕСНИЧЕСТВО";
+        updateForestryGroundRecovery(forestryGround, Date.now());
+        const foresters = Number(forestryGround.foresters) || 0;
+        const production = Math.floor(foresters / FORESTRY_GROUP_SIZE) * WOOD_PER_GROUP;
+        text.textContent = text.textContent + " | 🪵 ЛЕСНИЧЕСТВО · 🌲 Лес: " + forestryGround.forestLife + "% · 👷 Рабочих: " + foresters + (forestryGround.forestLife <= 0 ? " · Добыча приостановлена" : " · 🪵 Добыча: +" + production + " / 2 ч.");
+        coords.textContent = coords.textContent + " · 🪵 ЛЕСНИЧЕСТВО";
     }
 }
 
@@ -4075,58 +3885,18 @@ function updateMap() {
                 mapState.selectedY
             );
 
-        const buildHuntingButton =
-            document.getElementById(
-                "mapBuildHuntingButton"
-            );
-
-        if (buildHuntingButton) {
-
-            const canBuildHunting =
-                canBuildOnForest &&
-                !hasHuntingGroundAt(
-                    house,
-                    mapState.selectedX,
-                    mapState.selectedY
-                ) &&
-                !hasForestryAt(
-                    house,
-                    mapState.selectedX,
-                    mapState.selectedY
-                );
-
-            buildHuntingButton.style.display =
-                canBuildHunting ? "inline-flex" : "none";
-
-            buildHuntingButton.disabled =
-                !canBuildHunting;
+        const buildButton = document.getElementById("mapBuildHuntingButton");
+        if (buildButton) {
+            const canBuild = canBuildOnForest && !hasHuntingGroundAt(house, mapState.selectedX, mapState.selectedY) && !hasForestryAt(house, mapState.selectedX, mapState.selectedY);
+            buildButton.style.display = canBuild ? "block" : "none";
+            buildButton.disabled = !canBuild;
         }
 
-        const buildForestryButton =
-            document.getElementById(
-                "mapBuildForestryButton"
-            );
-
-        if (buildForestryButton) {
-
-            const canBuildForestry =
-                canBuildOnForest &&
-                !hasForestryAt(
-                    house,
-                    mapState.selectedX,
-                    mapState.selectedY
-                ) &&
-                !hasHuntingGroundAt(
-                    house,
-                    mapState.selectedX,
-                    mapState.selectedY
-                );
-
-            buildForestryButton.style.display =
-                canBuildForestry ? "inline-flex" : "none";
-
-            buildForestryButton.disabled =
-                !canBuildForestry;
+        const forestryButton = document.getElementById("mapBuildForestryButton");
+        if (forestryButton) {
+            const canBuild = canBuildOnForest && !hasHuntingGroundAt(house, mapState.selectedX, mapState.selectedY) && !hasForestryAt(house, mapState.selectedX, mapState.selectedY);
+            forestryButton.style.display = canBuild ? "block" : "none";
+            forestryButton.disabled = !canBuild;
         }
 
     } else {
@@ -4135,19 +3905,10 @@ function updateMap() {
             mapState.mode === "view" ? "Нажмите на клетку карты" : "Выберите клетку на карте";
         document.getElementById("mapFoundButton").disabled = true;
 
-        const buildButton =
-            document.getElementById("mapBuildHuntingButton");
-
-        if (buildButton) {
-            buildButton.style.display = "none";
-        }
-
-        const forestryButton =
-            document.getElementById("mapBuildForestryButton");
-
-        if (forestryButton) {
-            forestryButton.style.display = "none";
-        }
+        const buildButton = document.getElementById("mapBuildHuntingButton");
+        if (buildButton) buildButton.style.display = "none";
+        const forestryButton = document.getElementById("mapBuildForestryButton");
+        if (forestryButton) forestryButton.style.display = "none";
     }
 }
 
@@ -4222,56 +3983,20 @@ function buildHuntingGround() {
 
 
 function buildForestry() {
-
-    if (
-        mapState.selectedX === null ||
-        mapState.selectedY === null
-    ) {
-        return;
-    }
-
+    if (mapState.selectedX === null || mapState.selectedY === null) return;
     let house = getHouse();
     if (!house) return;
-
     house = prepareHouse(house);
-
     const x = mapState.selectedX;
     const y = mapState.selectedY;
-
     if (terrainAt(x, y) !== "forest") return;
     if (!isTerritoryCell(house, x, y)) return;
-    if (hasForestryAt(house, x, y)) return;
-    if (hasHuntingGroundAt(house, x, y)) return;
-
-    house.forestryGrounds.push({
-        x: x,
-        y: y,
-        builtAt: new Date().toISOString(),
-        foresters: 0,
-        forestLife: 100,
-        recoveryStartedAt: null
-    });
-
+    if (hasHuntingGroundAt(house, x, y) || hasForestryAt(house, x, y)) return;
+    house.forestryGrounds.push({ x:x, y:y, builtAt:new Date().toISOString(), foresters:0, forestLife:FORESTRY_GROUND_LIFE_MAX, recoveryStartedAt:null });
     saveHouseData(house);
     updateMap();
     updateForestry();
 }
-
-
-function showForestry() {
-
-    const category =
-        document.getElementById(
-            "forestryCategory"
-        );
-
-    if (category) {
-        category.classList.add("open");
-    }
-
-    updateForestry();
-}
-
 
 function showHuntingGrounds() {
 
@@ -4612,6 +4337,20 @@ function prepareHouse(house) {
         );
     });
 
+    if (!Array.isArray(house.forestryGrounds)) {
+        house.forestryGrounds = [];
+    }
+
+    house.forestryGrounds.forEach(function(ground) {
+        if (typeof ground.forestLife !== "number" || !isFinite(ground.forestLife)) ground.forestLife = FORESTRY_GROUND_LIFE_MAX;
+        ground.forestLife = Math.max(0, Math.min(FORESTRY_GROUND_LIFE_MAX, Math.floor(ground.forestLife)));
+        if (typeof ground.recoveryStartedAt !== "number") ground.recoveryStartedAt = null;
+        if (typeof ground.foresters !== "number") ground.foresters = 0;
+        ground.foresters = Math.max(0, Math.min(FORESTRY_MAXIMUM, Math.floor(ground.foresters)));
+    });
+
+    house.population.foresters = house.forestryGrounds.reduce(function(total, ground) { return total + ground.foresters; }, 0);
+
     /* Совместимость со старым сохранением:
        старых глобальных охотников переносим в первое угодье. */
     if (
@@ -4647,52 +4386,6 @@ function prepareHouse(house) {
 
     house.population.hunters =
         totalAssignedHunters;
-
-
-    if (!Array.isArray(house.forestryGrounds)) {
-
-        house.forestryGrounds = [];
-
-    }
-
-    house.forestryGrounds.forEach(function(ground) {
-
-        if (
-            typeof ground.forestLife !== "number" ||
-            !isFinite(ground.forestLife)
-        ) {
-            ground.forestLife = 100;
-        }
-
-        ground.forestLife = Math.max(
-            0,
-            Math.min(100, Math.floor(ground.forestLife))
-        );
-
-        if (typeof ground.recoveryStartedAt !== "number") {
-            ground.recoveryStartedAt = null;
-        }
-
-        if (typeof ground.foresters !== "number") {
-            ground.foresters = 0;
-        }
-
-        ground.foresters = Math.max(
-            0,
-            Math.min(
-                FORESTRY_MAXIMUM,
-                Math.floor(ground.foresters)
-            )
-        );
-    });
-
-    house.population.foresters =
-        house.forestryGrounds.reduce(
-            function(total, ground) {
-                return total + ground.foresters;
-            },
-            0
-        );
 
 
     // Миграция старых сохранений: если город уже был основан
@@ -4890,76 +4583,6 @@ function toggleResourceCategory(id) {
 /* =====================================================
    ОХОТНИЧЬИ УГОДЬЯ — ОТКРЫТЬ
 ===================================================== */
-
-function toggleForestryCategory() {
-
-    document
-        .getElementById("forestryCategory")
-        .classList.toggle("open");
-
-    updateForestry();
-}
-
-
-function addForesterToGround(index) {
-
-    let house = getHouse();
-    if (!house) return;
-
-    house = prepareHouse(house);
-
-    const ground =
-        house.forestryGrounds[index];
-
-    if (!ground) return;
-
-    const availableWorkers =
-        house.population.workers -
-        house.population.hunters -
-        house.population.foresters;
-
-    if (availableWorkers <= 0) return;
-    if (ground.foresters >= FORESTRY_MAXIMUM) return;
-
-    ground.foresters += 1;
-    house.population.foresters += 1;
-    house.forestry.lastProduction = Date.now();
-
-    saveHouseData(house);
-
-    updatePopulation();
-    updateForestry();
-}
-
-
-function removeForesterFromGround(index) {
-
-    let house = getHouse();
-    if (!house) return;
-
-    house = prepareHouse(house);
-
-    const ground =
-        house.forestryGrounds[index];
-
-    if (!ground || ground.foresters <= 0) return;
-
-    ground.foresters -= 1;
-
-    house.population.foresters =
-        Math.max(
-            0,
-            house.population.foresters - 1
-        );
-
-    house.forestry.lastProduction = Date.now();
-
-    saveHouseData(house);
-
-    updatePopulation();
-    updateForestry();
-}
-
 
 function toggleHuntingGroundCategory() {
 
@@ -5241,200 +4864,6 @@ function updatePopulation() {
 /* =====================================================
    ОХОТА
 ===================================================== */
-
-function updateForestry() {
-
-    let house = getHouse();
-    if (!house) return;
-
-    house = prepareHouse(house);
-
-    const list =
-        document.getElementById(
-            "forestryList"
-        );
-
-    if (!list) return;
-
-    const now = Date.now();
-
-    house.forestryGrounds.forEach(
-        function(ground) {
-            updateForestryGroundRecovery(
-                ground,
-                now
-            );
-        }
-    );
-
-    list.innerHTML = "";
-
-    if (house.forestryGrounds.length === 0) {
-
-        list.innerHTML =
-            '<div class="huntingGroundEmpty">' +
-            'Лесничеств пока нет.<br>' +
-            'Выберите принадлежащую Дому клетку Лес на карте и постройте лесничество.' +
-            '</div>';
-
-        updateResources();
-        return;
-    }
-
-    const totalForesters =
-        house.forestryGrounds.reduce(
-            function(total, ground) {
-                return total + ground.foresters;
-            },
-            0
-        );
-
-    const availableWorkers =
-        house.population.workers -
-        house.population.hunters -
-        totalForesters;
-
-    house.population.foresters =
-        totalForesters;
-
-    house.forestryGrounds.forEach(
-        function(ground, index) {
-
-            const item =
-                document.createElement("div");
-
-            item.className =
-                "huntingGroundItem";
-
-            const production =
-                Math.floor(
-                    ground.foresters /
-                    FORESTRY_GROUP_SIZE
-                ) *
-                WOOD_PER_GROUP;
-
-            let statusText;
-
-            if (ground.forestLife <= 0) {
-
-                statusText =
-                    "Лес закончился. Восстановление: " +
-                    formatHuntingGroundRecovery(
-                        getForestryRecoveryLeft(
-                            ground,
-                            now
-                        )
-                    ) +
-                    ".";
-
-            } else if (
-                ground.foresters <
-                FORESTRY_MINIMUM
-            ) {
-
-                statusText =
-                    "Недостаточно рабочих. Требуется минимум 4.";
-
-            } else {
-
-                statusText =
-                    "Активная заготовка: +" +
-                    production +
-                    " 🪵 каждые 2 часа.";
-            }
-
-            item.innerHTML =
-                '<div class="huntingGroundItemTop">' +
-
-                    '<div>' +
-
-                        '<div class="huntingGroundItemName">' +
-                            'ЛЕСНИЧЕСТВО ' +
-                            (index + 1) +
-                        '</div>' +
-
-                        '<div class="huntingGroundItemCoords">' +
-                            '🌲 Лес · X: ' +
-                            ground.x +
-                            ' · Y: ' +
-                            ground.y +
-                        '</div>' +
-
-                    '</div>' +
-
-                    '<div style="font-size:17px;">🪵</div>' +
-
-                '</div>' +
-
-                '<div style="margin-top:8px;">' +
-
-                    '<div style="display:flex;justify-content:space-between;align-items:center;color:#857866;font-size:9px;">' +
-                        '<span>' +
-                            (ground.forestLife <= 0
-                                ? "♻️ ВОССТАНОВЛЕНИЕ"
-                                : "🌲 ЛЕС") +
-                        '</span>' +
-                        '<strong style="color:#c4ae87;">' +
-                            ground.forestLife +
-                            '%' +
-                        '</strong>' +
-                    '</div>' +
-
-                    '<div class="huntingGroundLifeBar">' +
-                        '<div class="huntingGroundLifeBarInner" style="width:' +
-                            ground.forestLife +
-                            '%;"></div>' +
-                    '</div>' +
-
-                '</div>' +
-
-                '<div class="huntingGroundControl">' +
-
-                    '<button class="hunterButton" type="button"' +
-                        ' onclick="removeForesterFromGround(' +
-                        index + ')"' +
-                        (ground.foresters <= 0 ? ' disabled' : '') +
-                    '>−</button>' +
-
-                    '<div class="huntingGroundCount">' +
-
-                        '<div class="huntingGroundCountNumber">' +
-                            ground.foresters +
-                            ' / ' +
-                            FORESTRY_MAXIMUM +
-                        '</div>' +
-
-                        '<div class="huntingGroundCountText">' +
-                            'РАБОЧИХ' +
-                        '</div>' +
-
-                    '</div>' +
-
-                    '<button class="hunterButton" type="button"' +
-                        ' onclick="addForesterToGround(' +
-                        index + ')"' +
-                        (
-                            availableWorkers <= 0 ||
-                            ground.foresters >= FORESTRY_MAXIMUM
-                                ? ' disabled'
-                                : ''
-                        ) +
-                    '>+</button>' +
-
-                '</div>' +
-
-                '<div class="huntingGroundItemStatus">' +
-                    statusText +
-                '</div>';
-
-            list.appendChild(item);
-        }
-    );
-
-    saveHouseData(house);
-    updateResources();
-}
-
 
 function updateHunting() {
 
@@ -5756,7 +5185,7 @@ const resourceData = {
             "Используется для развития и строительства.",
 
         extraction:
-            "Добывается в лесу. Для добычи требуется построить 🪵 лесничество и назначить рабочих."
+            "Добывается в лесу. Для добычи требуется построить лесничество и назначить рабочих."
 
     }
 
@@ -6133,7 +5562,7 @@ setInterval(
 
 
         processHunting(house);
-    processForestry(house);
+        processForestry(house);
 
         updatePopulation();
 

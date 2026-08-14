@@ -774,6 +774,79 @@ textarea.input {
     display: block;
 }
 
+.huntingSubHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: calc(100% - 20px);
+    margin: 10px;
+    min-height: 48px;
+    padding: 9px 12px;
+    border: 1px solid rgba(157, 126, 72, 0.42);
+    background: rgba(26, 22, 17, 0.65);
+    color: #cbb99a;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.huntingSubHeader:active {
+    transform: scale(.99);
+    background: rgba(75, 58, 35, .25);
+}
+
+.huntingSubLeft {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.huntingSubArrow {
+    color: #94784c;
+    transition: transform .2s ease;
+}
+
+.huntingSubHeader.open .huntingSubArrow {
+    transform: rotate(180deg);
+}
+
+.huntingGroundList {
+    display: none;
+    padding: 0 0 4px;
+}
+
+.huntingGroundList.open {
+    display: block;
+}
+
+.productionCellSummary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px solid rgba(117,94,56,.28);
+    background: rgba(25,21,17,.5);
+    color: #897d6d;
+    font-size: 10px;
+}
+
+.productionCellSummary strong {
+    color: #b8a27a;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+}
+
+.cellInfoHint {
+    margin-top: 7px;
+    color: #6f675b;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
 .productionCard {
     margin: 10px;
     padding: 12px;
@@ -1018,6 +1091,51 @@ textarea.input {
     color: #908474;
     font-size: 14px;
     line-height: 1.5;
+}
+
+
+
+/* =====================================================
+   ЭКОНОМИКА МЯСА
+===================================================== */
+
+.meatEconomyBox {
+    margin: 9px;
+    padding: 11px;
+    border: 1px solid rgba(117,94,56,.28);
+    background: rgba(15,12,9,.48);
+}
+
+.meatEconomyTitle {
+    margin-bottom: 8px;
+    color: #9f8a64;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 1.6px;
+}
+
+.meatEconomyRow {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 4px 0;
+    color: #776e61;
+    font-size: 11px;
+}
+
+.meatEconomyRow strong {
+    color: #bda57b;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+}
+
+.meatEconomyStatus {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(117,94,56,.22);
+    color: #857866;
+    font-size: 10px;
+    line-height: 1.35;
 }
 
 
@@ -1374,7 +1492,7 @@ textarea.input {
 ===================================================== */
 
 .mapBackButton {
-    position: absolute;
+    position: fixed;
     left: 12px;
     top: calc(58px + env(safe-area-inset-top));
     z-index: 30;
@@ -1386,6 +1504,8 @@ textarea.input {
     font-family: "Cinzel", Georgia, serif;
     font-size: 15px;
     cursor: pointer;
+    pointer-events: auto;
+    touch-action: manipulation;
 }
 
 .mapCellInfo {
@@ -2613,7 +2733,7 @@ textarea.input {
         <div class="mapCanvas" id="mapCanvas"></div>
     </div>
 
-    <button class="mapBackButton" onclick="returnToRealm()" aria-label="Вернуться">‹</button>
+    <button type="button" class="mapBackButton" id="mapBackButton" onclick="returnToRealm()" aria-label="Вернуться">‹</button>
 
     <div class="mapTopBar">
         <div class="mapTitle" id="mapTitle">ЗЕМЛИ МИРА</div>
@@ -2812,6 +2932,312 @@ function hasForestForHouse(house) {
 /* =====================================================
    НАСТРОЙКИ ОХОТЫ
 ===================================================== */
+
+
+/* =====================================================
+   ЭКОНОМИКА МЯСА
+===================================================== */
+
+const MEAT_CONSUMPTION_INTERVAL = 5 * 60 * 60 * 1000;
+const MEAT_DEFICIT_CHECK_INTERVAL = 60 * 60 * 1000;
+const MEAT_DEPARTURE_PERCENT = 0.05;
+const MEAT_STARVATION_PERCENT = 0.02;
+const MEAT_STARVATION_THRESHOLD = 0;
+const MEAT_WARNING_THRESHOLD = 1;
+
+/*
+   Баланс производства:
+   каждое охотничье угодье производит
+   10 мяса / час на каждого охотника.
+*/
+function getMeatProductionPerHour(house) {
+
+    if (!house || !house.production)
+        return 0;
+
+    let total = 0;
+
+    house.production.forEach(production => {
+
+        if (production.type !== "hunting")
+            return;
+
+        const hunters = production.workers || 0;
+
+        total += hunters * 10;
+
+    });
+
+    return total;
+}
+
+
+/*
+   Потребление:
+   свободный = 1 мясо / 5 часов
+   рабочий = 1 мясо / 5 часов
+   военнослужащий = 2 мяса / 5 часов
+*/
+function getMeatConsumptionPerFiveHours(house) {
+
+    if (!house || !house.population)
+        return 0;
+
+    return (
+        house.population.free +
+        house.population.workers +
+        house.population.soldiers * 2
+    );
+
+}
+
+
+function getMeatConsumptionPerHour(house) {
+
+    return getMeatConsumptionPerFiveHours(house) / 5;
+
+}
+
+
+function getMeatBalancePerHour(house) {
+
+    return (
+        getMeatProductionPerHour(house) -
+        getMeatConsumptionPerHour(house)
+    );
+
+}
+
+
+function getMeatStockHours(house) {
+
+    const consumption =
+        getMeatConsumptionPerHour(house);
+
+    if (consumption <= 0)
+        return Infinity;
+
+    return house.resources.meat / consumption;
+
+}
+
+
+function formatStockTime(hours) {
+
+    if (!isFinite(hours))
+        return "∞";
+
+    if (hours <= 0)
+        return "0 ч.";
+
+    const totalMinutes =
+        Math.floor(hours * 60);
+
+    const days =
+        Math.floor(totalMinutes / 1440);
+
+    const remainingAfterDays =
+        totalMinutes % 1440;
+
+    const h =
+        Math.floor(
+            remainingAfterDays / 60
+        );
+
+    const m =
+        remainingAfterDays % 60;
+
+    if (days > 0)
+        return `${days} д. ${h} ч.`;
+
+    if (h > 0)
+        return `${h} ч. ${m} мин.`;
+
+    return `${m} мин.`;
+
+}
+
+
+/*
+   Если мяса не хватает в момент планового
+   потребления каждые 5 часов:
+
+   1. Сначала расходуется весь доступный запас.
+   2. Затем часть населения уходит.
+   3. Если еды всё ещё нет — часть населения погибает.
+*/
+function processMeatConsumption(house) {
+
+    if (!house || !house.resources)
+        return;
+
+    if (!house.economy)
+        house.economy = {};
+
+    if (!house.economy.lastMeatConsumption)
+        house.economy.lastMeatConsumption = Date.now();
+
+    const now = Date.now();
+
+    const elapsed =
+        now -
+        house.economy.lastMeatConsumption;
+
+    const cycles =
+        Math.floor(
+            elapsed /
+            MEAT_CONSUMPTION_INTERVAL
+        );
+
+    if (cycles <= 0)
+        return;
+
+    for (let i = 0; i < cycles; i++) {
+
+        const required =
+            getMeatConsumptionPerFiveHours(house);
+
+        const available =
+            Math.max(
+                0,
+                house.resources.meat
+            );
+
+        if (available >= required) {
+
+            house.resources.meat -= required;
+
+            house.economy.hungerState =
+                "fed";
+
+            continue;
+
+        }
+
+        /*
+           Еды не хватило.
+           Сначала съедается весь остаток.
+        */
+        house.resources.meat = 0;
+
+        /*
+           Сначала часть населения покидает государство.
+           Берём свободное население первым,
+           затем рабочих, затем военнослужащих.
+        */
+        let totalPopulation =
+            getTotalPopulation(house);
+
+        if (totalPopulation <= 0)
+            continue;
+
+        let leaving =
+            Math.max(
+                1,
+                Math.floor(
+                    totalPopulation *
+                    MEAT_DEPARTURE_PERCENT
+                )
+            );
+
+        while (
+            leaving > 0 &&
+            house.population.free > 0
+        ) {
+
+            house.population.free--;
+            leaving--;
+
+        }
+
+        while (
+            leaving > 0 &&
+            getOrdinaryWorkers(house) > 0
+        ) {
+
+            house.population.workers--;
+            leaving--;
+
+        }
+
+        while (
+            leaving > 0 &&
+            house.population.soldiers > 0
+        ) {
+
+            house.population.soldiers--;
+            leaving--;
+
+        }
+
+        /*
+           Если после ухода еды всё равно нет,
+           начинается голод.
+        */
+        totalPopulation =
+            getTotalPopulation(house);
+
+        if (totalPopulation > 0) {
+
+            const starving =
+                Math.max(
+                    1,
+                    Math.floor(
+                        totalPopulation *
+                        MEAT_STARVATION_PERCENT
+                    )
+                );
+
+            let deaths = starving;
+
+            while (
+                deaths > 0 &&
+                house.population.free > 0
+            ) {
+
+                house.population.free--;
+                deaths--;
+
+            }
+
+            while (
+                deaths > 0 &&
+                getOrdinaryWorkers(house) > 0
+            ) {
+
+                house.population.workers--;
+                deaths--;
+
+            }
+
+            while (
+                deaths > 0 &&
+                house.population.soldiers > 0
+            ) {
+
+                house.population.soldiers--;
+                deaths--;
+
+            }
+
+            house.economy.hungerState =
+                "starvation";
+
+        }
+        else {
+
+            house.economy.hungerState =
+                "empty";
+
+        }
+
+    }
+
+    house.economy.lastMeatConsumption =
+        house.economy.lastMeatConsumption +
+        cycles * MEAT_CONSUMPTION_INTERVAL;
+
+}
 
 const HUNTING_MINIMUM = 2;
 const HUNTING_MAXIMUM_PER_GROUND = 10;
@@ -3411,9 +3837,14 @@ function updateCellInfo(x, y) {
 
     if (object && object.type === "hunting_ground") {
         title.textContent = "ОХОТНИЧЬЕ УГОДЬЕ";
-        text.textContent = "Охотничье угодье на лесной территории Дома.";
-        coords.textContent = "X: " + x + " · Y: " + y + " · Охотников: " + object.workers + "/" + HUNTING_MAXIMUM_PER_GROUND;
-        action.innerHTML = '<div class="cellProductionControls"><button class="cellProductionButton" onclick="removeHunterFromGround(' + x + ',' + y + ')">−</button><span>🏹 ' + object.workers + ' / ' + HUNTING_MAXIMUM_PER_GROUND + '</span><button class="cellProductionButton" onclick="addHunterToGround(' + x + ',' + y + ')">+</button></div>';
+        text.textContent = "Производственный объект Дома, основанный на лесной клетке.";
+        coords.textContent = "X: " + x + " · Y: " + y;
+        action.innerHTML =
+            '<div class="productionCellSummary">' +
+                '<span>🏹 ОХОТНИКИ</span>' +
+                '<strong>' + object.workers + ' / ' + HUNTING_MAXIMUM_PER_GROUND + '</strong>' +
+            '</div>' +
+            '<div class="cellInfoHint">Назначение рабочих осуществляется в разделе «Производство».</div>';
         return;
     }
 
@@ -3579,11 +4010,22 @@ function closeCityInfoOutside(event) {
 
 function returnToRealm() {
     const house = getHouse();
+
+    const mapScreen = document.getElementById("mapScreen");
+    const realmScreen = document.getElementById("realmScreen");
+    const creationScreen = document.getElementById("creationScreen");
+
+    if (mapScreen) mapScreen.style.display = "none";
+
     if (house) {
+        if (realmScreen) realmScreen.style.display = "block";
         openRealm();
     } else {
+        if (creationScreen) creationScreen.style.display = "block";
         openCreation();
     }
+
+    window.scrollTo(0, 0);
 }
 
 function initMapControls() {
@@ -3836,30 +4278,99 @@ function removeHunterFromGround(x, y) {
     updateProductionPanel();
 }
 
+function toggleHuntingGrounds() {
+    const list = document.getElementById("huntingGroundList");
+    const header = document.getElementById("huntingGroundHeader");
+    if (!list || !header) return;
+    huntingGroundsExpanded = !huntingGroundsExpanded;
+    list.classList.toggle("open", huntingGroundsExpanded);
+    header.classList.toggle("open", huntingGroundsExpanded);
+}
+
 function updateProductionPanel() {
     const menu = document.querySelector("#productionSection .productionMenu");
     if (!menu) return;
+
     const house = getHouse();
     if (!house) return;
+
     const grounds = getHuntingGrounds(house);
 
     if (grounds.length === 0) {
-        menu.innerHTML = '<div class="productionCard"><div class="productionStatus">На карте пока нет производственных объектов.</div></div>';
+        menu.innerHTML =
+            '<div class="huntingSubHeader" id="huntingGroundHeader" onclick="toggleHuntingGrounds()">' +
+                '<div class="huntingSubLeft"><span>🏹</span><span>ОХОТА</span></div>' +
+                '<span class="huntingSubArrow">▼</span>' +
+            '</div>' +
+            '<div class="huntingGroundList" id="huntingGroundList">' +
+                '<div class="productionCard"><div class="productionStatus">На карте пока нет охотничьих угодий.</div></div>' +
+            '</div>';
         return;
     }
 
-    menu.innerHTML = grounds.map(function(ground, index) {
+    const cards = grounds.map(function(ground, index) {
         const groups = Math.floor(ground.workers / HUNTING_GROUP_SIZE);
         const production = groups * MEAT_PER_GROUP;
+
         return '<div class="productionCard">' +
-            '<div class="productionTop"><div class="productionIcon">🏹</div><div><div class="productionTitle">ОХОТНИЧЬЕ УГОДЬЕ ' + (index + 1) + '</div><div class="productionSubtitle">Лес · X: ' + ground.x + ' · Y: ' + ground.y + '</div></div></div>' +
+            '<div class="productionTop">' +
+                '<div class="productionIcon">🏹</div>' +
+                '<div>' +
+                    '<div class="productionTitle">ОХОТНИЧЬЕ УГОДЬЕ ' + (index + 1) + '</div>' +
+                    '<div class="productionSubtitle">Лес · X: ' + ground.x + ' · Y: ' + ground.y + '</div>' +
+                '</div>' +
+            '</div>' +
+
             '<div class="productionInfo">' +
-            '<div class="productionLine"><span>Охотники</span><strong>' + ground.workers + ' / ' + HUNTING_MAXIMUM_PER_GROUND + '</strong></div>' +
-            '<div class="productionLine"><span>Производство</span><strong>+' + production + ' 🍖 / 2 ч.</strong></div>' +
-            '<div class="productionLine"><span>Состояние</span><strong>' + (ground.workers >= HUNTING_MINIMUM ? 'РАБОТАЕТ' : 'ТРЕБУЕТСЯ 2') + '</strong></div>' +
-            '<div class="hunterControl"><button class="hunterButton" onclick="removeHunterFromGround(' + ground.x + ',' + ground.y + ')">−</button><div class="hunterCount"><div class="hunterCountNumber">' + ground.workers + '</div><div class="hunterCountText">ОХОТНИКОВ</div></div><button class="hunterButton" onclick="addHunterToGround(' + ground.x + ',' + ground.y + ')">+</button></div>' +
-            '</div></div>';
+
+                '<div class="productionLine">' +
+                    '<span>Охотники</span>' +
+                    '<strong>' + ground.workers + ' / ' + HUNTING_MAXIMUM_PER_GROUND + '</strong>' +
+                '</div>' +
+
+                '<div class="productionLine">' +
+                    '<span>Производство</span>' +
+                    '<strong>+' + production + ' 🍖 / 2 ч.</strong>' +
+                '</div>' +
+
+                '<div class="productionLine">' +
+                    '<span>Состояние</span>' +
+                    '<strong>' + (ground.workers >= HUNTING_MINIMUM ? 'РАБОТАЕТ' : 'ТРЕБУЕТСЯ 2') + '</strong>' +
+                '</div>' +
+
+                '<div class="hunterControl">' +
+                    '<button class="hunterButton" onclick="removeHunterFromGround(' + ground.x + ',' + ground.y + ')">−</button>' +
+                    '<div class="hunterCount">' +
+                        '<div class="hunterCountNumber">' + ground.workers + '</div>' +
+                        '<div class="hunterCountText">ОХОТНИКОВ</div>' +
+                    '</div>' +
+                    '<button class="hunterButton" onclick="addHunterToGround(' + ground.x + ',' + ground.y + ')">+</button>' +
+                '</div>' +
+
+            '</div>' +
+        '</div>';
     }).join("");
+
+    menu.innerHTML =
+        '<div class="huntingSubHeader" id="huntingGroundHeader" onclick="toggleHuntingGrounds()">' +
+            '<div class="huntingSubLeft">' +
+                '<span>🏹</span>' +
+                '<span>ОХОТА</span>' +
+                '<span style="color:#756a5c;font-size:9px;">' + grounds.length + ' угод.</span>' +
+            '</div>' +
+            '<span class="huntingSubArrow">▼</span>' +
+        '</div>' +
+
+        '<div class="huntingGroundList" id="huntingGroundList">' +
+            cards +
+        '</div>';
+
+    if (huntingGroundsExpanded) {
+        const list = document.getElementById("huntingGroundList");
+        const header = document.getElementById("huntingGroundHeader");
+        if (list) list.classList.add("open");
+        if (header) header.classList.add("open");
+    }
 }
 
 function processHunting(house) {
@@ -4086,6 +4597,34 @@ function moveSoldierToFree() {
    НАСЕЛЕНИЕ
 ===================================================== */
 
+
+function getTotalPopulation(house) {
+
+    if (!house || !house.population)
+        return 0;
+
+    return (
+        house.population.free +
+        house.population.workers +
+        house.population.soldiers
+    );
+
+}
+
+
+function getOrdinaryWorkers(house) {
+
+    if (!house || !house.population)
+        return 0;
+
+    return Math.max(
+        0,
+        house.population.workers -
+        (house.population.hunters || 0)
+    );
+
+}
+
 function updatePopulation() {
 
     let house = getHouse();
@@ -4208,6 +4747,109 @@ function updateHunting() {
 /* =====================================================
    РЕСУРСЫ
 ===================================================== */
+
+
+function updateMeatEconomy() {
+
+    const house = getHouse();
+
+    if (!house)
+        return;
+
+    const production =
+        getMeatProductionPerHour(house);
+
+    const consumption =
+        getMeatConsumptionPerHour(house);
+
+    const balance =
+        production - consumption;
+
+    const stockHours =
+        getMeatStockHours(house);
+
+    const productionEl =
+        document.getElementById("meatProduction");
+
+    const consumptionEl =
+        document.getElementById("meatConsumption");
+
+    const balanceEl =
+        document.getElementById("meatBalance");
+
+    const stockEl =
+        document.getElementById("meatStockTime");
+
+    const statusEl =
+        document.getElementById("meatEconomyStatus");
+
+    if (productionEl)
+        productionEl.textContent =
+            `+${production.toFixed(1)} / час`;
+
+    if (consumptionEl)
+        consumptionEl.textContent =
+            `−${consumption.toFixed(1)} / час`;
+
+    if (balanceEl)
+        balanceEl.textContent =
+            `${balance >= 0 ? "+" : ""}${balance.toFixed(1)} / час`;
+
+    if (stockEl)
+        stockEl.textContent =
+            stockHours === Infinity
+                ? "∞"
+                : formatStockTime(stockHours);
+
+    if (!statusEl)
+        return;
+
+    if (house.resources.meat <= 0) {
+
+        if (house.economy.hungerState === "starvation") {
+
+            statusEl.textContent =
+                "Критический голод. Население начинает погибать.";
+
+        } else {
+
+            statusEl.textContent =
+                "Запасы мяса исчерпаны. Население начинает покидать государство.";
+
+        }
+
+    }
+    else if (balance < 0) {
+
+        statusEl.textContent =
+            "Расход мяса превышает производство. Запасы сокращаются.";
+
+    }
+    else {
+
+        statusEl.textContent =
+            "Население обеспечено мясом. Запасы растут.";
+
+    }
+
+
+    const huntProduction =
+        document.getElementById(
+            "huntProductionLine"
+        );
+
+    if (huntProduction) {
+
+        const hunting =
+            getMeatProductionPerHour(house);
+
+        huntProduction.textContent =
+            `+${hunting.toFixed(0)} 🍖 / час`;
+
+    }
+
+}
+
 
 function updateResources() {
 
@@ -4679,6 +5321,8 @@ setInterval(
 
         processHunting(house);
 
+        processMeatConsumption(house);
+
         updatePopulation();
 
         updateHunting();
@@ -4706,6 +5350,555 @@ if (
 
 </script>
 
+
+
+<script>
+/* =====================================================
+   THE REALMS — УНИВЕРСАЛЬНАЯ АРХИТЕКТУРА ПРОИЗВОДСТВА
+   Производство = объект на клетке.
+   Тип земли определяет, какие объекты доступны.
+===================================================== */
+
+const PRODUCTION_CATALOG = {
+    hunting_ground: {
+        id: "hunting_ground",
+        category: "food",
+        name: "ОХОТНИЧЬЕ УГОДЬЕ",
+        shortName: "ОХОТА",
+        icon: "🏹",
+        allowedTerrain: ["forest"],
+        enabled: true,
+        description: "Производственный объект, расположенный на лесной клетке.",
+        capacity: 10,
+        workerRole: "Охотники",
+        minWorkers: 2,
+        outputResource: "meat",
+        outputPerGroup: 20,
+        groupSize: 2,
+        interval: 2 * 60 * 60 * 1000
+    },
+
+    sawmill: {
+        id: "sawmill",
+        category: "materials",
+        name: "ЛЕСОПИЛКА",
+        shortName: "ЛЕСОПИЛКА",
+        icon: "🪵",
+        allowedTerrain: ["forest"],
+        enabled: false,
+        description: "Предприятие для переработки древесины. Появится после открытия соответствующего знания.",
+        capacity: 10,
+        workerRole: "Лесорубы",
+        minWorkers: 1,
+        outputResource: "wood",
+        outputPerGroup: 20,
+        groupSize: 2,
+        interval: 2 * 60 * 60 * 1000
+    },
+
+    farm: {
+        id: "farm",
+        category: "food",
+        name: "ПОЛЕ",
+        shortName: "ЗЕМЛЕДЕЛИЕ",
+        icon: "🌾",
+        allowedTerrain: ["plain"],
+        enabled: false,
+        description: "Сельскохозяйственное производство на плодородных равнинах.",
+        capacity: 10,
+        workerRole: "Земледельцы",
+        minWorkers: 1,
+        outputResource: "wheat",
+        outputPerGroup: 20,
+        groupSize: 2,
+        interval: 2 * 60 * 60 * 1000
+    },
+
+    quarry: {
+        id: "quarry",
+        category: "materials",
+        name: "КАМЕНОЛОМНЯ",
+        shortName: "КАМЕНОЛОМНЯ",
+        icon: "⛏",
+        allowedTerrain: ["hill"],
+        enabled: false,
+        description: "Место добычи камня в холмистой местности.",
+        capacity: 10,
+        workerRole: "Каменотёсы",
+        minWorkers: 1,
+        outputResource: "stone",
+        outputPerGroup: 20,
+        groupSize: 2,
+        interval: 2 * 60 * 60 * 1000
+    },
+
+    mine: {
+        id: "mine",
+        category: "materials",
+        name: "РУДНИК",
+        shortName: "РУДНИК",
+        icon: "⚒",
+        allowedTerrain: ["mountain"],
+        enabled: false,
+        description: "Горная разработка для добычи руды и других полезных ископаемых.",
+        capacity: 10,
+        workerRole: "Шахтёры",
+        minWorkers: 1,
+        outputResource: "ore",
+        outputPerGroup: 20,
+        groupSize: 2,
+        interval: 2 * 60 * 60 * 1000
+    },
+
+    fishery: {
+        id: "fishery",
+        category: "food",
+        name: "РЫБОЛОВНОЕ ПОСЕЛЕНИЕ",
+        shortName: "РЫБОЛОВСТВО",
+        icon: "🎣",
+        allowedTerrain: ["lake"],
+        enabled: false,
+        description: "Промысел на берегах пресных водоёмов.",
+        capacity: 10,
+        workerRole: "Рыбаки",
+        minWorkers: 1,
+        outputResource: "fish",
+        outputPerGroup: 20,
+        groupSize: 2,
+        interval: 2 * 60 * 60 * 1000
+    }
+};
+
+function getProductionDefinition(type) {
+    return PRODUCTION_CATALOG[type] || null;
+}
+
+function getProductionObjects(house) {
+    if (!house.production || !Array.isArray(house.production.objects)) {
+        house.production = { objects: [] };
+    }
+    return house.production.objects;
+}
+
+function getProductionAt(house, x, y) {
+    return getProductionObjects(house).find(function(object) {
+        return object.x === x && object.y === y;
+    }) || null;
+}
+
+function getProductionCapacity(object) {
+    const def = getProductionDefinition(object.type);
+    return def ? def.capacity : 0;
+}
+
+function getTotalAssignedWorkers(house) {
+    return getProductionObjects(house).reduce(function(total, object) {
+        return total + Math.max(0, Number(object.workers) || 0);
+    }, 0);
+}
+
+function getHuntingGrounds(house) {
+    return getProductionObjects(house).filter(function(object) {
+        return object.type === "hunting_ground";
+    });
+}
+
+function getHuntingCapacity(house) {
+    return getHuntingGrounds(house).reduce(function(total, ground) {
+        return total + getProductionCapacity(ground);
+    }, 0);
+}
+
+function getAllowedProductionTypes(house, x, y) {
+    const terrain = terrainAt(x, y);
+    const object = getProductionAt(house, x, y);
+
+    if (object) return [];
+    if (!isTerritoryCell(house, x, y)) return [];
+
+    return Object.values(PRODUCTION_CATALOG).filter(function(def) {
+        return def.allowedTerrain.includes(terrain);
+    });
+}
+
+function getProductionBuildButtons(house, x, y) {
+    const types = getAllowedProductionTypes(house, x, y);
+    if (!types.length) return "";
+
+    return types.map(function(def) {
+        if (!def.enabled) {
+            return '<div class="cellLockedText">' + def.icon + ' ' + escapeHtml(def.name) + ' — появится после изучения знания.</div>';
+        }
+
+        return '<button class="cellBuildButton" onclick="foundProduction(\'' + def.id + '\',' + x + ',' + y + ')">' +
+            def.icon + ' ОСНОВАТЬ ' + escapeHtml(def.name) +
+            '</button>';
+    }).join("");
+}
+
+function foundProduction(type, x, y) {
+    const house = getHouse();
+    if (!house || !house.city) return;
+
+    const def = getProductionDefinition(type);
+    if (!def || !def.enabled) return;
+    if (!isTerritoryCell(house, x, y)) return;
+    if (!def.allowedTerrain.includes(terrainAt(x, y))) return;
+    if (getProductionAt(house, x, y)) return;
+
+    const object = {
+        id: def.id + "_" + x + "_" + y,
+        type: def.id,
+        x: x,
+        y: y,
+        workers: 0,
+        foundedAt: new Date().toISOString(),
+        lastProduction: Date.now()
+    };
+
+    if (def.id === "hunting_ground") {
+        object.game = 100;
+    }
+
+    getProductionObjects(house).push(object);
+    house.population.hunters = getTotalAssignedWorkersByType(house, "hunting_ground");
+
+    saveHouseData(house);
+    updateMap();
+    updateProductionPanel();
+    updatePopulation();
+    updateHunting();
+}
+
+function getTotalAssignedWorkersByType(house, type) {
+    return getProductionObjects(house).reduce(function(total, object) {
+        return total + (object.type === type ? Math.max(0, Number(object.workers) || 0) : 0);
+    }, 0);
+}
+
+function addWorkerToProduction(x, y) {
+    const house = getHouse();
+    if (!house) return;
+
+    const object = getProductionAt(house, x, y);
+    if (!object) return;
+
+    const def = getProductionDefinition(object.type);
+    if (!def) return;
+
+    const availableWorkers = house.population.workers - getTotalAssignedWorkers(house);
+    if (availableWorkers <= 0) return;
+    if ((Number(object.workers) || 0) >= def.capacity) return;
+
+    processAllProduction(house);
+    object.workers = (Number(object.workers) || 0) + 1;
+    object.lastProduction = Date.now();
+
+    house.population.hunters = getTotalAssignedWorkersByType(house, "hunting_ground");
+    saveHouseData(house);
+
+    updatePopulation();
+    updateProductionPanel();
+    updateHunting();
+}
+
+function removeWorkerFromProduction(x, y) {
+    const house = getHouse();
+    if (!house) return;
+
+    const object = getProductionAt(house, x, y);
+    if (!object || object.workers <= 0) return;
+
+    processAllProduction(house);
+    object.workers -= 1;
+    object.lastProduction = Date.now();
+
+    house.population.hunters = getTotalAssignedWorkersByType(house, "hunting_ground");
+    saveHouseData(house);
+
+    updatePopulation();
+    updateProductionPanel();
+    updateHunting();
+}
+
+function processAllProduction(house) {
+    if (!house) return;
+
+    const now = Date.now();
+
+    getProductionObjects(house).forEach(function(object) {
+        const def = getProductionDefinition(object.type);
+        if (!def || !def.enabled) return;
+
+        object.workers = Math.max(0, Math.min(def.capacity, Number(object.workers) || 0));
+        if (!object.lastProduction) object.lastProduction = now;
+        if (object.workers < def.minWorkers) {
+            object.lastProduction = now;
+            return;
+        }
+
+        const elapsed = now - object.lastProduction;
+        const cycles = Math.floor(elapsed / def.interval);
+        if (cycles <= 0) return;
+
+        const groups = Math.floor(object.workers / def.groupSize);
+        if (groups <= 0) return;
+
+        if (object.type === "hunting_ground") {
+            if (typeof object.game !== "number") object.game = 100;
+            const possibleCycles = Math.min(cycles, Math.floor(object.game / GAME_LOSS_PER_HUNT));
+            if (possibleCycles > 0) {
+                house.resources.meat += groups * def.outputPerGroup * possibleCycles;
+                object.game -= GAME_LOSS_PER_HUNT * possibleCycles;
+                object.lastProduction += def.interval * possibleCycles;
+            } else {
+                object.lastProduction = now;
+            }
+        }
+    });
+
+    house.population.hunters = getTotalAssignedWorkersByType(house, "hunting_ground");
+    saveHouseData(house);
+}
+
+/* =====================================================
+   НОВАЯ ОТРИСОВКА КЛЕТКИ
+===================================================== */
+
+function renderMapCells() {
+    const canvas = document.getElementById("mapCanvas");
+    canvas.innerHTML = "";
+
+    const centerX = Math.round(mapState.x);
+    const centerY = Math.round(mapState.y);
+    const house = getHouse();
+    const city = house && house.city;
+
+    for (let y = centerY - MAP_RENDER_RADIUS_Y; y <= centerY + MAP_RENDER_RADIUS_Y; y++) {
+        for (let x = centerX - MAP_RENDER_RADIUS_X; x <= centerX + MAP_RENDER_RADIUS_X; x++) {
+            if (!isInsideWorld(x, y)) continue;
+
+            const cell = document.createElement("div");
+            const type = terrainAt(x, y);
+            const productionObject = getProductionAt(house, x, y);
+
+            cell.className = "mapCell " + type + " selectable";
+            cell.style.left = (x - mapState.x) * CELL_SIZE + "px";
+            cell.style.top = (y - mapState.y) * CELL_SIZE + "px";
+            cell.dataset.x = x;
+            cell.dataset.y = y;
+            cell.title = terrainName(type);
+
+            if (isTerritoryCell(house, x, y)) cell.classList.add("territory");
+            if (productionObject) cell.classList.add("productionObject");
+
+            if (city && city.x === x && city.y === y) {
+                cell.classList.add("city");
+                const crest = house.crest ? '<img src="' + house.crest + '" alt="Герб Дома">' : "♜";
+                cell.innerHTML = '<span class="cityMark">' + crest + '</span>' +
+                    '<span class="cityLabel">' + escapeHtml(house.houseName) + '<span>' + escapeHtml(house.realmName) + '</span></span>';
+            } else if (productionObject) {
+                const def = getProductionDefinition(productionObject.type);
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span>' +
+                    '<span class="productionMark">' + (def ? def.icon : "⚒") + '</span>';
+            } else {
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span>';
+            }
+
+            if (mapState.selectedX === x && mapState.selectedY === y) cell.classList.add("selected");
+
+            cell.addEventListener("click", function() {
+                if (mapState.moved) return;
+
+                const currentHouse = getHouse();
+                const currentObject = getProductionAt(currentHouse, x, y);
+
+                if (currentHouse && currentHouse.city && currentHouse.city.x === x && currentHouse.city.y === y) {
+                    showCityInfo(currentHouse);
+                    return;
+                }
+
+                if (currentObject) {
+                    selectMapCell(x, y);
+                    return;
+                }
+
+                selectMapCell(x, y);
+            });
+
+            canvas.appendChild(cell);
+        }
+    }
+}
+
+/* =====================================================
+   НОВАЯ ИНФОРМАЦИЯ КЛЕТКИ
+===================================================== */
+
+function updateCellInfo(x, y) {
+    const title = document.getElementById("mapCellInfoTitle");
+    const text = document.getElementById("mapCellInfoText");
+    const coords = document.getElementById("mapCellInfoCoordinates");
+    const action = document.getElementById("mapCellAction");
+
+    if (x === null || y === null) {
+        title.textContent = "КЛЕТКА НЕ ВЫБРАНА";
+        text.textContent = "Нажмите на клетку, чтобы узнать о ней больше.";
+        coords.textContent = "—";
+        action.innerHTML = "";
+        return;
+    }
+
+    const house = getHouse();
+    const type = terrainAt(x, y);
+    const object = getProductionAt(house, x, y);
+    const owned = isTerritoryCell(house, x, y);
+
+    coords.textContent = "X: " + x + " · Y: " + y;
+
+    if (object) {
+        const def = getProductionDefinition(object.type);
+        title.textContent = def ? def.name : "ПРОИЗВОДСТВЕННЫЙ ОБЪЕКТ";
+        text.textContent = def ? def.description : "Производственный объект на клетке.";
+        action.innerHTML =
+            '<div class="productionCellSummary"><span>' + (def ? def.icon : "⚒") + ' ' +
+            (def ? def.workerRole.toUpperCase() : "РАБОЧИЕ") + '</span><strong>' +
+            (object.workers || 0) + ' / ' + (def ? def.capacity : 0) + '</strong></div>' +
+            '<div class="cellInfoHint">Назначение рабочих осуществляется в разделе «Производство».</div>';
+        return;
+    }
+
+    title.textContent = terrainName(type);
+    text.textContent = getCellDescription(type);
+    action.innerHTML = "";
+
+    if (mapState.mode === "view" && owned) {
+        const buttons = getProductionBuildButtons(house, x, y);
+        if (buttons) action.innerHTML = buttons;
+    } else if (mapState.mode === "view" && !owned && type === "forest") {
+        action.innerHTML = '<div class="cellLockedText">Территория не принадлежит Дому.</div>';
+    }
+}
+
+/* =====================================================
+   НОВАЯ ПАНЕЛЬ ПРОИЗВОДСТВА
+===================================================== */
+
+function updateProductionPanel() {
+    const menu = document.querySelector("#productionSection .productionMenu");
+    if (!menu) return;
+
+    const house = getHouse();
+    if (!house) return;
+
+    const grounds = getProductionObjects(house).filter(function(object) {
+        return object.type === "hunting_ground";
+    });
+
+    let html =
+        '<div class="huntingSubHeader" id="huntingGroundHeader" onclick="toggleHuntingGrounds()">' +
+            '<div class="huntingSubLeft"><span>🏹</span><span>ОХОТА</span><span style="color:#756a5c;font-size:9px;">' + grounds.length + ' угод.</span></div>' +
+            '<span class="huntingSubArrow">▼</span>' +
+        '</div>' +
+        '<div class="huntingGroundList" id="huntingGroundList">';
+
+    if (!grounds.length) {
+        html += '<div class="productionCard"><div class="productionStatus">На карте пока нет охотничьих угодий.</div></div>';
+    } else {
+        grounds.forEach(function(ground, index) {
+            const def = getProductionDefinition(ground.type);
+            const workers = Number(ground.workers) || 0;
+            const groups = Math.floor(workers / def.groupSize);
+            const production = groups * def.outputPerGroup;
+            const availableWorkers = house.population.workers - getTotalAssignedWorkers(house);
+
+            html += '<div class="productionCard">' +
+                '<div class="productionTop"><div class="productionIcon">' + def.icon + '</div><div>' +
+                    '<div class="productionTitle">' + def.name + ' ' + (index + 1) + '</div>' +
+                    '<div class="productionSubtitle">Лес · X: ' + ground.x + ' · Y: ' + ground.y + '</div>' +
+                '</div></div>' +
+                '<div class="productionInfo">' +
+                    '<div class="productionLine"><span>Охотники</span><strong>' + workers + ' / ' + def.capacity + '</strong></div>' +
+                    '<div class="productionLine"><span>Производство</span><strong>+' + production + ' 🍖 / 2 ч.</strong></div>' +
+                    '<div class="productionLine"><span>Состояние</span><strong>' + (workers >= def.minWorkers ? 'РАБОТАЕТ' : 'ТРЕБУЕТСЯ ' + def.minWorkers) + '</strong></div>' +
+                    '<div class="hunterControl">' +
+                        '<button class="hunterButton" onclick="removeWorkerFromProduction(' + ground.x + ',' + ground.y + ')">−</button>' +
+                        '<div class="hunterCount"><div class="hunterCountNumber">' + workers + '</div><div class="hunterCountText">ОХОТНИКОВ</div></div>' +
+                        '<button class="hunterButton" onclick="addWorkerToProduction(' + ground.x + ',' + ground.y + ')" ' + ((availableWorkers <= 0 || workers >= def.capacity) ? 'disabled' : '') + '>+</button>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        });
+    }
+
+    html += '</div>';
+    menu.innerHTML = html;
+
+    if (huntingGroundsExpanded) {
+        const list = document.getElementById("huntingGroundList");
+        const header = document.getElementById("huntingGroundHeader");
+        if (list) list.classList.add("open");
+        if (header) header.classList.add("open");
+    }
+}
+
+/* =====================================================
+   НОВОЕ ОБНОВЛЕНИЕ ОХОТЫ
+===================================================== */
+
+function updateHunting() {
+    let house = getHouse();
+    if (!house) return;
+    house = prepareHouse(house);
+    processAllProduction(house);
+
+    const grounds = getHuntingGrounds(house);
+    const locked = document.getElementById("forestLocked");
+    const available = document.getElementById("huntingAvailable");
+
+    if (!grounds.length) {
+        locked.style.display = "block";
+        locked.innerHTML = '<span class="noForestIcon">🌲</span><div class="noForestTitle">ПРОИЗВОДСТВО НЕ СОЗДАНО</div><div>Выберите принадлежащую Дому клетку леса на карте и основайте охотничье угодье.</div>';
+        available.style.display = "none";
+        updateProductionPanel();
+        return;
+    }
+
+    locked.style.display = "none";
+    available.style.display = "block";
+
+    const totalHunters = getTotalAssignedWorkersByType(house, "hunting_ground");
+    const capacity = getHuntingCapacity(house);
+    const groups = Math.floor(totalHunters / HUNTING_GROUP_SIZE);
+    const production = groups * MEAT_PER_GROUP;
+
+    document.getElementById("hunterCount").textContent = totalHunters;
+    document.getElementById("gamePercent").textContent = "—";
+    document.getElementById("gameBar").style.width = "100%";
+    document.getElementById("addHunterButton").disabled = house.population.workers - getTotalAssignedWorkers(house) <= 0 || totalHunters >= capacity;
+    document.getElementById("removeHunterButton").disabled = totalHunters <= 0;
+    document.getElementById("huntingStatus").textContent = totalHunters < HUNTING_MINIMUM ? "Требуется минимум 2 охотника в каждом угодье." : "Всего: +" + production + " 🍖 каждые 2 часа · Вместимость: " + capacity;
+
+    updateProductionPanel();
+}
+
+/* Старые кнопки совместимости: теперь они работают через первое угодье. */
+function addHunter() {
+    const house = getHouse();
+    if (!house) return;
+    const ground = getHuntingGrounds(house).find(function(item) { return item.workers < HUNTING_MAXIMUM_PER_GROUND; });
+    if (ground) addWorkerToProduction(ground.x, ground.y);
+}
+
+function removeHunter() {
+    const house = getHouse();
+    if (!house) return;
+    const grounds = getHuntingGrounds(house).slice().reverse();
+    const ground = grounds.find(function(item) { return item.workers > 0; });
+    if (ground) removeWorkerFromProduction(ground.x, ground.y);
+}
+
+</script>
 </body>
 
 </html>

@@ -1,411 +1,1054 @@
 <!DOCTYPE html>
 <html lang="ru">
+
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>The Realms — Demo</title>
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+<title>The Realms</title>
+
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap"
+      rel="stylesheet">
+
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700&family=Cormorant+Garamond:wght@400;500;600&display=swap');
 
-*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0d0b09;color:#b8aa95;font-family:"Cormorant Garamond",Georgia,serif}
-button,input{font:inherit}
-button{cursor:pointer}
-.screen{position:fixed;inset:0;display:none;overflow:auto;background:
-radial-gradient(circle at 50% 20%,rgba(95,74,45,.12),transparent 45%),#0d0b09}
-.screen.active{display:flex}
-.wrap{width:min(94vw,560px);margin:auto;padding:24px 0}
-.title{font-family:Cinzel,Georgia,serif;letter-spacing:3px;text-align:center;color:#c9b68e}
-.sub{font-size:14px;color:#817565;text-align:center;line-height:1.5}
-.panel{border:1px solid rgba(148,120,76,.35);background:rgba(23,19,15,.84);box-shadow:0 10px 35px rgba(0,0,0,.35)}
-.input,.upload,.selectbox{width:100%;padding:12px 13px;margin-top:8px;border:1px solid rgba(148,120,76,.3);background:#12100d;color:#c7b99f;outline:none}
-.label{display:block;margin-top:14px;font-family:Cinzel,Georgia,serif;font-size:10px;letter-spacing:1.5px;color:#89785f}
-.btn{border:1px solid rgba(173,142,89,.48);background:linear-gradient(#3b3023,#241d16);color:#d1bf9c;padding:12px 18px;font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:1px}
-.btn:active{transform:translateY(1px)}
-.btn.primary{width:100%;margin-top:18px}
-.btn.small{padding:7px 10px;font-size:9px}
-.btn.danger{border-color:rgba(130,70,55,.55);color:#b99789}
-.logo-preview{width:92px;height:92px;margin:12px auto;display:flex;align-items:center;justify-content:center;border:1px solid rgba(148,120,76,.4);background:#15120f;overflow:hidden}
-.logo-preview img{width:100%;height:100%;object-fit:cover}
-.card{padding:16px;margin-top:14px}
-.error{display:none;margin-top:10px;color:#bd8d7b;text-align:center;font-size:12px}
-.home-header{text-align:center;padding-top:20px}
-.house-emblem{width:68px;height:68px;margin:0 auto 10px;border:1px solid rgba(173,142,89,.45);object-fit:cover;background:#17130f}
-.house-name{font-family:Cinzel,Georgia,serif;color:#cbb88f;font-size:17px;letter-spacing:1.3px}
-.state-name{color:#7e725f;font-size:12px;margin-top:3px}
-.quote{font-style:italic;color:#887c6c;margin-top:6px}
-.stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:16px}
-.stat{padding:10px;text-align:center;border:1px solid rgba(148,120,76,.25);background:rgba(20,17,13,.65)}
-.stat b{display:block;color:#c2b08e;font-family:Cinzel,Georgia,serif;font-size:14px}
-.stat span{font-size:9px;color:#776c5d}
-.section{margin-top:12px;border:1px solid rgba(148,120,76,.28);background:rgba(20,17,13,.72)}
-.section-head{display:flex;justify-content:space-between;align-items:center;padding:12px 13px;color:#bda980;font-family:Cinzel,Georgia,serif;font-size:11px;letter-spacing:1px}
-.section-body{display:none;padding:0 8px 8px}
-.section.open .section-body{display:block}
-.row{display:flex;justify-content:space-between;align-items:center;padding:9px 5px;border-top:1px solid rgba(148,120,76,.14);font-size:12px}
-.row strong{font-family:Cinzel,Georgia,serif;color:#c1ae87;font-size:10px}
-.info{font-size:10px;color:#857867;line-height:1.4;padding:8px 5px;border-top:1px solid rgba(148,120,76,.14)}
-.population-card{padding:2px 8px 8px}
-.pop-row{display:flex;justify-content:space-between;align-items:center;padding:10px 4px;border-top:1px solid rgba(148,120,76,.14)}
-.pop-left{display:flex;align-items:center;gap:7px}
-.pop-name{font-size:12px}.pop-desc{font-size:9px;color:#776d60;margin-top:2px}
-.help-btn{border:1px solid rgba(148,120,76,.25);background:#17130f;color:#9f8c6d;padding:3px 6px;font-size:9px}
-.map-screen{background:#0b0d0f}
-.map-top{position:absolute;z-index:20;top:0;left:0;right:0;padding:9px;background:linear-gradient(rgba(10,9,8,.95),rgba(10,9,8,.65),transparent);pointer-events:none}
-.map-top>*{pointer-events:auto}
-.map-back{position:absolute;left:10px;top:10px;width:36px;height:36px;border:1px solid rgba(190,158,102,.4);background:#18140f;color:#d0bc94;font-size:22px}
-.map-coords{text-align:center;font-family:Cinzel,Georgia,serif;font-size:9px;color:#a49376;letter-spacing:1px}
-.map-view{position:absolute;inset:0;overflow:hidden;touch-action:none;background:#1a2420}
-.map-world{position:absolute;transform-origin:0 0;will-change:transform}
-.cell{position:absolute;width:38px;height:38px;border:1px solid rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;font-size:18px;user-select:none}
-.cell.plain{background:#8c8266}.cell.forest{background:#405a3d}.cell.hill{background:#766d5d}.cell.mountain{background:#55565a}.cell.lake{background:#356d93}.cell.sea{background:#204f76}
-.cell.territory{box-shadow:inset 0 0 0 2px rgba(208,174,103,.45)}
-.cell.city{box-shadow:inset 0 0 0 3px #d0b77d;background:#4f4436}
-.cell.production{box-shadow:inset 0 0 0 2px rgba(219,185,106,.8)}
-.cell.selected{box-shadow:inset 0 0 0 3px #e0c38d}
-.cell .terrain-icon{filter:drop-shadow(0 1px 1px rgba(0,0,0,.5))}
-.map-bottom{position:absolute;z-index:20;left:8px;right:8px;bottom:8px;padding:12px;background:rgba(15,12,9,.93);border:1px solid rgba(148,120,76,.35);max-height:36vh;overflow:auto}
-.map-bottom-title{font-family:Cinzel,Georgia,serif;color:#c4b08a;font-size:11px;letter-spacing:1px}
-.map-bottom-text{margin-top:4px;font-size:11px;color:#817567;line-height:1.35}
-.map-actions{display:flex;gap:7px;margin-top:9px;flex-wrap:wrap}
-.map-actions .btn{flex:1;min-width:130px}
-.city-modal{position:absolute;z-index:50;inset:0;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(0,0,0,.58)}
-.city-modal.open{display:flex}
-.city-card{width:min(92vw,390px);padding:18px;background:#17130f;border:1px solid rgba(184,151,94,.48);box-shadow:0 20px 60px #000}
-.city-card img{width:70px;height:70px;object-fit:cover;display:block;margin:0 auto 10px;border:1px solid rgba(184,151,94,.4)}
-.city-card h3{text-align:center;margin:0;font-family:Cinzel,Georgia,serif;color:#ccb88d;font-size:15px}
-.city-card .center{text-align:center}
-.city-details{margin-top:12px;border-top:1px solid rgba(148,120,76,.2)}
-.city-details .row{font-size:11px}
-.foundation-note{margin-top:12px;padding:12px;border:1px solid rgba(148,120,76,.3);background:#15120e;font-size:11px;line-height:1.45;color:#8b7d6b}
-.production-card{margin:8px 0;padding:11px;border:1px solid rgba(148,120,76,.24);background:#15120e}
-.production-card-title{font-family:Cinzel,Georgia,serif;color:#c6b38d;font-size:10px}
-.production-card-meta{font-size:9px;color:#786d5f;margin-top:3px}
-.worker-controls{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:9px}
-.worker-btn{width:32px;height:32px;border:1px solid rgba(173,142,89,.4);background:#211a13;color:#c8b58d;font-size:20px}
-.worker-btn:disabled{opacity:.3}
-.worker-count{text-align:center;min-width:58px}.worker-count b{display:block;font-family:Cinzel,Georgia,serif;color:#c7b28b}.worker-count span{font-size:8px;color:#776c5e}
-.hint{padding:9px;margin-top:7px;border-top:1px solid rgba(148,120,76,.15);font-size:10px;color:#817566;line-height:1.4}
-.status{margin-top:8px;font-size:10px;color:#8b7c69}
-@media(max-width:430px){.cell{width:34px;height:34px}.wrap{padding:16px 0}.stat-grid{gap:5px}}
-</style>
-</head>
-<body>
-
-<!-- SCREEN 1 -->
-<section id="screenWelcome" class="screen active">
-<div class="wrap">
-    <div class="title" style="font-size:24px;margin-bottom:8px">THE REALMS</div>
-    <div class="sub">Мир, в котором история начинается с одного Дома.</div>
-    <div class="panel card">
-        <div class="title" style="font-size:14px">ЛЕТОПИСЬ</div>
-        <div class="sub" style="margin-top:8px">Создайте свою династию и положите начало государству.</div>
-        <button class="btn primary" id="startBtn">НАЧАТЬ ЛЕТОПИСЬ</button>
-    </div>
-</div>
-</section>
-
-<!-- SCREEN 2 -->
-<section id="screenCreate" class="screen">
-<div class="wrap">
-    <div class="title" style="font-size:18px">СОЗДАНИЕ ДИНАСТИИ</div>
-    <div class="sub" style="margin-top:5px">Назовите правителя, Дом и государство.</div>
-    <div class="panel card">
-        <label class="label">ИМЯ ПРАВИТЕЛЯ</label>
-        <input id="rulerInput" class="input" placeholder="Например: Олег">
-        <label class="label">НАЗВАНИЕ ДОМА</label>
-        <input id="houseInput" class="input" placeholder="Например: Дом Волка">
-        <label class="label">НАЗВАНИЕ ГОСУДАРСТВА</label>
-        <input id="stateInput" class="input" placeholder="Например: Северное королевство">
-        <label class="label">ДЕВИЗ ДОМА</label>
-        <input id="mottoInput" class="input" placeholder="Например: Через испытания к величию">
-        <label class="label">ГЕРБ</label>
-        <div class="logo-preview" id="logoPreview"><span style="font-size:11px;color:#675c50">ГЕРБ</span></div>
-        <input id="logoInput" class="upload" type="file" accept="image/*">
-        <button class="btn primary" id="createHouseBtn">СОЗДАТЬ ЛЕТОПИСЬ</button>
-        <button class="btn primary" id="resetFromCreate" style="margin-top:8px">НАЧАТЬ ЛЕТОПИСЬ ЗАНОВО</button>
-        <div class="error" id="createError"></div>
-    </div>
-</div>
-</section>
-
-<!-- SCREEN 3 -->
-<section id="screenMain" class="screen">
-<div class="wrap">
-    <div class="home-header">
-        <img id="mainLogo" class="house-emblem" alt="">
-        <div id="mainHouse" class="house-name"></div>
-        <div id="mainState" class="state-name"></div>
-        <div id="mainMotto" class="quote"></div>
-    </div>
-
-    <div class="stat-grid">
-        <div class="stat"><b id="totalPop">100</b><span>НАСЕЛЕНИЕ</span></div>
-        <div class="stat"><b id="meatStock">0</b><span>МЯСО</span></div>
-        <div class="stat"><b id="territoryCount">0</b><span>ЗЕМЛИ</span></div>
-    </div>
-
-    <div class="section" id="populationSection">
-        <div class="section-head" data-toggle="populationSection"><span>НАСЕЛЕНИЕ</span><span>⌄</span></div>
-        <div class="section-body population-card">
-            <div class="pop-row">
-                <div class="pop-left"><div><div class="pop-name">Свободное население</div><div class="pop-desc">Не производит ресурсы, но поддерживает жизнь государства и потребляет мясо.</div></div><button class="help-btn" data-help="free">СПРАВКА</button></div>
-                <strong id="freePop">100</strong>
-            </div>
-            <div class="pop-row">
-                <div class="pop-left"><div><div class="pop-name">Рабочее население</div><div class="pop-desc">Создаёт ресурсы и распределяется между производствами. Потребляет мясо.</div></div><button class="help-btn" data-help="workers">СПРАВКА</button></div>
-                <strong id="workersPop">0</strong>
-            </div>
-            <div class="pop-row">
-                <div class="pop-left"><div><div class="pop-name">Военнослужащие</div><div class="pop-desc">Защищают земли и участвуют в расширении государства. Потребляют 2 мяса.</div></div><button class="help-btn" data-help="soldiers">СПРАВКА</button></div>
-                <strong id="soldiersPop">0</strong>
-            </div>
-            <div class="row"><span>Перевести свободных → рабочих</span><span><button class="btn small" id="freeToWorker">+</button></span></div>
-            <div class="row"><span>Вернуть рабочих → свободных</span><span><button class="btn small" id="workerToFree">−</button></span></div>
-        </div>
-    </div>
-
-    <div class="section" id="resourcesSection">
-        <div class="section-head" data-toggle="resourcesSection"><span>РЕСУРСЫ</span><span>⌄</span></div>
-        <div class="section-body">
-            <div class="section" id="foodSection" style="margin:0;border:0;background:transparent">
-                <div class="section-head" data-toggle="foodSection" style="padding-left:5px"><span>ЕДА</span><span>⌄</span></div>
-                <div class="section-body">
-                    <div class="row"><span>🍖 Мясо <button class="help-btn" data-help="meat">ⓘ</button></span><strong id="meatValue">0</strong></div>
-                    <div class="info">
-                        <div>Производство: <b id="meatProd">0</b> / час</div>
-                        <div>Потребление: <b id="meatCons">0</b> / час</div>
-                        <div>Баланс: <b id="meatBal">0</b> / час</div>
-                        <div>Запас: <b id="meatTime">—</b></div>
-                        <div class="status" id="meatStatus">Население обеспечено мясом.</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="section" id="productionSection">
-        <div class="section-head" data-toggle="productionSection"><span>ПРОИЗВОДСТВО</span><span>⌄</span></div>
-        <div class="section-body">
-            <div class="section" id="huntingSection" style="margin:0;border:0;background:transparent">
-                <div class="section-head" data-toggle="huntingSection" style="padding-left:5px"><span>🏹 ОХОТА</span><span>⌄</span></div>
-                <div class="section-body">
-                    <div class="hint"><b>КАК НАЧАТЬ ОХОТУ</b><br>1. Найдите принадлежащую Дому клетку леса на карте.<br>2. Основите на ней охотничье угодье.<br>3. Переведите свободных жителей в рабочих.<br>4. Назначьте рабочих охотниками здесь.</div>
-                    <div id="huntingList"></div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <button class="btn primary" id="openMapBtn">ОТКРЫТЬ КАРТУ</button>
-    <button class="btn primary" id="resetMainBtn">НАЧАТЬ ЛЕТОПИСЬ ЗАНОВО</button>
-</div>
-</section>
-
-<!-- MAP -->
-<section id="screenMap" class="screen map-screen">
-    <div class="map-top">
-        <button class="map-back" id="mapBack">‹</button>
-        <div class="map-coords" id="mapCoords">X: 0 · Y: 0</div>
-    </div>
-    <div class="map-view" id="mapView">
-        <div class="map-world" id="mapWorld"></div>
-    </div>
-    <div class="map-bottom" id="mapBottom">
-        <div class="map-bottom-title" id="cellTitle">ВЫБЕРИТЕ КЛЕТКУ</div>
-        <div class="map-bottom-text" id="cellText">Нажмите на клетку, чтобы увидеть её описание.</div>
-        <div class="map-actions" id="mapActions"></div>
-    </div>
-    <div class="city-modal" id="cityModal">
-        <div class="city-card">
-            <img id="cityLogo" alt="">
-            <h3 id="cityHouse"></h3>
-            <div class="center" id="cityState"></div>
-            <div class="center" id="cityMotto"></div>
-            <div class="city-details">
-                <div class="row"><span>Правитель</span><strong id="cityRuler"></strong></div>
-                <div class="row"><span>Население</span><strong id="cityPopulation"></strong></div>
-                <div class="row"><span>Координаты</span><strong id="cityCoords"></strong></div>
-            </div>
-            <button class="btn primary" id="closeCity">ЗАКРЫТЬ</button>
-        </div>
-    </div>
-</section>
-
-<script>
-"use strict";
-
-const WORLD_SIZE = 500;
-const CELL_SIZE = 38;
-const INITIAL_TERRITORY_RADIUS = 1;
-const HUNTING_MIN = 2;
-const HUNTING_MAX = 10;
-const MEAT_PER_HUNTER_HOUR = 10;
-const MEAT_CONSUMPTION_INTERVAL = 5 * 60 * 60 * 1000;
-const STORAGE_KEY = "theRealmsHouse";
-const BACKUP_KEY = "theRealmsHouseBackup";
-const DB_NAME = "TheRealmsDemoDB";
-const DB_STORE = "state";
-
-let state = null;
-let selectedCell = null;
-let dragging = false;
-let dragStartX = 0, dragStartY = 0, worldStartX = 0, worldStartY = 0;
-let cameraX = 0, cameraY = 0;
-let firstMapOpen = true;
-
-const $ = id => document.getElementById(id);
-
-function showScreen(id){
-    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
-    $(id).classList.add("active");
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
 }
 
-function uid(){
-    return "p_" + Date.now().toString(36) + Math.random().toString(36).slice(2,7);
+html,
+body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100%;
+    background: #090806;
+    color: #d8ccb8;
+    font-family: "Cormorant Garamond", Georgia, serif;
 }
 
-function defaultState(){
-    return {
-        version: 2,
-        ruler: "",
-        house: "",
-        country: "",
-        motto: "",
-        logo: "",
-        founded: false,
-        city: null,
-        territory: [],
-        population: {free:100, workers:0, soldiers:0},
-        resources: {meat:0},
-        production: {objects:[]},
-        economy: {lastMeatConsumption: Date.now(), hungerState:"fed"},
-        mapSeed: 73421
-    };
+body {
+    overflow-x: hidden;
 }
 
-function normalizeState(s){
-    const d = defaultState();
-    s = s || d;
-    s.population = Object.assign(d.population, s.population || {});
-    s.resources = Object.assign(d.resources, s.resources || {});
-    s.production = s.production || {objects:[]};
-    if(!Array.isArray(s.production.objects)) s.production.objects=[];
-    s.economy = Object.assign(d.economy, s.economy || {});
-    s.territory = Array.isArray(s.territory) ? s.territory : [];
-    return s;
+
+/* =====================================================
+   ПЕРВЫЙ ЭКРАН
+===================================================== */
+
+#introScreen {
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    height: 100dvh;
+    overflow: hidden;
+    background: #000;
 }
 
-/* ---------------- PERSISTENCE ---------------- */
-
-function saveState(){
-    if(!state) return false;
-    try{
-        const json = JSON.stringify(state);
-        localStorage.setItem(STORAGE_KEY,json);
-        localStorage.setItem(BACKUP_KEY,json);
-        return true;
-    }catch(e){
-        console.error(e);
-        return false;
-    }
+#background {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center center;
+    display: block;
+    user-select: none;
+    -webkit-user-drag: none;
 }
 
-function loadState(){
-    try{
-        const main = localStorage.getItem(STORAGE_KEY);
-        if(main) return normalizeState(JSON.parse(main));
-    }catch(e){console.error(e)}
-    try{
-        const backup = localStorage.getItem(BACKUP_KEY);
-        if(backup) return normalizeState(JSON.parse(backup));
-    }catch(e){console.error(e)}
-    return null;
+#startButton {
+    position: absolute;
+    left: 50%;
+    top: 87%;
+    transform: translate(-50%, -50%);
+    width: 52%;
+    height: 8%;
+    border: none;
+    outline: none;
+    background: transparent;
+    cursor: pointer;
 }
 
-function resetDemo(){
-    if(!confirm("Удалить всю летопись и начать демо с самого начала?")) return;
-    try{
-        localStorage.removeItem(STORAGE_KEY);
-        localStorage.removeItem(BACKUP_KEY);
-        sessionStorage.clear();
-    }catch(e){}
-    state = null;
-    location.reload();
+#startButton:active {
+    transform: translate(-50%, -50%) scale(0.97);
 }
 
-/* ---------------- CREATION ---------------- */
 
-function readLogo(file){
-    return new Promise((resolve,reject)=>{
-        if(!file){resolve("");return}
-        const reader = new FileReader();
-        reader.onload=()=>resolve(reader.result);
-        reader.onerror=reject;
-        reader.readAsDataURL(file);
-    });
+/* =====================================================
+   ВТОРОЙ ЭКРАН
+===================================================== */
+
+#creationScreen {
+    display: none;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 22px 18px 30px;
+    overflow-y: auto;
+
+    background-image:
+        linear-gradient(
+            rgba(8, 7, 5, 0.28),
+            rgba(8, 7, 5, 0.28)
+        ),
+        url("creation-bg.jpg");
+
+    background-size: cover;
+    background-position: center top;
+    background-repeat: no-repeat;
 }
 
-async function createHouse(){
-    const ruler=$("rulerInput").value.trim();
-    const house=$("houseInput").value.trim();
-    const country=$("stateInput").value.trim();
-    const motto=$("mottoInput").value.trim();
-    const error=$("createError");
-
-    if(!ruler || !house || !country || !motto){
-        error.textContent="Заполните все поля.";
-        error.style.display="block";
-        return;
-    }
-
-    try{
-        const logo=await readLogo($("logoInput").files[0]);
-        state=defaultState();
-        state.ruler=ruler;
-        state.house=house;
-        state.country=country;
-        state.motto=motto;
-        state.logo=logo;
-        state.founded=false;
-        state.economy.lastMeatConsumption=Date.now();
-
-        if(!saveState()) throw new Error("save failed");
-
-        renderMain();
-        showScreen("screenMap");
-        firstMapOpen=true;
-        openFoundationMode();
-    }catch(e){
-        console.error(e);
-        error.textContent="Не удалось сохранить летопись.";
-        error.style.display="block";
-    }
+.creationFrame {
+    position: relative;
+    min-height: calc(100vh - 52px);
+    min-height: calc(100dvh - 52px);
+    padding: 24px 18px 28px;
+    border: 1px solid rgba(157, 126, 72, 0.55);
+    background: rgba(7, 6, 5, 0.20);
 }
 
-/* ---------------- POPULATION / ECONOMY ---------------- */
-
-function totalPopulation(){
-    return state.population.free + state.population.workers + state.population.soldiers;
+.creationFrame::before {
+    content: "";
+    position: absolute;
+    inset: 6px;
+    border: 1px solid rgba(117, 94, 56, 0.25);
+    pointer-events: none;
 }
 
-function ordinaryWorkers(){
-    const assigned=state.production.objects.reduce((n,o)=>n+(o.workers||0),0);
-    return Math.max(0,state.population.workers-assigned);
+.creationHeader {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    margin-bottom: 20px;
 }
 
-function meatProductionHour(){
-    return state.production.objects
-        .filter(o=>o.type==="hunting")
-        .reduce((n,o)=>n+(o.workers||0)*MEAT_PER_HUNTER_HOUR,0);
+.smallCrown {
+    color: #aa8b55;
+    font-size: 20px;
+    margin-bottom: 8px;
 }
 
-function meatConsumptionFiveHours(){
-    return state.population.free + state.population.workers + state.population.soldiers*2;
+.creationTitle {
+    margin: 0;
+    color: #ddd1bd;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 3px;
+    text-transform: uppercase;
 }
 
-function meatConsumptionHour(){
-    return meatConsumptionFiveHours()/5;
+.creationSubtitle {
+    margin-top: 7px;
+    color: #958773;
+    font-size: 14px;
+    line-height: 1.35;
 }
 
-function formatTi
+.goldDivider {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 13px auto 0;
+    width: 170px;
+}
+
+.goldDivider span {
+    flex: 1;
+    height: 1px;
+    background: rgba(157, 126, 72, 0.55);
+}
+
+.goldDiamond {
+    color: #ad8b52;
+    font-size: 7px;
+}
+
+.form {
+    position: relative;
+    z-index: 2;
+}
+
+.field {
+    margin-bottom: 14px;
+}
+
+.fieldLabel {
+    display: block;
+    margin-bottom: 6px;
+    color: #a89167;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.fieldHint {
+    display: block;
+    margin-top: 5px;
+    color: #665d51;
+    font-size: 11px;
+}
+
+.input {
+    width: 100%;
+    min-height: 43px;
+    padding: 9px 12px;
+    border: 1px solid rgba(133, 108, 68, 0.55);
+    outline: none;
+    border-radius: 0;
+    background: rgba(24, 20, 16, 0.78);
+    color: #d8ccb9;
+    font-family: "Cormorant Garamond", Georgia, serif;
+    font-size: 16px;
+}
+
+.input:focus {
+    border-color: rgba(181, 150, 91, 0.9);
+    background: rgba(35, 29, 22, 0.88);
+}
+
+.input::placeholder {
+    color: #625a50;
+}
+
+textarea.input {
+    min-height: 72px;
+    resize: none;
+}
+
+.crestUpload {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 11px;
+    border: 1px solid rgba(133, 108, 68, 0.45);
+    background: rgba(25, 21, 17, 0.72);
+}
+
+.crestPreview {
+    flex-shrink: 0;
+    width: 58px;
+    height: 58px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgba(163, 132, 77, 0.55);
+    background: #0c0a08;
+    color: #776448;
+    font-size: 23px;
+}
+
+.crestPreview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.uploadArea {
+    flex: 1;
+}
+
+.uploadButton {
+    display: inline-block;
+    padding: 8px 11px;
+    border: 1px solid rgba(153, 122, 70, 0.65);
+    color: #c5b28f;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+}
+
+#crestInput {
+    display: none;
+}
+
+.continueButton {
+    width: 100%;
+    min-height: 53px;
+    margin-top: 8px;
+    border: 1px solid rgba(174, 141, 82, 0.75);
+    outline: none;
+    background: rgba(30, 25, 19, 0.90);
+    color: #d5c4a5;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 11px;
+    letter-spacing: 3px;
+    cursor: pointer;
+}
+
+.continueButton:active {
+    background: rgba(74, 58, 35, 0.8);
+    transform: scale(0.99);
+}
+
+.error {
+    display: none;
+    margin-top: 10px;
+    padding: 8px;
+    border: 1px solid rgba(140, 73, 55, 0.5);
+    color: #b98570;
+    background: rgba(80, 38, 28, 0.18);
+    font-size: 12px;
+    text-align: center;
+}
+
+.creationFooter {
+    margin-top: 17px;
+    text-align: center;
+    color: #665d51;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 2px;
+}
+
+
+/* =====================================================
+   ТРЕТИЙ ЭКРАН
+===================================================== */
+
+#realmScreen {
+    display: none;
+    width: 100%;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 16px 14px 30px;
+    overflow-y: auto;
+
+    background:
+        radial-gradient(
+            ellipse at top,
+            rgba(119, 91, 49, 0.12),
+            transparent 42%
+        ),
+        #090806;
+}
+
+.realmFrame {
+    position: relative;
+    width: 100%;
+    min-height: calc(100vh - 46px);
+    min-height: calc(100dvh - 46px);
+    padding: 20px 14px 28px;
+    border: 1px solid rgba(157, 126, 72, 0.55);
+    background: rgba(12, 10, 8, 0.52);
+}
+
+.realmFrame::before {
+    content: "";
+    position: absolute;
+    inset: 5px;
+    border: 1px solid rgba(117, 94, 56, 0.25);
+    pointer-events: none;
+}
+
+
+/* =====================================================
+   ВЕРХ ГОСУДАРСТВА
+===================================================== */
+
+.realmCrest {
+    position: relative;
+    z-index: 2;
+    width: 72px;
+    height: 72px;
+    margin: 0 auto 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border: 1px solid rgba(174, 143, 87, 0.65);
+    background: #0b0907;
+    color: #b99b63;
+    font-size: 28px;
+}
+
+.realmCrest img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.realmHouse {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: #e1d5c0;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: 2.5px;
+    line-height: 1.2;
+}
+
+.realmCountry {
+    position: relative;
+    z-index: 2;
+    margin-top: 5px;
+    text-align: center;
+    color: #a68b5d;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+}
+
+.realmMotto {
+    position: relative;
+    z-index: 2;
+    max-width: 320px;
+    margin: 12px auto 15px;
+    color: #9b8e7b;
+    text-align: center;
+    font-size: 14px;
+    font-style: italic;
+    line-height: 1.35;
+}
+
+.realmDivider {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 180px;
+    margin: 0 auto 15px;
+}
+
+.realmDivider span {
+    flex: 1;
+    height: 1px;
+    background: rgba(157, 126, 72, 0.45);
+}
+
+.realmDivider div {
+    color: #ae8d55;
+    font-size: 7px;
+}
+
+.realmYear {
+    position: relative;
+    z-index: 2;
+    text-align: center;
+    color: #a99168;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 4px;
+}
+
+
+/* =====================================================
+   СЕКЦИИ
+===================================================== */
+
+.realmSection {
+    position: relative;
+    z-index: 2;
+    margin-top: 18px;
+    border: 1px solid rgba(117, 94, 56, 0.45);
+    background: rgba(21, 18, 14, 0.72);
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 11px 13px;
+    border-bottom: 1px solid rgba(117, 94, 56, 0.35);
+}
+
+.sectionTitle {
+    color: #bca57b;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+    letter-spacing: 2px;
+}
+
+.sectionTotal {
+    color: #817668;
+    font-size: 11px;
+}
+
+
+/* =====================================================
+   НАСЕЛЕНИЕ
+===================================================== */
+
+.populationRow {
+    display: grid;
+    grid-template-columns: 34px 1fr auto 32px;
+    align-items: center;
+    gap: 7px;
+    min-height: 58px;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(117, 94, 56, 0.18);
+}
+
+.populationRow:last-child {
+    border-bottom: none;
+}
+
+.populationIcon {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(117, 94, 56, 0.4);
+    color: #aa9162;
+    font-size: 14px;
+}
+
+.populationInfo {
+    min-width: 0;
+}
+
+.populationName {
+    color: #c8baa2;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 0.8px;
+    line-height: 1.2;
+}
+
+.populationConsumption {
+    margin-top: 3px;
+    color: #665f54;
+    font-size: 10px;
+}
+
+.populationValue {
+    min-width: 28px;
+    color: #d1c3a9;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 16px;
+    text-align: center;
+}
+
+.helpButton {
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid rgba(142, 116, 70, 0.55);
+    background: rgba(36, 29, 21, 0.75);
+    color: #b29667;
+    font-family: Georgia, serif;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.helpButton:active {
+    background: rgba(91, 68, 38, 0.75);
+    transform: scale(0.94);
+}
+
+.populationActions {
+    display: flex;
+    gap: 4px;
+    padding: 7px 10px 9px;
+    background: rgba(12, 10, 8, 0.28);
+    border-bottom: 1px solid rgba(117, 94, 56, 0.16);
+}
+
+.populationAction {
+    flex: 1;
+    min-height: 30px;
+    border: 1px solid rgba(117, 94, 56, 0.4);
+    background: rgba(37, 30, 22, 0.75);
+    color: #9e8a67;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 7px;
+    letter-spacing: 0.8px;
+    cursor: pointer;
+}
+
+.populationAction:active {
+    background: rgba(88, 66, 38, 0.7);
+    transform: scale(0.98);
+}
+
+.populationAction:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+
+/* =====================================================
+   РЕСУРСЫ
+===================================================== */
+
+.resourcesSection {
+    position: relative;
+    z-index: 2;
+}
+
+.resourceCategory {
+    border-bottom: 1px solid rgba(117, 94, 56, 0.25);
+}
+
+.resourceCategory:last-child {
+    border-bottom: none;
+}
+
+.resourceCategoryHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 48px;
+    padding: 9px 13px;
+    border: none;
+    outline: none;
+    background: transparent;
+    color: #bca57b;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.resourceCategoryHeader:active {
+    background: rgba(75, 58, 35, 0.18);
+}
+
+.resourceCategoryLeft {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.resourceCategoryIcon {
+    font-size: 16px;
+}
+
+.resourceCategoryArrow {
+    color: #94784c;
+    font-size: 12px;
+    transition: transform 0.25s ease;
+}
+
+.resourceCategory.open .resourceCategoryArrow {
+    transform: rotate(180deg);
+}
+
+.resourceCategoryContent {
+    display: none;
+    padding: 0 9px 9px;
+}
+
+.resourceCategory.open .resourceCategoryContent {
+    display: block;
+}
+
+
+/* =====================================================
+   РЕСУРС
+===================================================== */
+
+.resourceItem {
+    display: grid;
+    grid-template-columns: 42px 1fr auto 34px;
+    align-items: center;
+    gap: 9px;
+    min-height: 62px;
+    padding: 8px 9px;
+    border: 1px solid rgba(117, 94, 56, 0.36);
+    background: rgba(28, 23, 18, 0.68);
+}
+
+.resourceItemIcon {
+    width: 38px;
+    height: 38px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(117, 94, 56, 0.42);
+    color: #aa9162;
+    font-size: 18px;
+}
+
+.resourceItemInfo {
+    min-width: 0;
+}
+
+.resourceItemName {
+    color: #c8baa2;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+.resourceItemDescription {
+    margin-top: 3px;
+    color: #6e665a;
+    font-size: 10px;
+}
+
+.resourceItemValue {
+    min-width: 45px;
+    color: #d1c3a9;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 15px;
+    text-align: right;
+}
+
+.resourceInfoButton {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid rgba(142, 116, 70, 0.55);
+    background: rgba(36, 29, 21, 0.75);
+    color: #b29667;
+    font-family: Georgia, serif;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.resourceInfoButton:active {
+    background: rgba(91, 68, 38, 0.75);
+    transform: scale(0.94);
+}
+
+
+/* =====================================================
+   ПРОИЗВОДСТВО
+===================================================== */
+
+.productionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 50px;
+    padding: 10px 13px;
+    border: none;
+    background: transparent;
+    color: #bca57b;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.productionHeader:active {
+    background: rgba(75, 58, 35, 0.18);
+}
+
+.productionHeaderLeft {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.productionHeaderIcon {
+    font-size: 16px;
+}
+
+.productionArrow {
+    color: #94784c;
+    font-size: 13px;
+    transition: transform 0.25s ease;
+}
+
+.productionSection.open .productionArrow {
+    transform: rotate(180deg);
+}
+
+.productionMenu {
+    display: none;
+    border-top: 1px solid rgba(117, 94, 56, 0.32);
+}
+
+.productionSection.open .productionMenu {
+    display: block;
+}
+
+.huntingSubHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: calc(100% - 20px);
+    margin: 10px;
+    min-height: 48px;
+    padding: 9px 12px;
+    border: 1px solid rgba(157, 126, 72, 0.42);
+    background: rgba(26, 22, 17, 0.65);
+    color: #cbb99a;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    text-align: left;
+}
+
+.huntingSubHeader:active {
+    transform: scale(.99);
+    background: rgba(75, 58, 35, .25);
+}
+
+.huntingSubLeft {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.huntingSubArrow {
+    color: #94784c;
+    transition: transform .2s ease;
+}
+
+.huntingSubHeader.open .huntingSubArrow {
+    transform: rotate(180deg);
+}
+
+.huntingGroundList {
+    display: none;
+    padding: 0 0 4px;
+}
+.productionHint {
+    margin: 0 10px 8px;
+    padding: 10px 11px;
+    border-left: 1px solid rgba(157,126,72,.45);
+    border-right: 1px solid rgba(117,94,56,.22);
+    background: rgba(20,17,13,.45);
+    color: #786f62;
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.productionHint strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #a68d63;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 1.3px;
+}
+
+.huntingGroundList.open {
+    display: block;
+}
+
+.productionCellSummary {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    margin-top: 8px;
+    padding: 8px 10px;
+    border: 1px solid rgba(117,94,56,.28);
+    background: rgba(25,21,17,.5);
+    color: #897d6d;
+    font-size: 10px;
+}
+
+.productionCellSummary strong {
+    color: #b8a27a;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+}
+
+.cellInfoHint {
+    margin-top: 7px;
+    color: #6f675b;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.productionCard {
+    margin: 10px;
+    padding: 12px;
+    border: 1px solid rgba(157, 126, 72, 0.42);
+    background: rgba(26, 22, 17, 0.65);
+}
+
+.productionTop {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.productionIcon {
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(117, 94, 56, 0.45);
+    font-size: 22px;
+}
+
+.productionTitle {
+    color: #cbb99a;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+}
+
+.productionSubtitle {
+    margin-top: 3px;
+    color: #736a5e;
+    font-size: 11px;
+}
+
+.productionInfo {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(117, 94, 56, 0.25);
+}
+
+.productionLine {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+    color: #85796a;
+    font-size: 12px;
+}
+
+.productionLine strong {
+    color: #b8a27a;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    text-align: right;
+}
+
+.productionStatus {
+    margin-top: 9px;
+    padding: 9px;
+    border: 1px solid rgba(117, 94, 56, 0.28);
+    background: rgba(10, 9, 7, 0.4);
+    color: #8c7d68;
+    font-size: 11px;
+    line-height: 1.4;
+    text-align: center;
+}
+
+.productionStatus.locked {
+    color: #876f60;
+    border-color: rgba(112, 77, 61, 0.42);
+    background: rgba(64, 37, 28, 0.16);
+}
+
+.hunterControl {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.hunterButton {
+    width: 40px;
+    height: 36px;
+    border: 1px solid rgba(142, 116, 70, 0.55);
+    background: rgba(37, 30, 22, 0.8);
+    color: #b69a68;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.hunterButton:active {
+    transform: scale(0.94);
+    background: rgba(82, 61, 35, 0.75);
+}
+
+.hunterButton:disabled {
+    opacity: 0.25;
+    cursor: default;
+}
+
+.hunterCount {
+    flex: 1;
+    text-align: center;
+}
+
+.hunterCountNumber {
+    color: #d0c0a5;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 17px;
+}
+
+.hunterCountText {
+    margin-top: 2px;
+    color: #70675b;
+    font-size: 10px;
+}
+
+.forestBar {
+    margin-top: 10px;
+}
+
+.forestBarLabel {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 5px;
+    color: #746b5d;
+    font-size: 10px;
+}
+
+.forestBarOuter {
+    width: 100%;
+    height: 5px;
+    background: rgba(45, 39, 30, 0.8);
+}
+
+.forestBarInner {
+    width: 100%;
+    height: 100%;
+    background: #77633f;
+    transition: width 0.4s ease;
+}
+
+.noForest {
+    margin-top: 10px;
+    padding: 12px 10px;
+    border: 1px solid rgba(112, 77, 61, 0.42);
+    background: rgba(64, 37, 28, 0.15);
+    color: #89766a;
+    font-size: 12px;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.noForestIcon {
+    display: block;
+    margin-bottom: 5px;
+    font-size: 20px;
+}
+
+.noForestTitle {
+    margin-bottom: 4px;
+    color: #a28a72;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+}
+
+
+/* =====================================================
+   ДЕРЕВНЯ
+===================================================== */
+
+.village {
+    position: relative;
+    z-index: 2;
+    display: block;
+    width: 100%;
+    margin-top: 18px;
+    padding: 15px 13px 13px;
+    border: 1px solid rgba(157, 126, 72, 0.5);
+    background: rgba(29, 24, 18, 0.7);
+    text-align: center;
+    color: inh

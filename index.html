@@ -1106,109 +1106,6 @@ textarea.input {
 
 
 /* =====================================================
-   ДЕМО — УСКОРИТЬ ВРЕМЯ НА 2 ЧАСА
-===================================================== */
-
-function demoAdvanceTime() {
-
-    let house = getHouse();
-
-    if (!house) return;
-
-    house = prepareHouse(house);
-
-    const DEMO_TWO_HOURS =
-        2 * 60 * 60 * 1000;
-
-    const now = Date.now();
-
-    /*
-       Сдвигаем игровые таймеры назад на 2 часа.
-       Поэтому существующие производственные механики
-       воспринимают это так, будто прошло 2 часа.
-    */
-
-    if (house.hunting) {
-
-        if (
-            typeof house.hunting.lastProduction === "number"
-        ) {
-            house.hunting.lastProduction -=
-                DEMO_TWO_HOURS;
-        }
-
-        if (
-            typeof house.hunting.recoveryStartedAt === "number"
-        ) {
-            house.hunting.recoveryStartedAt -=
-                DEMO_TWO_HOURS;
-        }
-
-    }
-
-    if (house.forestry) {
-
-        if (
-            typeof house.forestry.lastProduction === "number"
-        ) {
-            house.forestry.lastProduction -=
-                DEMO_TWO_HOURS;
-        }
-
-    }
-
-    if (
-        Array.isArray(house.huntingGrounds)
-    ) {
-
-        house.huntingGrounds.forEach(function(ground) {
-
-            if (
-                typeof ground.recoveryStartedAt === "number"
-            ) {
-                ground.recoveryStartedAt -=
-                    DEMO_TWO_HOURS;
-            }
-
-        });
-
-    }
-
-    if (
-        Array.isArray(house.forestryGrounds)
-    ) {
-
-        house.forestryGrounds.forEach(function(ground) {
-
-            if (
-                typeof ground.recoveryStartedAt === "number"
-            ) {
-                ground.recoveryStartedAt -=
-                    DEMO_TWO_HOURS;
-            }
-
-        });
-
-    }
-
-    /*
-       Запускаем существующие производственные процессы.
-       Никаких новых правил добычи здесь нет.
-    */
-
-    processHunting(house);
-    processForestry(house);
-
-    saveHouseData(house);
-
-    updatePopulation();
-    updateHunting();
-    updateForestry();
-    updateResources();
-}
-
-
-/* =====================================================
    СБРОС
 ===================================================== */
 
@@ -3057,6 +2954,109 @@ function demoAdvanceTime() {
 
 
 <script>
+
+/* =====================================================
+   ДЕМО — УСКОРИТЬ ВРЕМЯ НА 2 ЧАСА
+===================================================== */
+
+function demoAdvanceTime() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const DEMO_TWO_HOURS =
+        2 * 60 * 60 * 1000;
+
+    const now = Date.now();
+
+    /*
+       Сдвигаем игровые таймеры назад на 2 часа.
+       Поэтому существующие производственные механики
+       воспринимают это так, будто прошло 2 часа.
+    */
+
+    if (house.hunting) {
+
+        if (
+            typeof house.hunting.lastProduction === "number"
+        ) {
+            house.hunting.lastProduction -=
+                DEMO_TWO_HOURS;
+        }
+
+        if (
+            typeof house.hunting.recoveryStartedAt === "number"
+        ) {
+            house.hunting.recoveryStartedAt -=
+                DEMO_TWO_HOURS;
+        }
+
+    }
+
+    if (house.forestry) {
+
+        if (
+            typeof house.forestry.lastProduction === "number"
+        ) {
+            house.forestry.lastProduction -=
+                DEMO_TWO_HOURS;
+        }
+
+    }
+
+    if (
+        Array.isArray(house.huntingGrounds)
+    ) {
+
+        house.huntingGrounds.forEach(function(ground) {
+
+            if (
+                typeof ground.recoveryStartedAt === "number"
+            ) {
+                ground.recoveryStartedAt -=
+                    DEMO_TWO_HOURS;
+            }
+
+        });
+
+    }
+
+    if (
+        Array.isArray(house.forestryGrounds)
+    ) {
+
+        house.forestryGrounds.forEach(function(ground) {
+
+            if (
+                typeof ground.recoveryStartedAt === "number"
+            ) {
+                ground.recoveryStartedAt -=
+                    DEMO_TWO_HOURS;
+            }
+
+        });
+
+    }
+
+    /*
+       Запускаем существующие производственные процессы.
+       Никаких новых правил добычи здесь нет.
+    */
+
+    processHunting(house);
+    processForestry(house);
+
+    saveHouseData(house);
+
+    updatePopulation();
+    updateHunting();
+    updateForestry();
+    updateResources();
+}
+
 
 /* =====================================================
    TELEGRAM

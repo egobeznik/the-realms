@@ -14,13 +14,16 @@
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
-<!-- Шрифт, максимально близкий к шрифту на первом экране -->
 <link
     href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600&family=Cormorant+Garamond:wght@400;500;600&display=swap"
     rel="stylesheet"
 >
 
 <style>
+
+/* =====================================================
+   ОСНОВА
+===================================================== */
 
 * {
     box-sizing: border-box;
@@ -85,8 +88,6 @@ body {
 }
 
 
-/* Невидимая кнопка поверх кнопки на картинке */
-
 #startButton {
 
     position: absolute;
@@ -106,6 +107,7 @@ body {
 
     cursor: pointer;
 }
+
 
 #startButton:active {
 
@@ -153,10 +155,6 @@ body {
 }
 
 
-/* =====================================================
-   РАМКА
-===================================================== */
-
 .creationFrame {
 
     position: relative;
@@ -196,10 +194,6 @@ body {
     pointer-events: none;
 }
 
-
-/* =====================================================
-   ЗАГОЛОВОК
-===================================================== */
 
 .creationHeader {
 
@@ -250,11 +244,6 @@ body {
 
     color: #958773;
 
-    font-family:
-        "Cormorant Garamond",
-        Georgia,
-        serif;
-
     font-size: 14px;
 
     line-height: 1.35;
@@ -294,10 +283,6 @@ body {
     font-size: 7px;
 }
 
-
-/* =====================================================
-   ФОРМА
-===================================================== */
 
 .form {
 
@@ -344,18 +329,9 @@ body {
 
     color: #665d51;
 
-    font-family:
-        "Cormorant Garamond",
-        Georgia,
-        serif;
-
     font-size: 11px;
 }
 
-
-/* =====================================================
-   ПОЛЯ
-===================================================== */
 
 .input {
 
@@ -386,8 +362,6 @@ body {
         serif;
 
     font-size: 16px;
-
-    line-height: 1.2;
 }
 
 
@@ -404,8 +378,6 @@ body {
 .input::placeholder {
 
     color: #625a50;
-
-    opacity: 1;
 }
 
 
@@ -414,14 +386,8 @@ textarea.input {
     min-height: 72px;
 
     resize: none;
-
-    line-height: 1.35;
 }
 
-
-/* =====================================================
-   ГЕРБ
-===================================================== */
 
 .crestUpload {
 
@@ -460,8 +426,7 @@ textarea.input {
         1px solid
         rgba(163, 132, 77, 0.55);
 
-    background:
-        #0c0a08;
+    background: #0c0a08;
 
     color: #776448;
 
@@ -479,7 +444,6 @@ textarea.input {
 
 
 .uploadArea {
-
     flex: 1;
 }
 
@@ -512,14 +476,9 @@ textarea.input {
 
 
 #crestInput {
-
     display: none;
 }
 
-
-/* =====================================================
-   КНОПКА
-===================================================== */
 
 .continueButton {
 
@@ -547,8 +506,6 @@ textarea.input {
 
     font-size: 11px;
 
-    font-weight: 500;
-
     letter-spacing: 3px;
 
     cursor: pointer;
@@ -563,10 +520,6 @@ textarea.input {
     transform: scale(0.99);
 }
 
-
-/* =====================================================
-   ОШИБКА
-===================================================== */
 
 .error {
 
@@ -585,20 +538,11 @@ textarea.input {
     background:
         rgba(80, 38, 28, 0.18);
 
-    font-family:
-        "Cormorant Garamond",
-        Georgia,
-        serif;
-
     font-size: 12px;
 
     text-align: center;
 }
 
-
-/* =====================================================
-   FOOTER
-===================================================== */
 
 .creationFooter {
 
@@ -620,20 +564,22 @@ textarea.input {
 
 
 /* =====================================================
-   ТРЕТИЙ ЭКРАН
+   ТРЕТИЙ ЭКРАН — ГОСУДАРСТВО
 ===================================================== */
 
 #realmScreen {
 
     display: none;
 
+    width: 100%;
+
     min-height: 100vh;
     min-height: 100dvh;
 
     padding:
-        20px
-        18px
-        28px;
+        16px
+        14px
+        30px;
 
     overflow-y: auto;
 
@@ -642,7 +588,7 @@ textarea.input {
         radial-gradient(
             ellipse at top,
             rgba(119, 91, 49, 0.12),
-            transparent 45%
+            transparent 42%
         ),
 
         #090806;
@@ -653,23 +599,25 @@ textarea.input {
 
     position: relative;
 
-    min-height:
-        calc(100vh - 48px);
+    width: 100%;
 
     min-height:
-        calc(100dvh - 48px);
+        calc(100vh - 46px);
+
+    min-height:
+        calc(100dvh - 46px);
 
     padding:
-        26px
-        18px
-        30px;
+        20px
+        14px
+        28px;
 
     border:
         1px solid
         rgba(157, 126, 72, 0.55);
 
     background:
-        rgba(12, 10, 8, 0.45);
+        rgba(12, 10, 8, 0.52);
 }
 
 
@@ -679,7 +627,7 @@ textarea.input {
 
     position: absolute;
 
-    inset: 6px;
+    inset: 5px;
 
     border:
         1px solid
@@ -689,18 +637,22 @@ textarea.input {
 }
 
 
+/* =====================================================
+   ВЕРХ ГОСУДАРСТВА
+===================================================== */
+
 .realmCrest {
 
     position: relative;
 
     z-index: 2;
 
-    width: 92px;
-    height: 92px;
+    width: 72px;
+    height: 72px;
 
     margin:
         0 auto
-        15px;
+        10px;
 
     display: flex;
 
@@ -713,12 +665,11 @@ textarea.input {
         1px solid
         rgba(174, 143, 87, 0.65);
 
-    background:
-        #0b0907;
+    background: #0b0907;
 
     color: #b99b63;
 
-    font-size: 35px;
+    font-size: 28px;
 }
 
 
@@ -746,11 +697,11 @@ textarea.input {
         Georgia,
         serif;
 
-    font-size: 23px;
+    font-size: 20px;
 
     font-weight: 500;
 
-    letter-spacing: 3px;
+    letter-spacing: 2.5px;
 
     line-height: 1.2;
 }
@@ -762,7 +713,7 @@ textarea.input {
 
     z-index: 2;
 
-    margin-top: 7px;
+    margin-top: 5px;
 
     text-align: center;
 
@@ -773,9 +724,9 @@ textarea.input {
         Georgia,
         serif;
 
-    font-size: 10px;
+    font-size: 9px;
 
-    letter-spacing: 2.5px;
+    letter-spacing: 2px;
 
     text-transform: uppercase;
 }
@@ -790,23 +741,18 @@ textarea.input {
     max-width: 320px;
 
     margin:
-        18px auto
-        20px;
+        12px auto
+        15px;
 
     color: #9b8e7b;
 
     text-align: center;
 
-    font-family:
-        "Cormorant Garamond",
-        Georgia,
-        serif;
-
-    font-size: 15px;
+    font-size: 14px;
 
     font-style: italic;
 
-    line-height: 1.4;
+    line-height: 1.35;
 }
 
 
@@ -820,13 +766,13 @@ textarea.input {
 
     align-items: center;
 
-    gap: 9px;
+    gap: 8px;
 
-    width: 190px;
+    width: 180px;
 
     margin:
         0 auto
-        20px;
+        15px;
 }
 
 
@@ -864,57 +810,331 @@ textarea.input {
         Georgia,
         serif;
 
-    font-size: 10px;
+    font-size: 9px;
 
     letter-spacing: 4px;
 }
 
 
-.stats {
+/* =====================================================
+   ОСНОВНЫЕ БЛОКИ
+===================================================== */
+
+.realmSection {
 
     position: relative;
 
     z-index: 2;
 
-    display: grid;
-
-    grid-template-columns:
-        repeat(2, 1fr);
-
-    gap: 8px;
-
-    margin-top: 22px;
-}
-
-
-.stat {
-
-    min-height: 66px;
-
-    padding: 10px;
+    margin-top: 18px;
 
     border:
         1px solid
         rgba(117, 94, 56, 0.45);
 
     background:
-        rgba(27, 22, 17, 0.65);
+        rgba(21, 18, 14, 0.72);
+}
+
+
+.sectionHeader {
+
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    padding:
+        11px
+        13px;
+
+    border-bottom:
+        1px solid
+        rgba(117, 94, 56, 0.35);
+}
+
+
+.sectionTitle {
+
+    color: #bca57b;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 10px;
+
+    letter-spacing: 2px;
+}
+
+
+.sectionTotal {
+
+    color: #817668;
+
+    font-size: 11px;
+}
+
+
+/* =====================================================
+   НАСЕЛЕНИЕ
+===================================================== */
+
+.populationRow {
+
+    display: grid;
+
+    grid-template-columns:
+        34px
+        1fr
+        auto
+        32px;
+
+    align-items: center;
+
+    gap: 7px;
+
+    min-height: 58px;
+
+    padding:
+        8px
+        10px;
+
+    border-bottom:
+        1px solid
+        rgba(117, 94, 56, 0.18);
+}
+
+
+.populationRow:last-child {
+    border-bottom: none;
+}
+
+
+.populationIcon {
+
+    width: 30px;
+    height: 30px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.4);
+
+    color: #aa9162;
+
+    font-size: 14px;
+}
+
+
+.populationInfo {
+
+    min-width: 0;
+}
+
+
+.populationName {
+
+    color: #c8baa2;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 9px;
+
+    letter-spacing: 0.8px;
+
+    line-height: 1.2;
+}
+
+
+.populationConsumption {
+
+    margin-top: 3px;
+
+    color: #665f54;
+
+    font-size: 10px;
+}
+
+
+.populationValue {
+
+    min-width: 28px;
+
+    color: #d1c3a9;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 16px;
 
     text-align: center;
 }
 
 
-.statIcon {
+/* =====================================================
+   КНОПКА СПРАВКИ
+===================================================== */
 
-    color: #a99168;
+.helpButton {
 
-    font-size: 15px;
+    width: 28px;
+    height: 28px;
+
+    padding: 0;
+
+    border:
+        1px solid
+        rgba(142, 116, 70, 0.55);
+
+    background:
+        rgba(36, 29, 21, 0.75);
+
+    color: #b29667;
+
+    font-family:
+        Georgia,
+        serif;
+
+    font-size: 13px;
+
+    cursor: pointer;
 }
 
 
-.statName {
+.helpButton:active {
 
-    margin-top: 4px;
+    background:
+        rgba(91, 68, 38, 0.75);
+
+    transform: scale(0.94);
+}
+
+
+/* =====================================================
+   КНОПКИ РАСПРЕДЕЛЕНИЯ
+===================================================== */
+
+.populationActions {
+
+    display: flex;
+
+    gap: 4px;
+
+    padding:
+        7px
+        10px
+        9px;
+
+    background:
+        rgba(12, 10, 8, 0.28);
+
+    border-bottom:
+        1px solid
+        rgba(117, 94, 56, 0.16);
+}
+
+
+.populationAction {
+
+    flex: 1;
+
+    min-height: 30px;
+
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.4);
+
+    background:
+        rgba(37, 30, 22, 0.75);
+
+    color: #9e8a67;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 7px;
+
+    letter-spacing: 0.8px;
+
+    cursor: pointer;
+}
+
+
+.populationAction:active {
+
+    background:
+        rgba(88, 66, 38, 0.7);
+
+    transform: scale(0.98);
+}
+
+
+.populationAction:disabled {
+
+    opacity: 0.3;
+
+    cursor: default;
+}
+
+
+/* =====================================================
+   РЕСУРСЫ
+===================================================== */
+
+.resourceGrid {
+
+    display: grid;
+
+    grid-template-columns:
+        repeat(2, 1fr);
+
+    gap: 7px;
+
+    padding: 9px;
+}
+
+
+.resource {
+
+    min-height: 61px;
+
+    padding: 9px;
+
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.35);
+
+    background:
+        rgba(28, 23, 18, 0.62);
+
+    text-align: center;
+}
+
+
+.resourceIcon {
+
+    font-size: 14px;
+
+    color: #aa9162;
+}
+
+
+.resourceName {
+
+    margin-top: 3px;
 
     color: #71685c;
 
@@ -926,20 +1146,27 @@ textarea.input {
     font-size: 7px;
 
     letter-spacing: 1px;
-
-    text-transform: uppercase;
 }
 
 
-.statValue {
+.resourceValue {
 
     margin-top: 2px;
 
     color: #cbbca4;
 
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
     font-size: 14px;
 }
 
+
+/* =====================================================
+   ПЕРВАЯ ДЕРЕВНЯ
+===================================================== */
 
 .village {
 
@@ -991,6 +1218,10 @@ textarea.input {
 }
 
 
+/* =====================================================
+   ИСТОРИЯ
+===================================================== */
+
 .history {
 
     position: relative;
@@ -1035,16 +1266,15 @@ textarea.input {
 
     color: #908474;
 
-    font-family:
-        "Cormorant Garamond",
-        Georgia,
-        serif;
-
     font-size: 14px;
 
     line-height: 1.5;
 }
 
+
+/* =====================================================
+   СБРОС
+===================================================== */
 
 .resetButton {
 
@@ -1081,6 +1311,168 @@ textarea.input {
 
 
 /* =====================================================
+   ВСПЛЫВАЮЩАЯ СПРАВКА
+===================================================== */
+
+#helpOverlay {
+
+    display: none;
+
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 500;
+
+    padding:
+        20px;
+
+    background:
+        rgba(0, 0, 0, 0.72);
+
+    align-items: center;
+    justify-content: center;
+}
+
+
+.helpWindow {
+
+    width: 100%;
+
+    max-width: 360px;
+
+    padding:
+        23px
+        18px
+        18px;
+
+    border:
+        1px solid
+        rgba(174, 141, 82, 0.65);
+
+    background:
+        #110e0a;
+
+    box-shadow:
+        0 12px 45px
+        rgba(0, 0, 0, 0.65);
+}
+
+
+.helpWindowTitle {
+
+    color: #d3c2a3;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 14px;
+
+    letter-spacing: 2px;
+
+    text-align: center;
+}
+
+
+.helpWindowDivider {
+
+    width: 130px;
+
+    height: 1px;
+
+    margin:
+        12px auto
+        15px;
+
+    background:
+        rgba(157, 126, 72, 0.55);
+}
+
+
+.helpWindowDescription {
+
+    color: #a39786;
+
+    font-size: 14px;
+
+    line-height: 1.5;
+
+    text-align: center;
+}
+
+
+.helpDetails {
+
+    margin-top: 17px;
+
+    padding-top: 13px;
+
+    border-top:
+        1px solid
+        rgba(117, 94, 56, 0.3);
+}
+
+
+.helpDetail {
+
+    margin-bottom: 10px;
+
+    color: #877b6b;
+
+    font-size: 12px;
+
+    line-height: 1.4;
+}
+
+
+.helpDetail strong {
+
+    color: #b39a6b;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 9px;
+
+    letter-spacing: 1px;
+}
+
+
+.closeHelp {
+
+    width: 100%;
+
+    min-height: 40px;
+
+    margin-top: 8px;
+
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.55);
+
+    background:
+        rgba(36, 29, 21, 0.8);
+
+    color: #b7a17a;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 9px;
+
+    letter-spacing: 2px;
+
+    cursor: pointer;
+}
+
+
+/* =====================================================
    ЗАКРЫТЫЙ ДОСТУП
 ===================================================== */
 
@@ -1092,7 +1484,7 @@ textarea.input {
 
     inset: 0;
 
-    z-index: 100;
+    z-index: 1000;
 
     background: #090806;
 
@@ -1142,11 +1534,6 @@ textarea.input {
 
     color: #777064;
 
-    font-family:
-        "Cormorant Garamond",
-        Georgia,
-        serif;
-
     font-size: 14px;
 
     line-height: 1.5;
@@ -1162,33 +1549,24 @@ textarea.input {
     #creationScreen,
     #realmScreen {
 
-        padding-top: 12px;
+        padding-top: 10px;
     }
 
     .creationFrame,
     .realmFrame {
 
-        padding-top: 18px;
+        padding-top: 17px;
     }
 
-    .creationHeader {
+    .populationRow {
 
-        margin-bottom: 15px;
+        min-height: 52px;
     }
 
-    .field {
+    .populationActions {
 
-        margin-bottom: 10px;
-    }
-
-    .input {
-
-        min-height: 40px;
-    }
-
-    textarea.input {
-
-        min-height: 62px;
+        padding-top: 5px;
+        padding-bottom: 7px;
     }
 }
 
@@ -1225,12 +1603,9 @@ textarea.input {
      ВТОРОЙ ЭКРАН
 ===================================================== -->
 
-<main
-    id="creationScreen"
->
+<main id="creationScreen">
 
     <div class="creationFrame">
-
 
         <header class="creationHeader">
 
@@ -1266,7 +1641,6 @@ textarea.input {
             onsubmit="saveHouse(event)"
         >
 
-
             <div class="field">
 
                 <label
@@ -1281,7 +1655,7 @@ textarea.input {
                     id="rulerName"
                     type="text"
                     maxlength="40"
-                    placeholder="Например, Эддард"
+                    placeholder="Например, Аэрион Первый"
                     autocomplete="off"
                     required
                 >
@@ -1303,7 +1677,7 @@ textarea.input {
                     id="houseName"
                     type="text"
                     maxlength="40"
-                    placeholder="Например, Дом Вальд"
+                    placeholder="Например, Дом Первого Света"
                     autocomplete="off"
                     required
                 >
@@ -1325,7 +1699,7 @@ textarea.input {
                     id="realmName"
                     type="text"
                     maxlength="45"
-                    placeholder="Например, Северные земли"
+                    placeholder="Например, Эллария"
                     autocomplete="off"
                     required
                 >
@@ -1347,7 +1721,7 @@ textarea.input {
                     id="motto"
                     type="text"
                     maxlength="80"
-                    placeholder="Например, Земля помнит каждого"
+                    placeholder="Например, Мы храним то, что ещё не стало историей"
                     autocomplete="off"
                     required
                 >
@@ -1431,14 +1805,12 @@ textarea.input {
                 СОЗДАТЬ ЛЕТОПИСЬ
             </button>
 
-
         </form>
 
 
         <div class="creationFooter">
             ГОД I · НАЧАЛО ДИНАСТИИ
         </div>
-
 
     </div>
 
@@ -1449,12 +1821,14 @@ textarea.input {
      ТРЕТИЙ ЭКРАН
 ===================================================== -->
 
-<main
-    id="realmScreen"
->
+<main id="realmScreen">
 
     <div class="realmFrame">
 
+
+        <!-- =============================================
+             ГЕРБ И НАЗВАНИЕ
+        ============================================== -->
 
         <div
             class="realmCrest"
@@ -1506,79 +1880,289 @@ textarea.input {
         </div>
 
 
-        <div class="stats">
+        <!-- =============================================
+             НАСЕЛЕНИЕ
+        ============================================== -->
 
+        <section class="realmSection">
 
-            <div class="stat">
+            <div class="sectionHeader">
 
-                <div class="statIcon">
-                    ♟
+                <div class="sectionTitle">
+                    НАСЕЛЕНИЕ
                 </div>
 
-                <div class="statName">
-                    Население
-                </div>
-
-                <div class="statValue">
-                    20
+                <div
+                    class="sectionTotal"
+                    id="populationTotal"
+                >
+                    Всего: 100
                 </div>
 
             </div>
 
 
-            <div class="stat">
+            <!-- СВОБОДНЫЕ -->
 
-                <div class="statIcon">
-                    🌾
+            <div class="populationRow">
+
+                <div class="populationIcon">
+                    ♙
                 </div>
 
-                <div class="statName">
-                    Еда
+                <div class="populationInfo">
+
+                    <div class="populationName">
+                        СВОБОДНОЕ НАСЕЛЕНИЕ
+                    </div>
+
+                    <div class="populationConsumption">
+                        🍞 1 еда / 5 часов
+                    </div>
+
                 </div>
 
-                <div class="statValue">
+                <div
+                    class="populationValue"
+                    id="freePopulation"
+                >
                     100
                 </div>
 
-            </div>
-
-
-            <div class="stat">
-
-                <div class="statIcon">
-                    🪵
-                </div>
-
-                <div class="statName">
-                    Дерево
-                </div>
-
-                <div class="statValue">
-                    100
-                </div>
+                <button
+                    class="helpButton"
+                    onclick="showHelp('free')"
+                >
+                    ?
+                </button>
 
             </div>
 
 
-            <div class="stat">
+            <div class="populationActions">
 
-                <div class="statIcon">
-                    ◆
+                <button
+                    class="populationAction"
+                    onclick="moveFreeToWorker()"
+                    id="freeToWorkerButton"
+                >
+                    → РАБОЧИМ
+                </button>
+
+                <button
+                    class="populationAction"
+                    onclick="moveFreeToSoldier()"
+                    id="freeToSoldierButton"
+                >
+                    → ВОЕННЫМ
+                </button>
+
+            </div>
+
+
+            <!-- РАБОЧИЕ -->
+
+            <div class="populationRow">
+
+                <div class="populationIcon">
+                    ⚒
                 </div>
 
-                <div class="statName">
-                    Камень
+                <div class="populationInfo">
+
+                    <div class="populationName">
+                        РАБОЧЕЕ НАСЕЛЕНИЕ
+                    </div>
+
+                    <div class="populationConsumption">
+                        🍞 1 еда / 5 часов
+                    </div>
+
                 </div>
 
-                <div class="statValue">
-                    50
+                <div
+                    class="populationValue"
+                    id="workerPopulation"
+                >
+                    0
+                </div>
+
+                <button
+                    class="helpButton"
+                    onclick="showHelp('worker')"
+                >
+                    ?
+                </button>
+
+            </div>
+
+
+            <div class="populationActions">
+
+                <button
+                    class="populationAction"
+                    onclick="moveWorkerToFree()"
+                    id="workerToFreeButton"
+                >
+                    ← В СВОБОДНЫЕ
+                </button>
+
+            </div>
+
+
+            <!-- ВОЕННЫЕ -->
+
+            <div class="populationRow">
+
+                <div class="populationIcon">
+                    ⚔
+                </div>
+
+                <div class="populationInfo">
+
+                    <div class="populationName">
+                        ВОЕННОСЛУЖАЩИЕ
+                    </div>
+
+                    <div class="populationConsumption">
+                        🍞 2 еды / 5 часов
+                    </div>
+
+                </div>
+
+                <div
+                    class="populationValue"
+                    id="soldierPopulation"
+                >
+                    0
+                </div>
+
+                <button
+                    class="helpButton"
+                    onclick="showHelp('soldier')"
+                >
+                    ?
+                </button>
+
+            </div>
+
+
+            <div class="populationActions">
+
+                <button
+                    class="populationAction"
+                    onclick="moveSoldierToFree()"
+                    id="soldierToFreeButton"
+                >
+                    ← В СВОБОДНЫЕ
+                </button>
+
+            </div>
+
+        </section>
+
+
+        <!-- =============================================
+             РЕСУРСЫ
+        ============================================== -->
+
+        <section class="realmSection">
+
+            <div class="sectionHeader">
+
+                <div class="sectionTitle">
+                    РЕСУРСЫ
+                </div>
+
+                <div class="sectionTotal">
+                    ЗАПАСЫ
                 </div>
 
             </div>
 
 
-        </div>
+            <div class="resourceGrid">
 
+
+                <div class="resource">
+
+                    <div class="resourceIcon">
+                        🍞
+                    </div>
+
+                    <div class="resourceName">
+                        ЕДА
+                    </div>
+
+                    <div
+                        class="resourceValue"
+                        id="foodValue"
+                    >
+                        100
+                    </div>
+
+                </div>
+
+
+                <div class="resource">
+
+                    <div class="resourceIcon">
+                        🪵
+                    </div>
+
+                    <div class="resourceName">
+                        ДЕРЕВО
+                    </div>
+
+                    <div class="resourceValue">
+                        50
+                    </div>
+
+                </div>
+
+
+                <div class="resource">
+
+                    <div class="resourceIcon">
+                        ◆
+                    </div>
+
+                    <div class="resourceName">
+                        КАМЕНЬ
+                    </div>
+
+                    <div class="resourceValue">
+                        50
+                    </div>
+
+                </div>
+
+
+                <div class="resource">
+
+                    <div class="resourceIcon">
+                        🪙
+                    </div>
+
+                    <div class="resourceName">
+                        ЗОЛОТО
+                    </div>
+
+                    <div class="resourceValue">
+                        0
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </section>
+
+
+        <!-- =============================================
+             ПЕРВАЯ ДЕРЕВНЯ
+        ============================================== -->
 
         <div class="village">
 
@@ -1593,6 +2177,10 @@ textarea.input {
 
         </div>
 
+
+        <!-- =============================================
+             ЛЕТОПИСЬ
+        ============================================== -->
 
         <div class="history">
 
@@ -1609,6 +2197,10 @@ textarea.input {
         </div>
 
 
+        <!-- =============================================
+             СБРОС
+        ============================================== -->
+
         <button
             class="resetButton"
             onclick="resetHouse()"
@@ -1620,6 +2212,75 @@ textarea.input {
     </div>
 
 </main>
+
+
+<!-- =====================================================
+     ОКНО СПРАВКИ
+===================================================== -->
+
+<div
+    id="helpOverlay"
+    onclick="closeHelpOutside(event)"
+>
+
+    <div class="helpWindow">
+
+        <div
+            class="helpWindowTitle"
+            id="helpTitle"
+        >
+        </div>
+
+
+        <div class="helpWindowDivider">
+        </div>
+
+
+        <div
+            class="helpWindowDescription"
+            id="helpDescription"
+        >
+        </div>
+
+
+        <div class="helpDetails">
+
+            <div class="helpDetail">
+
+                <strong>
+                    ВЛИЯНИЕ
+                </strong>
+
+                <div id="helpInfluence">
+                </div>
+
+            </div>
+
+
+            <div class="helpDetail">
+
+                <strong>
+                    ПОТРЕБЛЕНИЕ
+                </strong>
+
+                <div id="helpConsumption">
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <button
+            class="closeHelp"
+            onclick="closeHelp()"
+        >
+            ЗАКРЫТЬ
+        </button>
+
+    </div>
+
+</div>
 
 
 <!-- =====================================================
@@ -1650,7 +2311,6 @@ textarea.input {
 
 <script>
 
-
 /* =====================================================
    TELEGRAM
 ===================================================== */
@@ -1664,20 +2324,15 @@ tg.expand();
 
 
 /* =====================================================
-   ТВОЙ TELEGRAM ID
+   ДОСТУП
 ===================================================== */
 
 const ALLOWED_USER_ID =
     8608712290;
 
-
 const user =
     tg.initDataUnsafe.user;
 
-
-/* =====================================================
-   ПРОВЕРКА ДОСТУПА
-===================================================== */
 
 if (
     !user ||
@@ -1851,7 +2506,28 @@ function saveHouse(event) {
             new Date().toISOString(),
 
         crest:
-            null
+            null,
+
+        population: {
+
+            free: 100,
+
+            workers: 0,
+
+            soldiers: 0
+        },
+
+        resources: {
+
+            food: 100,
+
+            wood: 50,
+
+            stone: 50,
+
+            gold: 0
+        }
+
     };
 
 
@@ -1897,10 +2573,10 @@ function saveHouse(event) {
 
 
 /* =====================================================
-   ОТКРЫТЬ ГОСУДАРСТВО
+   ПОЛУЧИТЬ ДАННЫЕ ДОМА
 ===================================================== */
 
-function openRealm() {
+function getHouse() {
 
     const savedHouse =
         localStorage.getItem(
@@ -1909,6 +2585,38 @@ function openRealm() {
 
 
     if (!savedHouse) {
+        return null;
+    }
+
+
+    return JSON.parse(savedHouse);
+}
+
+
+/* =====================================================
+   СОХРАНИТЬ ДАННЫЕ ДОМА
+===================================================== */
+
+function saveHouseData(house) {
+
+    localStorage.setItem(
+        "theRealmsHouse",
+        JSON.stringify(house)
+    );
+}
+
+
+/* =====================================================
+   ОТКРЫТЬ ГОСУДАРСТВО
+===================================================== */
+
+function openRealm() {
+
+    const house =
+        getHouse();
+
+
+    if (!house) {
 
         openCreation();
 
@@ -1916,9 +2624,39 @@ function openRealm() {
     }
 
 
-    const house =
-        JSON.parse(savedHouse);
+    /* -----------------------------------------------
+       Защита старых сохранений
+    ------------------------------------------------ */
 
+    if (!house.population) {
+
+        house.population = {
+
+            free: 100,
+            workers: 0,
+            soldiers: 0
+        };
+    }
+
+
+    if (!house.resources) {
+
+        house.resources = {
+
+            food: 100,
+            wood: 50,
+            stone: 50,
+            gold: 0
+        };
+    }
+
+
+    saveHouseData(house);
+
+
+    /* -----------------------------------------------
+       Данные дома
+    ------------------------------------------------ */
 
     document
         .getElementById("realmHouse")
@@ -1947,6 +2685,10 @@ function openRealm() {
         "История этого Дома ещё только начинается.";
 
 
+    /* -----------------------------------------------
+       Герб
+    ------------------------------------------------ */
+
     const crest =
         document
             .getElementById("realmCrest");
@@ -1970,6 +2712,24 @@ function openRealm() {
     }
 
 
+    /* -----------------------------------------------
+       Обновить население
+    ------------------------------------------------ */
+
+    updatePopulation();
+
+
+    /* -----------------------------------------------
+       Обновить ресурсы
+    ------------------------------------------------ */
+
+    updateResources();
+
+
+    /* -----------------------------------------------
+       Показать экран
+    ------------------------------------------------ */
+
     document
         .getElementById("introScreen")
         .style.display = "none";
@@ -1986,6 +2746,396 @@ function openRealm() {
 
 
     window.scrollTo(0, 0);
+}
+
+
+/* =====================================================
+   ОБНОВЛЕНИЕ НАСЕЛЕНИЯ
+===================================================== */
+
+function updatePopulation() {
+
+    const house =
+        getHouse();
+
+
+    if (!house) {
+        return;
+    }
+
+
+    const free =
+        house.population.free;
+
+    const workers =
+        house.population.workers;
+
+    const soldiers =
+        house.population.soldiers;
+
+
+    const total =
+        free +
+        workers +
+        soldiers;
+
+
+    document
+        .getElementById("freePopulation")
+        .textContent =
+        free;
+
+
+    document
+        .getElementById("workerPopulation")
+        .textContent =
+        workers;
+
+
+    document
+        .getElementById("soldierPopulation")
+        .textContent =
+        soldiers;
+
+
+    document
+        .getElementById("populationTotal")
+        .textContent =
+        "Всего: " + total;
+
+
+    /* -----------------------------------------------
+       Кнопки
+    ------------------------------------------------ */
+
+    document
+        .getElementById("freeToWorkerButton")
+        .disabled =
+        free <= 0;
+
+
+    document
+        .getElementById("freeToSoldierButton")
+        .disabled =
+        free <= 0;
+
+
+    document
+        .getElementById("workerToFreeButton")
+        .disabled =
+        workers <= 0;
+
+
+    document
+        .getElementById("soldierToFreeButton")
+        .disabled =
+        soldiers <= 0;
+}
+
+
+/* =====================================================
+   СВОБОДНЫЙ → РАБОЧИЙ
+===================================================== */
+
+function moveFreeToWorker() {
+
+    const house =
+        getHouse();
+
+
+    if (!house) {
+        return;
+    }
+
+
+    if (house.population.free <= 0) {
+        return;
+    }
+
+
+    house.population.free -= 1;
+
+    house.population.workers += 1;
+
+
+    saveHouseData(house);
+
+    updatePopulation();
+}
+
+
+/* =====================================================
+   РАБОЧИЙ → СВОБОДНЫЙ
+===================================================== */
+
+function moveWorkerToFree() {
+
+    const house =
+        getHouse();
+
+
+    if (!house) {
+        return;
+    }
+
+
+    if (house.population.workers <= 0) {
+        return;
+    }
+
+
+    house.population.workers -= 1;
+
+    house.population.free += 1;
+
+
+    saveHouseData(house);
+
+    updatePopulation();
+}
+
+
+/* =====================================================
+   СВОБОДНЫЙ → ВОЕННЫЙ
+===================================================== */
+
+function moveFreeToSoldier() {
+
+    const house =
+        getHouse();
+
+
+    if (!house) {
+        return;
+    }
+
+
+    if (house.population.free <= 0) {
+        return;
+    }
+
+
+    house.population.free -= 1;
+
+    house.population.soldiers += 1;
+
+
+    saveHouseData(house);
+
+    updatePopulation();
+}
+
+
+/* =====================================================
+   ВОЕННЫЙ → СВОБОДНЫЙ
+===================================================== */
+
+function moveSoldierToFree() {
+
+    const house =
+        getHouse();
+
+
+    if (!house) {
+        return;
+    }
+
+
+    if (house.population.soldiers <= 0) {
+        return;
+    }
+
+
+    house.population.soldiers -= 1;
+
+    house.population.free += 1;
+
+
+    saveHouseData(house);
+
+    updatePopulation();
+}
+
+
+/* =====================================================
+   РЕСУРСЫ
+===================================================== */
+
+function updateResources() {
+
+    const house =
+        getHouse();
+
+
+    if (!house) {
+        return;
+    }
+
+
+    document
+        .getElementById("foodValue")
+        .textContent =
+        house.resources.food;
+}
+
+
+/* =====================================================
+   СПРАВКА
+===================================================== */
+
+const helpData = {
+
+    free: {
+
+        title:
+            "СВОБОДНОЕ НАСЕЛЕНИЕ",
+
+        description:
+            "Люди, не связанные службой или трудом. Они ждут своего предназначения.",
+
+        influence:
+            "Резерв государства. Могут быть назначены рабочими или военнослужащими.",
+
+        consumption:
+            "1 единица еды каждые 5 часов."
+
+    },
+
+
+    worker: {
+
+        title:
+            "РАБОЧЕЕ НАСЕЛЕНИЕ",
+
+        description:
+            "Те, кто трудится ради Дома. Их руки добывают богатство, на котором растёт государство.",
+
+        influence:
+            "Производят ресурсы. В дальнейшем их можно будет распределять по различным занятиям.",
+
+        consumption:
+            "1 единица еды каждые 5 часов."
+
+    },
+
+
+    soldier: {
+
+        title:
+            "ВОЕННОСЛУЖАЩИЕ",
+
+        description:
+            "Те, кто взял оружие ради Дома. Они защищают его земли и готовы проливать кровь за его границы.",
+
+        influence:
+            "Оборона государства, захват земель, военные походы и конфликты.",
+
+        consumption:
+            "2 единицы еды каждые 5 часов."
+
+    }
+
+};
+
+
+/* =====================================================
+   ОТКРЫТЬ СПРАВКУ
+===================================================== */
+
+function showHelp(type) {
+
+    const data =
+        helpData[type];
+
+
+    if (!data) {
+        return;
+    }
+
+
+    document
+        .getElementById("helpTitle")
+        .textContent =
+        data.title;
+
+
+    document
+        .getElementById("helpDescription")
+        .textContent =
+        data.description;
+
+
+    document
+        .getElementById("helpInfluence")
+        .textContent =
+        data.influence;
+
+
+    document
+        .getElementById("helpConsumption")
+        .textContent =
+        data.consumption;
+
+
+    document
+        .getElementById("helpOverlay")
+        .style.display =
+        "flex";
+}
+
+
+/* =====================================================
+   ЗАКРЫТЬ СПРАВКУ
+===================================================== */
+
+function closeHelp() {
+
+    document
+        .getElementById("helpOverlay")
+        .style.display =
+        "none";
+}
+
+
+/* =====================================================
+   ЗАКРЫТЬ ПО НАЖАТИЮ ВНЕ ОКНА
+===================================================== */
+
+function closeHelpOutside(event) {
+
+    if (
+        event.target.id ===
+        "helpOverlay"
+    ) {
+
+        closeHelp();
+    }
+}
+
+
+/* =====================================================
+   СБРОС
+===================================================== */
+
+function resetHouse() {
+
+    const confirmed =
+        confirm(
+            "Вы действительно хотите удалить существующий Дом и начать новую летопись?"
+        );
+
+
+    if (!confirmed) {
+        return;
+    }
+
+
+    localStorage.removeItem(
+        "theRealmsHouse"
+    );
+
+
+    location.reload();
 }
 
 
@@ -2021,33 +3171,6 @@ function checkExistingHouse() {
             .getElementById("realmScreen")
             .style.display = "none";
     }
-
-}
-
-
-/* =====================================================
-   СБРОС ДОМА
-===================================================== */
-
-function resetHouse() {
-
-    const confirmed =
-        confirm(
-            "Вы действительно хотите удалить существующий Дом и начать новую летопись?"
-        );
-
-
-    if (!confirmed) {
-        return;
-    }
-
-
-    localStorage.removeItem(
-        "theRealmsHouse"
-    );
-
-
-    location.reload();
 }
 
 

@@ -1082,81 +1082,267 @@ textarea.input {
 
 
 /* =====================================================
-   РЕСУРСЫ
+   РЕСУРСЫ — ВЫПАДАЮЩИЕ КАТЕГОРИИ
 ===================================================== */
 
-.resourceGrid {
+.resourcesSection {
 
-    display: grid;
+    position: relative;
 
-    grid-template-columns:
-        repeat(2, 1fr);
-
-    gap: 7px;
-
-    padding: 9px;
+    z-index: 2;
 }
 
 
-.resource {
+.resourceCategory {
 
-    min-height: 61px;
-
-    padding: 9px;
-
-    border:
+    border-bottom:
         1px solid
-        rgba(117, 94, 56, 0.35);
-
-    background:
-        rgba(28, 23, 18, 0.62);
-
-    text-align: center;
+        rgba(117, 94, 56, 0.25);
 }
 
 
-.resourceIcon {
+.resourceCategory:last-child {
 
-    font-size: 14px;
-
-    color: #aa9162;
+    border-bottom: none;
 }
 
 
-.resourceName {
+.resourceCategoryHeader {
 
-    margin-top: 3px;
+    display: flex;
 
-    color: #71685c;
+    align-items: center;
+
+    justify-content: space-between;
+
+    width: 100%;
+
+    min-height: 48px;
+
+    padding:
+        9px
+        13px;
+
+    border: none;
+
+    outline: none;
+
+    background: transparent;
+
+    color: #bca57b;
 
     font-family:
         "Cinzel",
         Georgia,
         serif;
 
-    font-size: 7px;
+    font-size: 10px;
+
+    letter-spacing: 1.5px;
+
+    cursor: pointer;
+
+    text-align: left;
+}
+
+
+.resourceCategoryHeader:active {
+
+    background:
+        rgba(75, 58, 35, 0.18);
+}
+
+
+.resourceCategoryLeft {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+}
+
+
+.resourceCategoryIcon {
+
+    font-size: 16px;
+}
+
+
+.resourceCategoryArrow {
+
+    color: #94784c;
+
+    font-size: 12px;
+
+    transition:
+        transform 0.25s ease;
+}
+
+
+.resourceCategory.open
+.resourceCategoryArrow {
+
+    transform: rotate(180deg);
+}
+
+
+.resourceCategoryContent {
+
+    display: none;
+
+    padding:
+        0
+        9px
+        9px;
+
+}
+
+
+.resourceCategory.open
+.resourceCategoryContent {
+
+    display: block;
+}
+
+
+/* =====================================================
+   РЕСУРС
+===================================================== */
+
+.resourceItem {
+
+    display: grid;
+
+    grid-template-columns:
+        42px
+        1fr
+        auto
+        34px;
+
+    align-items: center;
+
+    gap: 9px;
+
+    min-height: 62px;
+
+    padding:
+        8px
+        9px;
+
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.36);
+
+    background:
+        rgba(28, 23, 18, 0.68);
+}
+
+
+.resourceItemIcon {
+
+    width: 38px;
+    height: 38px;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    border:
+        1px solid
+        rgba(117, 94, 56, 0.42);
+
+    color: #aa9162;
+
+    font-size: 18px;
+}
+
+
+.resourceItemInfo {
+    min-width: 0;
+}
+
+
+.resourceItemName {
+
+    color: #c8baa2;
+
+    font-family:
+        "Cinzel",
+        Georgia,
+        serif;
+
+    font-size: 9px;
 
     letter-spacing: 1px;
 }
 
 
-.resourceValue {
+.resourceItemDescription {
 
-    margin-top: 2px;
+    margin-top: 3px;
 
-    color: #cbbca4;
+    color: #6e665a;
+
+    font-size: 10px;
+}
+
+
+.resourceItemValue {
+
+    min-width: 45px;
+
+    color: #d1c3a9;
 
     font-family:
         "Cinzel",
         Georgia,
         serif;
 
-    font-size: 14px;
+    font-size: 15px;
+
+    text-align: right;
+}
+
+
+.resourceInfoButton {
+
+    width: 30px;
+    height: 30px;
+
+    padding: 0;
+
+    border:
+        1px solid
+        rgba(142, 116, 70, 0.55);
+
+    background:
+        rgba(36, 29, 21, 0.75);
+
+    color: #b29667;
+
+    font-family:
+        Georgia,
+        serif;
+
+    font-size: 13px;
+
+    cursor: pointer;
+}
+
+
+.resourceInfoButton:active {
+
+    background:
+        rgba(91, 68, 38, 0.75);
+
+    transform: scale(0.94);
 }
 
 
 /* =====================================================
-   ВЫПАДАЮЩЕЕ ПРОИЗВОДСТВО
+   ПРОИЗВОДСТВО
 ===================================================== */
 
 .productionHeader {
@@ -1523,12 +1709,13 @@ textarea.input {
     background:
         #77633f;
 
-    transition: width 0.4s ease;
+    transition:
+        width 0.4s ease;
 }
 
 
 /* =====================================================
-   СООБЩЕНИЕ ОБ ОТСУТСТВИИ ЛЕСА
+   НЕТ ЛЕСА
 ===================================================== */
 
 .noForest {
@@ -1563,8 +1750,6 @@ textarea.input {
     margin-bottom: 5px;
 
     font-size: 20px;
-
-    filter: grayscale(0.4);
 }
 
 
@@ -1694,7 +1879,7 @@ textarea.input {
 
 
 /* =====================================================
-   СПРАВКА
+   ОКНО ИНФОРМАЦИИ
 ===================================================== */
 
 #helpOverlay {
@@ -2470,7 +2655,7 @@ textarea.input {
              РЕСУРСЫ
         ================================================== -->
 
-        <section class="realmSection">
+        <section class="realmSection resourcesSection">
 
             <div class="sectionHeader">
 
@@ -2485,79 +2670,91 @@ textarea.input {
             </div>
 
 
-            <div class="resourceGrid">
+            <!-- ===============================
+                 ЕДА
+            ================================ -->
 
-                <div class="resource">
+            <div
+                class="resourceCategory"
+                id="foodCategory"
+            >
 
-                    <div class="resourceIcon">
-                        🍖
+                <button
+                    class="resourceCategoryHeader"
+                    onclick="toggleResourceCategory('foodCategory')"
+                >
+
+                    <div class="resourceCategoryLeft">
+
+                        <span class="resourceCategoryIcon">
+                            🍖
+                        </span>
+
+                        <span>
+                            ЕДА
+                        </span>
+
                     </div>
 
-                    <div class="resourceName">
-                        МЯСО
-                    </div>
 
-                    <div
-                        class="resourceValue"
-                        id="foodValue"
-                    >
-                        100
-                    </div>
+                    <span class="resourceCategoryArrow">
+                        ▼
+                    </span>
 
-                </div>
+                </button>
 
 
-                <div class="resource">
-
-                    <div class="resourceIcon">
-                        🪵
-                    </div>
-
-                    <div class="resourceName">
-                        ДЕРЕВО
-                    </div>
-
-                    <div class="resourceValue">
-                        50
-                    </div>
-
-                </div>
+                <div class="resourceCategoryContent">
 
 
-                <div class="resource">
+                    <!-- МЯСО -->
 
-                    <div class="resourceIcon">
-                        ◆
-                    </div>
+                    <div class="resourceItem">
 
-                    <div class="resourceName">
-                        КАМЕНЬ
-                    </div>
-
-                    <div class="resourceValue">
-                        50
-                    </div>
-
-                </div>
+                        <div class="resourceItemIcon">
+                            🍖
+                        </div>
 
 
-                <div class="resource">
+                        <div class="resourceItemInfo">
 
-                    <div class="resourceIcon">
-                        🪙
-                    </div>
+                            <div class="resourceItemName">
+                                МЯСО
+                            </div>
 
-                    <div class="resourceName">
-                        ЗОЛОТО
-                    </div>
+                            <div class="resourceItemDescription">
+                                Основной запас пищи
+                            </div>
 
-                    <div class="resourceValue">
-                        0
+                        </div>
+
+
+                        <div
+                            class="resourceItemValue"
+                            id="foodValue"
+                        >
+                            100
+                        </div>
+
+
+                        <button
+                            class="resourceInfoButton"
+                            onclick="showResourceInfo('meat')"
+                        >
+                            ⓘ
+                        </button>
+
                     </div>
 
                 </div>
 
             </div>
+
+
+            <!-- ===============================
+                 БУДУЩИЕ КАТЕГОРИИ
+                 ПОКА НЕ ПОКАЗЫВАЕМ
+            ================================ -->
 
         </section>
 
@@ -2589,10 +2786,7 @@ textarea.input {
                 </div>
 
 
-                <span
-                    class="productionArrow"
-                    id="productionArrow"
-                >
+                <span class="productionArrow">
                     ▼
                 </span>
 
@@ -2600,8 +2794,6 @@ textarea.input {
 
 
             <div class="productionMenu">
-
-                <!-- ОХОТА -->
 
                 <div class="productionCard">
 
@@ -2682,10 +2874,6 @@ textarea.input {
                         </div>
 
 
-                        <!-- =================================
-                             ЛЕСА НЕТ
-                        ================================== -->
-
                         <div
                             id="forestLocked"
                             class="noForest"
@@ -2709,10 +2897,6 @@ textarea.input {
 
                         </div>
 
-
-                        <!-- =================================
-                             ОХОТА ДОСТУПНА
-                        ================================== -->
 
                         <div
                             id="huntingAvailable"
@@ -2857,7 +3041,7 @@ textarea.input {
 
 
 <!-- =====================================================
-     ОКНО СПРАВКИ
+     ОКНО ИНФОРМАЦИИ
 ===================================================== -->
 
 <div
@@ -3000,21 +3184,6 @@ if (
    ТЕРРИТОРИЯ
 ===================================================== */
 
-/*
-   Сейчас у государства НЕТ клетки леса.
-
-   Позже, когда мы сделаем карту,
-   это значение будет определяться
-   реальными клетками территории.
-
-   Например:
-
-   hasForest = true;
-
-   Тогда охота автоматически станет
-   доступной.
-*/
-
 const hasForest = false;
 
 
@@ -3039,12 +3208,6 @@ const HUNTING_GROUP_SIZE =
 
 const GAME_LOSS_PER_HUNT =
     5;
-
-const GAME_RESTORE_INTERVAL =
-    60 * 60 * 1000;
-
-const GAME_RESTORE_AMOUNT =
-    2;
 
 
 /* =====================================================
@@ -3175,10 +3338,6 @@ function saveHouse(event) {
         crestInput.files[0];
 
 
-    const now =
-        Date.now();
-
-
     const house = {
 
         rulerName:
@@ -3229,10 +3388,7 @@ function saveHouse(event) {
             game: 100,
 
             lastProduction:
-                now,
-
-            lastGameRestore:
-                now
+                Date.now()
         }
 
     };
@@ -3364,8 +3520,11 @@ function prepareHouse(house) {
         house.resources = {
 
             meat: 100,
+
             wood: 50,
+
             stone: 50,
+
             gold: 0
         };
     }
@@ -3387,9 +3546,6 @@ function prepareHouse(house) {
             game: 100,
 
             lastProduction:
-                Date.now(),
-
-            lastGameRestore:
                 Date.now()
         };
     }
@@ -3404,11 +3560,6 @@ function prepareHouse(house) {
 ===================================================== */
 
 function processHunting(house) {
-
-    /*
-       Пока леса нет — производство
-       вообще не выполняется.
-    */
 
     if (!hasForest) {
 
@@ -3487,19 +3638,16 @@ function processHunting(house) {
     if (possibleCycles > 0) {
 
         house.resources.meat +=
-
             meatPerCycle *
             possibleCycles;
 
 
         house.hunting.game -=
-
             GAME_LOSS_PER_HUNT *
             possibleCycles;
 
 
         house.hunting.lastProduction +=
-
             HUNTING_INTERVAL *
             possibleCycles;
     }
@@ -3529,6 +3677,22 @@ function toggleProduction() {
 
 
 /* =====================================================
+   РАСКРЫТИЕ РЕСУРСОВ
+===================================================== */
+
+function toggleResourceCategory(id) {
+
+    const category =
+        document.getElementById(id);
+
+
+    category.classList.toggle(
+        "open"
+    );
+}
+
+
+/* =====================================================
    ДОБАВИТЬ ОХОТНИКА
 ===================================================== */
 
@@ -3551,11 +3715,6 @@ function addHunter() {
     house =
         prepareHouse(house);
 
-
-    /*
-       Охотник берётся ТОЛЬКО
-       из рабочего населения.
-    */
 
     const availableWorkers =
 
@@ -3618,11 +3777,6 @@ function removeHunter() {
         return;
     }
 
-
-    /*
-       Охотник возвращается
-       в обычное рабочее население.
-    */
 
     house.population.hunters -= 1;
 
@@ -3696,11 +3850,6 @@ function moveWorkerToFree() {
     house =
         prepareHouse(house);
 
-
-    /*
-       Нельзя перевести свободным
-       рабочего, если он уже охотник.
-    */
 
     const ordinaryWorkers =
 
@@ -3833,10 +3982,6 @@ function updatePopulation() {
         house.population.soldiers;
 
 
-    const hunters =
-        house.population.hunters;
-
-
     const total =
 
         free +
@@ -3895,7 +4040,7 @@ function updatePopulation() {
     const ordinaryWorkers =
 
         workers -
-        hunters;
+        house.population.hunters;
 
 
     document
@@ -3936,11 +4081,6 @@ function updateHunting() {
     house =
         prepareHouse(house);
 
-
-    /*
-       Если леса нет —
-       охота полностью закрыта.
-    */
 
     if (!hasForest) {
 
@@ -4057,15 +4197,6 @@ function updateHunting() {
 
     }
 
-    else if (
-        game <= 0
-    ) {
-
-        status.textContent =
-            "Дичь исчерпана. Лес восстанавливает запасы.";
-
-    }
-
     else {
 
         const groups =
@@ -4119,7 +4250,7 @@ function updateResources() {
 
 
 /* =====================================================
-   СПРАВКА
+   СПРАВКА НАСЕЛЕНИЯ
 ===================================================== */
 
 const helpData = {
@@ -4177,6 +4308,33 @@ const helpData = {
 };
 
 
+/* =====================================================
+   СПРАВКА РЕСУРСОВ
+===================================================== */
+
+const resourceData = {
+
+    meat: {
+
+        title:
+            "МЯСО",
+
+        description:
+            "Мясо — основной источник пищи для населения Дома. Без достаточных запасов пищи государство не сможет долго существовать.",
+
+        influence:
+            "Поддерживает жизнь населения. Каждый житель потребляет мясо через определённый промежуток времени.",
+
+        consumption:
+            "Свободный и рабочий житель — 1 мясо каждые 5 часов. Военнослужащий — 2 мяса каждые 5 часов.",
+
+        production:
+            "На текущем этапе добывается охотой. Для охоты требуется клетка 🌲 Лес и назначенные охотники."
+    }
+
+};
+
+
 function showHelp(type) {
 
     const data =
@@ -4218,6 +4376,60 @@ function showHelp(type) {
         )
         .textContent =
         data.consumption;
+
+
+    document
+        .getElementById(
+            "helpOverlay"
+        )
+        .style.display =
+        "flex";
+}
+
+
+function showResourceInfo(type) {
+
+    const data =
+        resourceData[type];
+
+
+    if (!data) {
+        return;
+    }
+
+
+    document
+        .getElementById(
+            "helpTitle"
+        )
+        .textContent =
+        data.title;
+
+
+    document
+        .getElementById(
+            "helpDescription"
+        )
+        .textContent =
+        data.description;
+
+
+    document
+        .getElementById(
+            "helpInfluence"
+        )
+        .textContent =
+        data.influence;
+
+
+    document
+        .getElementById(
+            "helpConsumption"
+        )
+        .textContent =
+        data.consumption +
+        " " +
+        data.production;
 
 
     document
@@ -4450,7 +4662,7 @@ function checkExistingHouse() {
 
 
 /* =====================================================
-   ОБНОВЛЕНИЕ
+   ПЕРИОДИЧЕСКОЕ ОБНОВЛЕНИЕ
 ===================================================== */
 
 setInterval(

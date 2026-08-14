@@ -1502,6 +1502,24 @@ textarea.input {
     font-size: 9px;
 }
 
+.huntingGroundLife {
+    margin-top: 8px;
+}
+
+.huntingGroundLifeBar {
+    height: 5px;
+    margin-top: 5px;
+    overflow: hidden;
+    border: 1px solid rgba(117, 94, 56, 0.32);
+    background: rgba(10, 9, 7, 0.65);
+}
+
+.huntingGroundLifeBarInner {
+    height: 100%;
+    background: rgba(157, 126, 72, 0.75);
+    transition: width 0.2s ease;
+}
+
 .huntingGroundItemStatus {
     margin-top: 7px;
     padding-top: 7px;
@@ -2857,12 +2875,80 @@ function hasHuntingGroundAt(house, x, y) {
     });
 }
 
+function updateHuntingGroundRecovery(ground, now) {
+
+    if (!ground) return;
+
+    if (ground.gameLife > 0) {
+        ground.recoveryStartedAt = null;
+        return;
+    }
+
+    if (ground.recoveryStartedAt === null) {
+        ground.recoveryStartedAt = now;
+        return;
+    }
+
+    if (
+        now - ground.recoveryStartedAt >=
+        HUNTING_GROUND_RECOVERY_MS
+    ) {
+        ground.gameLife =
+            HUNTING_GROUND_GAME_MAX;
+
+        ground.recoveryStartedAt = null;
+    }
+}
+
+
+function getHuntingGroundRecoveryLeft(ground, now) {
+
+    if (
+        !ground ||
+        ground.gameLife > 0 ||
+        ground.recoveryStartedAt === null
+    ) {
+        return 0;
+    }
+
+    return Math.max(
+        0,
+        HUNTING_GROUND_RECOVERY_MS -
+        (now - ground.recoveryStartedAt)
+    );
+}
+
+
+function formatHuntingGroundRecovery(ms) {
+
+    const totalMinutes =
+        Math.ceil(ms / 60000);
+
+    const hours =
+        Math.floor(totalMinutes / 60);
+
+    const minutes =
+        totalMinutes % 60;
+
+    if (hours > 0) {
+        return hours + " ч. " +
+            String(minutes).padStart(2, "0") +
+            " мин.";
+    }
+
+    return minutes + " мин.";
+}
+
 
 /* =====================================================
    НАСТРОЙКИ ОХОТЫ
 ===================================================== */
 
 const HUNTING_MINIMUM = 2;
+
+const HUNTING_GROUND_GAME_MAX = 100;
+const HUNTING_GROUND_GAME_LOSS = 5;
+const HUNTING_GROUND_RECOVERY_MS = 24 * 60 * 60 * 1000;
 const HUNTING_MAXIMUM = 10;
 const HUNTING_INTERVAL = 2 * 60 * 60 * 1000;
 const MEAT_PER_GROUP = 20;
@@ -3490,18 +3576,52 @@ function updateCellInfo(x, y) {
                 hunters / HUNTING_GROUP_SIZE
             ) * MEAT_PER_GROUP;
 
-        text.textContent =
-            "ОХОТНИЧЬЕ УГОДЬЕ · " +
-            "Рабочих: " +
-            hunters +
-            " · Добыча: +" +
-            production +
-            " 🍖 / 2 ч.";
+        updateHuntingGroundRecovery(
+            ground,
+            Date.now()
+        );
 
-        coords.textContent =
-            "X: " + x +
-            " · Y: " + y +
-            " · 🏹 ОХОТНИЧЬЕ УГОДЬЕ";
+        if (ground.gameLife <= 0) {
+
+            const recoveryLeft =
+                getHuntingGroundRecoveryLeft(
+                    ground,
+                    Date.now()
+                );
+
+            text.textContent =
+                "ОХОТНИЧЬЕ УГОДЬЕ · " +
+                "🦌 Звери: 0% · " +
+                "👷 Рабочих: " +
+                hunters +
+                " · Добыча приостановлена";
+
+            coords.textContent =
+                "X: " + x +
+                " · Y: " + y +
+                " · ♻️ Восстановление: " +
+                formatHuntingGroundRecovery(
+                    recoveryLeft
+                );
+
+        } else {
+
+            text.textContent =
+                "ОХОТНИЧЬЕ УГОДЬЕ · " +
+                "🦌 Звери: " +
+                ground.gameLife +
+                "% · " +
+                "👷 Рабочих: " +
+                hunters +
+                " · 🍖 Добыча: +" +
+                production +
+                " / 2 ч.";
+
+            coords.textContent =
+                "X: " + x +
+                " · Y: " + y +
+                " · 🏹 ОХОТНИЧЬЕ УГОДЬЕ";
+        }
 
     } else {
 
@@ -3638,7 +3758,10 @@ function buildHuntingGround() {
     house.huntingGrounds.push({
         x: x,
         y: y,
-        builtAt: new Date().toISOString()
+        builtAt: new Date().toISOString(),
+        hunters: 0,
+        gameLife: HUNTING_GROUND_GAME_MAX,
+        recoveryStartedAt: null
     });
 
     saveHouseData(house);
@@ -3930,6 +4053,33 @@ function prepareHouse(house) {
 
     house.huntingGrounds.forEach(function(ground) {
 
+        if (
+            typeof ground.gameLife !== "number" ||
+            !isFinite(ground.gameLife)
+        ) {
+            ground.gameLife =
+                HUNTING_GROUND_GAME_MAX;
+        }
+
+        ground.gameLife = Math.max(
+            0,
+            Math.min(
+                HUNTING_GROUND_GAME_MAX,
+                Math.floor(ground.gameLife)
+            )
+        );
+
+        if (typeof ground.recoveryStartedAt !== "number") {
+            ground.recoveryStartedAt = null;
+        }
+
+        if (
+            ground.gameLife >= HUNTING_GROUND_GAME_MAX &&
+            ground.recoveryStartedAt !== null
+        ) {
+            ground.recoveryStartedAt = null;
+        }
+
         if (typeof ground.hunters !== "number") {
             ground.hunters = 0;
         }
@@ -4032,6 +4182,12 @@ function processHunting(house) {
         return;
     }
 
+    const now = Date.now();
+
+    house.huntingGrounds.forEach(function(ground) {
+        updateHuntingGroundRecovery(ground, now);
+    });
+
     const hunters =
         house.huntingGrounds.reduce(
             function(total, ground) {
@@ -4044,13 +4200,11 @@ function processHunting(house) {
 
     if (hunters < HUNTING_MINIMUM) {
 
-        house.hunting.lastProduction = Date.now();
+        house.hunting.lastProduction = now;
         saveHouseData(house);
 
         return;
     }
-
-    const now = Date.now();
 
     const elapsed =
         now - house.hunting.lastProduction;
@@ -4060,53 +4214,83 @@ function processHunting(house) {
             elapsed / HUNTING_INTERVAL
         );
 
-    if (completedCycles <= 0) return;
+    if (completedCycles <= 0) {
 
-    const productionPerCycle =
-        house.huntingGrounds.reduce(
-            function(total, ground) {
-
-                if (ground.hunters < HUNTING_MINIMUM) {
-                    return total;
-                }
-
-                return total +
-                    Math.floor(
-                        ground.hunters /
-                        HUNTING_GROUP_SIZE
-                    ) *
-                    MEAT_PER_GROUP;
-
-            },
-            0
-        );
-
-    const possibleCycles =
-        Math.min(
-            completedCycles,
-            Math.floor(
-                house.hunting.game /
-                GAME_LOSS_PER_HUNT
-            )
-        );
-
-    if (
-        possibleCycles > 0 &&
-        productionPerCycle > 0
-    ) {
-
-        house.resources.meat +=
-            productionPerCycle *
-            possibleCycles;
-
-        house.hunting.game -=
-            GAME_LOSS_PER_HUNT *
-            possibleCycles;
-
-        house.hunting.lastProduction +=
-            HUNTING_INTERVAL *
-            possibleCycles;
+        saveHouseData(house);
+        return;
     }
+
+    /*
+     * Каждое угодье работает отдельно.
+     * Если зверей 0%, это угодье не добывает мясо.
+     * Каждый завершённый цикл добычи уменьшает жизнь зверей на 5%.
+     */
+    let totalProduction = 0;
+
+    house.huntingGrounds.forEach(function(ground) {
+
+        if (
+            ground.hunters < HUNTING_MINIMUM ||
+            ground.gameLife <= 0
+        ) {
+            return;
+        }
+
+        const productionPerCycle =
+            Math.floor(
+                ground.hunters /
+                HUNTING_GROUP_SIZE
+            ) *
+            MEAT_PER_GROUP;
+
+        if (productionPerCycle <= 0) {
+            return;
+        }
+
+        const availableCycles =
+            Math.min(
+                completedCycles,
+                Math.floor(
+                    ground.gameLife /
+                    HUNTING_GROUND_GAME_LOSS
+                )
+            );
+
+        if (availableCycles <= 0) {
+            return;
+        }
+
+        totalProduction +=
+            productionPerCycle *
+            availableCycles;
+
+        ground.gameLife -=
+            HUNTING_GROUND_GAME_LOSS *
+            availableCycles;
+
+        if (ground.gameLife <= 0) {
+
+            ground.gameLife = 0;
+
+            /*
+             * Отсчёт восстановления начинается
+             * именно в момент, когда звери закончились.
+             */
+            ground.recoveryStartedAt =
+                now;
+        }
+    });
+
+    house.resources.meat +=
+        totalProduction;
+
+    /*
+     * Общий таймер производства двигаем только на
+     * завершённые циклы. Угодья с 0% просто пропускают цикл.
+     */
+    house.hunting.lastProduction +=
+        HUNTING_INTERVAL *
+        completedCycles;
 
     saveHouseData(house);
 }
@@ -4437,6 +4621,12 @@ function updateHunting() {
 
     if (!list) return;
 
+    const now = Date.now();
+
+    house.huntingGrounds.forEach(function(ground) {
+        updateHuntingGroundRecovery(ground, now);
+    });
+
     list.innerHTML = "";
 
     if (house.huntingGrounds.length === 0) {
@@ -4485,28 +4675,88 @@ function updateHunting() {
                 groups *
                 MEAT_PER_GROUP;
 
-            const statusText =
+            let statusText;
+
+            if (ground.gameLife <= 0) {
+
+                const recoveryLeft =
+                    getHuntingGroundRecoveryLeft(
+                        ground,
+                        now
+                    );
+
+                statusText =
+                    "Звери закончились. " +
+                    "Восстановление: " +
+                    formatHuntingGroundRecovery(
+                        recoveryLeft
+                    ) +
+                    ".";
+
+            } else if (
                 ground.hunters < HUNTING_MINIMUM
-                    ? "Недостаточно охотников. Требуется минимум 2."
-                    : "Активная охота: +" +
-                      production +
-                      " 🍖 каждые 2 часа.";
+            ) {
+
+                statusText =
+                    "Недостаточно охотников. Требуется минимум 2.";
+
+            } else {
+
+                statusText =
+                    "Активная охота: +" +
+                    production +
+                    " 🍖 каждые 2 часа.";
+            }
+
+            const recoveryLabel =
+                ground.gameLife <= 0
+                    ? "♻️ ВОССТАНОВЛЕНИЕ"
+                    : "🦌 ЗВЕРИ";
 
             item.innerHTML =
                 '<div class="huntingGroundItemTop">' +
+
                     '<div>' +
+
                         '<div class="huntingGroundItemName">' +
                             'ОХОТНИЧЬЕ УГОДЬЕ ' +
                             (index + 1) +
                         '</div>' +
+
                         '<div class="huntingGroundItemCoords">' +
                             '🌲 Лес · X: ' +
                             ground.x +
                             ' · Y: ' +
                             ground.y +
                         '</div>' +
+
                     '</div>' +
+
                     '<div style="font-size:17px;">🏹</div>' +
+
+                '</div>' +
+
+                '<div style="margin-top:8px;">' +
+
+                    '<div style="display:flex;justify-content:space-between;align-items:center;color:#857866;font-size:9px;">' +
+                        '<span>' +
+                            recoveryLabel +
+                        '</span>' +
+                        '<strong style="color:#c4ae87;">' +
+                            ground.gameLife +
+                            '%' +
+                        '</strong>' +
+                    '</div>' +
+
+                    '<div style="height:5px;margin-top:5px;border:1px solid rgba(117,94,56,.32);background:rgba(10,9,7,.65);">' +
+
+                        '<div style="height:100%;width:' +
+                            ground.gameLife +
+                            '%;background:rgba(157,126,72,.75);transition:width .2s ease;">' +
+                        '</div>' +
+
+                    '</div>' +
+
                 '</div>' +
 
                 '<div class="huntingGroundControl">' +
@@ -4518,14 +4768,17 @@ function updateHunting() {
                     '>−</button>' +
 
                     '<div class="huntingGroundCount">' +
+
                         '<div class="huntingGroundCountNumber">' +
                             ground.hunters +
                             ' / ' +
                             HUNTING_MAXIMUM +
                         '</div>' +
+
                         '<div class="huntingGroundCountText">' +
                             'ОХОТНИКОВ' +
                         '</div>' +
+
                     '</div>' +
 
                     '<button class="hunterButton" type="button"' +
@@ -4549,6 +4802,7 @@ function updateHunting() {
         }
     );
 
+    saveHouseData(house);
     updateResources();
 }
 
@@ -4891,7 +5145,7 @@ function openRealm() {
     if (house.city) {
         villageTitle.textContent = "ПЕРВАЯ ДЕРЕВНЯ · ОСНОВАНА";
         villageText.textContent =
-            "Ваш первый город основан. Вокруг него закреплены первые земли Дома.";
+            "Ваш единственный город основан. Вокруг него закреплены первые земли Дома.";
         villageMapHint.textContent =
             "ОТКРЫТЬ КАРТУ МИРА · X: " + house.city.x + " · Y: " + house.city.y + " · ›";
     } else {

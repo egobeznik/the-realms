@@ -71,31 +71,33 @@
 
     const user = tg.initDataUnsafe.user;
 
-    const ALLOWED_USER_ID = 8608712290;
+const ALLOWED_USER_ID = 8608712290;
 
+if (!user) {
 
-    if (!user) {
+    document.getElementById("user").innerHTML =
+        "Игра должна быть открыта через Telegram.";
 
-        document.getElementById("user").innerHTML =
-            "Игра должна быть открыта через Telegram.";
+} else if (Number(user.id) !== ALLOWED_USER_ID) {
 
-    } else if (user.id !== ALLOWED_USER_ID) {
+    document.getElementById("user").innerHTML =
+        "🔒<br><br>" +
+        "<strong>ЗАКРЫТОЕ ТЕСТИРОВАНИЕ</strong>" +
+        "<br><br>" +
+        "Доступ к игре пока ограничен.";
 
-        document.getElementById("user").innerHTML =
-            "🔒<br><br>" +
-            "ЗАКРЫТОЕ ТЕСТИРОВАНИЕ" +
-            "<br><br>" +
-            "Доступ к игре ограничен.";
+} else {
 
-    } else {
+    document.getElementById("user").innerHTML =
+        "Добро пожаловать, " +
+        user.first_name +
+        "<br><br>" +
+        "✓ Доступ разрешён" +
+        "<br><br>" +
+        "Telegram ID: " +
+        user.id;
 
-        document.getElementById("user").innerHTML =
-            "Добро пожаловать, " +
-            user.first_name +
-            "<br><br>" +
-            "Доступ разрешён";
-
-    }
+}
 
 </script>
 

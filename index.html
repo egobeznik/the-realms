@@ -16,6 +16,10 @@
 
     <style>
 
+        /* ==================================================
+           ОСНОВА
+        ================================================== */
+
         * {
             box-sizing: border-box;
             -webkit-tap-highlight-color: transparent;
@@ -30,10 +34,12 @@
             min-height: 100%;
 
             background: #090806;
-
             color: #d8ccb8;
 
-            font-family: Georgia, "Times New Roman", serif;
+            font-family:
+                Georgia,
+                "Times New Roman",
+                serif;
         }
 
         body {
@@ -42,7 +48,7 @@
 
 
         /* ==================================================
-           ОБЩЕЕ
+           ОБЩИЙ ЭКРАН
         ================================================== */
 
         .screen {
@@ -85,7 +91,7 @@
             height: 100%;
 
             object-fit: cover;
-            object-position: center;
+            object-position: center center;
 
             display: block;
 
@@ -95,7 +101,7 @@
 
 
         /* ==================================================
-           ПРОЗРАЧНАЯ КНОПКА НА КАРТИНКЕ
+           НАСТОЯЩАЯ ПРОЗРАЧНАЯ КНОПКА
         ================================================== */
 
         #startButton {
@@ -105,7 +111,8 @@
             top: 87%;
             left: 50%;
 
-            transform: translate(-50%, -50%);
+            transform:
+                translate(-50%, -50%);
 
             width: 46%;
             height: 6.5%;
@@ -113,11 +120,11 @@
             border: none;
             outline: none;
 
+            padding: 0;
+
             background: transparent;
 
             cursor: pointer;
-
-            padding: 0;
         }
 
 
@@ -140,7 +147,10 @@
             min-height: 100vh;
             min-height: 100dvh;
 
-            padding: 28px 22px 35px;
+            padding:
+                28px
+                22px
+                35px;
 
             overflow-y: auto;
 
@@ -157,17 +167,23 @@
 
 
         /* ==================================================
-           РАМКА
+           РАМКА СОЗДАНИЯ
         ================================================== */
 
         .creationFrame {
 
             position: relative;
 
-            min-height: calc(100vh - 63px);
-            min-height: calc(100dvh - 63px);
+            min-height:
+                calc(100vh - 63px);
 
-            padding: 30px 22px 32px;
+            min-height:
+                calc(100dvh - 63px);
+
+            padding:
+                30px
+                22px
+                32px;
 
             border:
                 1px solid
@@ -195,7 +211,7 @@
 
 
         /* ==================================================
-           ЗАГОЛОВОК
+           ЗАГОЛОВОК СОЗДАНИЯ
         ================================================== */
 
         .creationHeader {
@@ -256,7 +272,8 @@
 
             gap: 9px;
 
-            margin: 19px auto 0;
+            margin:
+                19px auto 0;
 
             width: 190px;
         }
@@ -333,13 +350,17 @@
 
             min-height: 48px;
 
-            padding: 12px 14px;
+            padding:
+                12px
+                14px;
 
             border:
                 1px solid
                 rgba(133, 108, 68, 0.55);
 
             outline: none;
+
+            border-radius: 0;
 
             background:
                 rgba(28, 23, 18, 0.72);
@@ -352,12 +373,6 @@
                 serif;
 
             font-size: 16px;
-
-            border-radius: 0;
-
-            transition:
-                border-color 0.2s ease,
-                background 0.2s ease;
         }
 
 
@@ -454,7 +469,9 @@
 
             display: inline-block;
 
-            padding: 10px 13px;
+            padding:
+                10px
+                13px;
 
             border:
                 1px solid
@@ -477,7 +494,7 @@
 
 
         /* ==================================================
-           КНОПКА
+           КНОПКА СОЗДАНИЯ
         ================================================== */
 
         .continueButton {
@@ -517,25 +534,8 @@
             background:
                 rgba(74, 58, 35, 0.8);
 
-            transform: scale(0.99);
-        }
-
-
-        /* ==================================================
-           НИЖНИЙ ТЕКСТ
-        ================================================== */
-
-        .creationFooter {
-
-            margin-top: 23px;
-
-            text-align: center;
-
-            color: #5e574d;
-
-            font-size: 10px;
-
-            letter-spacing: 2px;
+            transform:
+                scale(0.99);
         }
 
 
@@ -567,7 +567,482 @@
 
 
         /* ==================================================
-           ЭКРАН БЛОКИРОВКИ
+           FOOTER
+        ================================================== */
+
+        .creationFooter {
+
+            margin-top: 23px;
+
+            text-align: center;
+
+            color: #5e574d;
+
+            font-size: 10px;
+
+            letter-spacing: 2px;
+        }
+
+
+        /* ==================================================
+           ЭКРАН ГОСУДАРСТВА
+        ================================================== */
+
+        #realmScreen {
+
+            display: none;
+
+            min-height: 100vh;
+            min-height: 100dvh;
+
+            padding:
+                24px
+                20px
+                30px;
+
+            overflow-y: auto;
+
+            background:
+
+                radial-gradient(
+                    ellipse at top,
+                    rgba(119, 91, 49, 0.12),
+                    transparent 45%
+                ),
+
+                #090806;
+        }
+
+
+        .realmFrame {
+
+            position: relative;
+
+            min-height:
+                calc(100vh - 54px);
+
+            min-height:
+                calc(100dvh - 54px);
+
+            padding:
+                30px
+                20px
+                35px;
+
+            border:
+                1px solid
+                rgba(157, 126, 72, 0.55);
+
+            background:
+                rgba(12, 10, 8, 0.45);
+        }
+
+
+        .realmFrame::before {
+
+            content: "";
+
+            position: absolute;
+
+            inset: 6px;
+
+            border:
+                1px solid
+                rgba(117, 94, 56, 0.25);
+
+            pointer-events: none;
+        }
+
+
+        /* ==================================================
+           ГЕРБ ГОСУДАРСТВА
+        ================================================== */
+
+        .realmCrest {
+
+            position: relative;
+
+            z-index: 2;
+
+            width: 105px;
+            height: 105px;
+
+            margin:
+                0 auto
+                20px;
+
+            display: flex;
+
+            align-items: center;
+            justify-content: center;
+
+            overflow: hidden;
+
+            border:
+                1px solid
+                rgba(174, 143, 87, 0.65);
+
+            background:
+                #0b0907;
+
+            color: #b99b63;
+
+            font-size: 40px;
+        }
+
+
+        .realmCrest img {
+
+            width: 100%;
+            height: 100%;
+
+            object-fit: cover;
+        }
+
+
+        /* ==================================================
+           НАЗВАНИЕ ДОМА
+        ================================================== */
+
+        .realmHouse {
+
+            position: relative;
+
+            z-index: 2;
+
+            text-align: center;
+
+            color: #e1d5c0;
+
+            font-size: 27px;
+
+            letter-spacing: 4px;
+
+            line-height: 1.25;
+        }
+
+
+        .realmCountry {
+
+            position: relative;
+
+            z-index: 2;
+
+            margin-top: 10px;
+
+            text-align: center;
+
+            color: #a68b5d;
+
+            font-size: 13px;
+
+            letter-spacing: 3px;
+
+            text-transform: uppercase;
+        }
+
+
+        .realmMotto {
+
+            position: relative;
+
+            z-index: 2;
+
+            max-width: 340px;
+
+            margin:
+                24px auto
+                28px;
+
+            color: #9b8e7b;
+
+            text-align: center;
+
+            font-size: 16px;
+
+            font-style: italic;
+
+            line-height: 1.5;
+        }
+
+
+        /* ==================================================
+           РАЗДЕЛИТЕЛЬ
+        ================================================== */
+
+        .realmDivider {
+
+            position: relative;
+
+            z-index: 2;
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 10px;
+
+            width: 210px;
+
+            margin:
+                0 auto
+                27px;
+        }
+
+
+        .realmDivider span {
+
+            flex: 1;
+
+            height: 1px;
+
+            background:
+                rgba(157, 126, 72, 0.45);
+        }
+
+
+        .realmDivider div {
+
+            color: #ae8d55;
+
+            font-size: 9px;
+        }
+
+
+        /* ==================================================
+           ГОД
+        ================================================== */
+
+        .realmYear {
+
+            position: relative;
+
+            z-index: 2;
+
+            text-align: center;
+
+            color: #a99168;
+
+            font-size: 12px;
+
+            letter-spacing: 4px;
+        }
+
+
+        /* ==================================================
+           СТАТИСТИКА
+        ================================================== */
+
+        .stats {
+
+            position: relative;
+
+            z-index: 2;
+
+            display: grid;
+
+            grid-template-columns:
+                repeat(2, 1fr);
+
+            gap: 10px;
+
+            margin-top: 28px;
+        }
+
+
+        .stat {
+
+            min-height: 72px;
+
+            padding: 13px;
+
+            border:
+                1px solid
+                rgba(117, 94, 56, 0.45);
+
+            background:
+                rgba(27, 22, 17, 0.65);
+
+            text-align: center;
+        }
+
+
+        .statIcon {
+
+            color: #a99168;
+
+            font-size: 17px;
+        }
+
+
+        .statName {
+
+            margin-top: 5px;
+
+            color: #71685c;
+
+            font-size: 9px;
+
+            letter-spacing: 1px;
+
+            text-transform: uppercase;
+        }
+
+
+        .statValue {
+
+            margin-top: 3px;
+
+            color: #cbbca4;
+
+            font-size: 15px;
+        }
+
+
+        /* ==================================================
+           НАЧАЛЬНАЯ ДЕРЕВНЯ
+        ================================================== */
+
+        .village {
+
+            position: relative;
+
+            z-index: 2;
+
+            margin-top: 22px;
+
+            padding:
+                18px
+                15px;
+
+            border:
+                1px solid
+                rgba(157, 126, 72, 0.5);
+
+            background:
+                rgba(29, 24, 18, 0.7);
+
+            text-align: center;
+        }
+
+
+        .villageTitle {
+
+            color: #cdbb9d;
+
+            font-size: 17px;
+
+            letter-spacing: 2px;
+        }
+
+
+        .villageText {
+
+            margin-top: 9px;
+
+            color: #7e7569;
+
+            font-size: 13px;
+
+            line-height: 1.5;
+        }
+
+
+        /* ==================================================
+           ИСТОРИЯ
+        ================================================== */
+
+        .history {
+
+            position: relative;
+
+            z-index: 2;
+
+            margin-top: 22px;
+
+            padding:
+                17px
+                15px;
+
+            border:
+                1px solid
+                rgba(117, 94, 56, 0.35);
+
+            background:
+                rgba(20, 17, 14, 0.5);
+        }
+
+
+        .historyTitle {
+
+            color: #a99168;
+
+            font-size: 10px;
+
+            letter-spacing: 2px;
+
+            text-transform: uppercase;
+        }
+
+
+        .historyText {
+
+            margin-top: 9px;
+
+            color: #908474;
+
+            font-size: 14px;
+
+            line-height: 1.6;
+        }
+
+
+        /* ==================================================
+           КНОПКА НАЧАТЬ ЗАНОВО
+        ================================================== */
+
+        .resetButton {
+
+            position: relative;
+
+            z-index: 2;
+
+            width: 100%;
+
+            min-height: 45px;
+
+            margin-top: 28px;
+
+            border:
+                1px solid
+                rgba(99, 78, 48, 0.45);
+
+            background:
+                transparent;
+
+            color: #665e53;
+
+            font-family:
+                Georgia,
+                serif;
+
+            font-size: 10px;
+
+            letter-spacing: 2px;
+
+            cursor: pointer;
+        }
+
+
+        .resetButton:active {
+
+            background:
+                rgba(100, 70, 40, 0.15);
+        }
+
+
+        /* ==================================================
+           ЗАКРЫТЫЙ ДОСТУП
         ================================================== */
 
         #locked {
@@ -630,59 +1105,19 @@
 
 
         /* ==================================================
-           ФИНАЛЬНЫЙ ЭКРАН
-        ================================================== */
-
-        #finalScreen {
-
-            display: none;
-
-            min-height: 100vh;
-            min-height: 100dvh;
-
-            padding: 30px;
-
-            align-items: center;
-            justify-content: center;
-
-            text-align: center;
-        }
-
-
-        .finalTitle {
-
-            color: #d9ccb7;
-
-            font-size: 23px;
-
-            letter-spacing: 3px;
-        }
-
-
-        .finalText {
-
-            margin-top: 15px;
-
-            color: #918675;
-
-            font-size: 15px;
-
-            line-height: 1.6;
-        }
-
-
-        /* ==================================================
-           АДАПТАЦИЯ ДЛЯ НЕБОЛЬШИХ ТЕЛЕФОНОВ
+           МАЛЕНЬКИЕ ТЕЛЕФОНЫ
         ================================================== */
 
         @media (max-height: 700px) {
 
-            #creationScreen {
+            #creationScreen,
+            #realmScreen {
 
-                padding-top: 16px;
+                padding-top: 15px;
             }
 
-            .creationFrame {
+            .creationFrame,
+            .realmFrame {
 
                 padding-top: 22px;
             }
@@ -784,7 +1219,7 @@
             >
 
 
-                <!-- ПРАВИТЕЛЬ -->
+                <!-- ИМЯ ПРАВИТЕЛЯ -->
 
                 <div class="field">
 
@@ -808,7 +1243,7 @@
                 </div>
 
 
-                <!-- ДОМ -->
+                <!-- НАЗВАНИЕ ДОМА -->
 
                 <div class="field">
 
@@ -832,7 +1267,7 @@
                 </div>
 
 
-                <!-- ГОСУДАРСТВО -->
+                <!-- НАЗВАНИЕ ГОСУДАРСТВА -->
 
                 <div class="field">
 
@@ -924,7 +1359,7 @@
                 </div>
 
 
-                <!-- ОПИСАНИЕ -->
+                <!-- ИСТОРИЯ ДОМА -->
 
                 <div class="field">
 
@@ -975,24 +1410,197 @@
 
 
     <!-- ==================================================
-         ФИНАЛЬНЫЙ ЭКРАН
+         ЭКРАН УЖЕ СОЗДАННОГО ГОСУДАРСТВА
     ================================================== -->
 
     <main
-        id="finalScreen"
+        id="realmScreen"
         class="screen"
     >
 
-        <div>
+        <div class="realmFrame">
 
-            <div class="finalTitle">
-                ЛЕТОПИСЬ НАЧАТА
+
+            <!-- ГЕРБ -->
+
+            <div
+                class="realmCrest"
+                id="realmCrest"
+            >
+                ♜
             </div>
 
-            <div class="finalText">
-                Ваш Дом основан.<br>
-                Теперь начинается история.
+
+            <!-- ДОМ -->
+
+            <div
+                class="realmHouse"
+                id="realmHouse"
+            >
+                ДОМ
             </div>
+
+
+            <!-- ГОСУДАРСТВО -->
+
+            <div
+                class="realmCountry"
+                id="realmCountry"
+            >
+                ГОСУДАРСТВО
+            </div>
+
+
+            <!-- ДЕВИЗ -->
+
+            <div
+                class="realmMotto"
+                id="realmMotto"
+            >
+                «Мы храним то, что ещё не стало историей.»
+            </div>
+
+
+            <!-- РАЗДЕЛИТЕЛЬ -->
+
+            <div class="realmDivider">
+
+                <span></span>
+
+                <div>
+                    ◆
+                </div>
+
+                <span></span>
+
+            </div>
+
+
+            <!-- ГОД -->
+
+            <div class="realmYear">
+                Г О Д &nbsp; I
+            </div>
+
+
+            <!-- СТАТИСТИКА -->
+
+            <div class="stats">
+
+
+                <div class="stat">
+
+                    <div class="statIcon">
+                        ♟
+                    </div>
+
+                    <div class="statName">
+                        Население
+                    </div>
+
+                    <div class="statValue">
+                        20
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div class="statIcon">
+                        🌾
+                    </div>
+
+                    <div class="statName">
+                        Еда
+                    </div>
+
+                    <div class="statValue">
+                        100
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div class="statIcon">
+                        🪵
+                    </div>
+
+                    <div class="statName">
+                        Дерево
+                    </div>
+
+                    <div class="statValue">
+                        100
+                    </div>
+
+                </div>
+
+
+                <div class="stat">
+
+                    <div class="statIcon">
+                        ◆
+                    </div>
+
+                    <div class="statName">
+                        Камень
+                    </div>
+
+                    <div class="statValue">
+                        50
+                    </div>
+
+                </div>
+
+
+            </div>
+
+
+            <!-- ПЕРВАЯ ДЕРЕВНЯ -->
+
+            <div class="village">
+
+                <div class="villageTitle">
+                    ПЕРВАЯ ДЕРЕВНЯ
+                </div>
+
+                <div class="villageText">
+                    Здесь начнётся строительство
+                    вашего будущего государства.
+                </div>
+
+            </div>
+
+
+            <!-- ИСТОРИЯ -->
+
+            <div class="history">
+
+                <div class="historyTitle">
+                    ЛЕТОПИСЬ ДОМА
+                </div>
+
+                <div
+                    class="historyText"
+                    id="realmHistory"
+                >
+                </div>
+
+            </div>
+
+
+            <!-- ТЕСТОВАЯ КНОПКА -->
+
+            <button
+                class="resetButton"
+                onclick="resetHouse()"
+            >
+                НАЧАТЬ ЛЕТОПИСЬ ЗАНОВО
+            </button>
+
 
         </div>
 
@@ -1029,7 +1637,7 @@
 
 
         /* ==================================================
-           TELEGRAM
+           TELEGRAM MINI APP
         ================================================== */
 
         const tg =
@@ -1041,15 +1649,20 @@
 
 
         /* ==================================================
-           ДОСТУП
+           ТВОЙ TELEGRAM ID
         ================================================== */
-
-        const user =
-            tg.initDataUnsafe.user;
 
         const ALLOWED_USER_ID =
             8608712290;
 
+
+        const user =
+            tg.initDataUnsafe.user;
+
+
+        /* ==================================================
+           ПРОВЕРКА ДОСТУПА
+        ================================================== */
 
         if (
             !user ||
@@ -1065,13 +1678,17 @@
                 .style.display = "none";
 
             document
+                .getElementById("realmScreen")
+                .style.display = "none";
+
+            document
                 .getElementById("locked")
                 .style.display = "flex";
         }
 
 
         /* ==================================================
-           ОТКРЫТЬ СОЗДАНИЕ ДОМА
+           ОТКРЫТИЕ СОЗДАНИЯ ДОМА
         ================================================== */
 
         function openCreation() {
@@ -1081,11 +1698,14 @@
                 .style.display = "none";
 
             document
+                .getElementById("realmScreen")
+                .style.display = "none";
+
+            document
                 .getElementById("creationScreen")
                 .style.display = "block";
 
             window.scrollTo(0, 0);
-
         }
 
 
@@ -1102,21 +1722,28 @@
                 return;
             }
 
+
             const reader =
                 new FileReader();
 
+
             reader.onload =
-                function(e) {
+                function(event) {
 
                     document
                         .getElementById("crestPreview")
                         .innerHTML =
-                        `<img src="${e.target.result}" alt="Герб">`;
+                        `
+                        <img
+                            src="${event.target.result}"
+                            alt="Герб"
+                        >
+                        `;
 
                 };
 
-            reader.readAsDataURL(file);
 
+            reader.readAsDataURL(file);
         }
 
 
@@ -1135,11 +1762,13 @@
                     .value
                     .trim();
 
+
             const houseName =
                 document
                     .getElementById("houseName")
                     .value
                     .trim();
+
 
             const realmName =
                 document
@@ -1147,11 +1776,13 @@
                     .value
                     .trim();
 
+
             const motto =
                 document
                     .getElementById("motto")
                     .value
                     .trim();
+
 
             const description =
                 document
@@ -1159,6 +1790,10 @@
                     .value
                     .trim();
 
+
+            /* ------------------------------------------
+               ПРОВЕРКА
+            ------------------------------------------ */
 
             if (
                 !rulerName ||
@@ -1174,6 +1809,23 @@
                 return;
             }
 
+
+            /* ------------------------------------------
+               ГЕРБ
+            ------------------------------------------ */
+
+            const crestInput =
+                document
+                    .getElementById("crestInput");
+
+
+            const crestFile =
+                crestInput.files[0];
+
+
+            /*
+             * Сначала сохраняем основные данные.
+             */
 
             const house = {
 
@@ -1193,31 +1845,249 @@
                     description,
 
                 createdAt:
-                    new Date().toISOString()
+                    new Date().toISOString(),
+
+                crest:
+                    null
 
             };
 
 
-            localStorage.setItem(
-                "theRealmsHouse",
-                JSON.stringify(house)
-            );
+            /*
+             * Если герб выбран,
+             * сохраняем его как Data URL.
+             */
+
+            if (crestFile) {
+
+                const reader =
+                    new FileReader();
+
+
+                reader.onload =
+                    function(event) {
+
+                        house.crest =
+                            event.target.result;
+
+
+                        localStorage.setItem(
+                            "theRealmsHouse",
+                            JSON.stringify(house)
+                        );
+
+
+                        openRealm();
+                    };
+
+
+                reader.readAsDataURL(crestFile);
+
+            }
+
+            else {
+
+                localStorage.setItem(
+                    "theRealmsHouse",
+                    JSON.stringify(house)
+                );
+
+
+                openRealm();
+            }
+
+        }
+
+
+        /* ==================================================
+           ОТКРЫТЬ ГОСУДАРСТВО
+        ================================================== */
+
+        function openRealm() {
+
+            const savedHouse =
+                localStorage.getItem(
+                    "theRealmsHouse"
+                );
+
+
+            if (!savedHouse) {
+
+                openCreation();
+
+                return;
+            }
+
+
+            const house =
+                JSON.parse(savedHouse);
 
 
             /* ------------------------------------------
-               Переходим дальше
+               ЗАПОЛНЯЕМ ДАННЫЕ
             ------------------------------------------ */
+
+            document
+                .getElementById("realmHouse")
+                .textContent =
+                house.houseName;
+
+
+            document
+                .getElementById("realmCountry")
+                .textContent =
+                house.realmName;
+
+
+            document
+                .getElementById("realmMotto")
+                .textContent =
+                "«" +
+                house.motto +
+                "»";
+
+
+            document
+                .getElementById("realmHistory")
+                .textContent =
+                house.description ||
+                "История этого Дома ещё только начинается.";
+
+
+            /* ------------------------------------------
+               ГЕРБ
+            ------------------------------------------ */
+
+            const crest =
+                document
+                    .getElementById("realmCrest");
+
+
+            if (house.crest) {
+
+                crest.innerHTML =
+                    `
+                    <img
+                        src="${house.crest}"
+                        alt="Герб Дома"
+                    >
+                    `;
+
+            }
+
+            else {
+
+                crest.innerHTML = "♜";
+            }
+
+
+            /* ------------------------------------------
+               ПОКАЗЫВАЕМ ЭКРАН
+            ------------------------------------------ */
+
+            document
+                .getElementById("introScreen")
+                .style.display = "none";
+
 
             document
                 .getElementById("creationScreen")
                 .style.display = "none";
 
+
             document
-                .getElementById("finalScreen")
-                .style.display = "flex";
+                .getElementById("realmScreen")
+                .style.display = "block";
+
+
+            window.scrollTo(0, 0);
+        }
+
+
+        /* ==================================================
+           ПРОВЕРКА: ЕСТЬ ЛИ УЖЕ ДОМ
+        ================================================== */
+
+        function checkExistingHouse() {
+
+            const savedHouse =
+                localStorage.getItem(
+                    "theRealmsHouse"
+                );
+
+
+            /*
+             * Если Дом уже существует,
+             * сразу открываем государство.
+             */
+
+            if (savedHouse) {
+
+                openRealm();
+
+            }
+
+            /*
+             * Если Дома нет,
+             * остаёмся на заставке.
+             */
+
+            else {
+
+                document
+                    .getElementById("introScreen")
+                    .style.display = "block";
+
+                document
+                    .getElementById("creationScreen")
+                    .style.display = "none";
+
+                document
+                    .getElementById("realmScreen")
+                    .style.display = "none";
+            }
 
         }
 
+
+        /* ==================================================
+           НАЧАТЬ ЛЕТОПИСЬ ЗАНОВО
+        ================================================== */
+
+        function resetHouse() {
+
+            const confirmed =
+                confirm(
+                    "Вы действительно хотите удалить существующий Дом и начать новую летопись?"
+                );
+
+
+            if (!confirmed) {
+                return;
+            }
+
+
+            localStorage.removeItem(
+                "theRealmsHouse"
+            );
+
+
+            location.reload();
+        }
+
+
+        /* ==================================================
+           ЗАПУСК
+        ================================================== */
+
+        if (
+            user &&
+            Number(user.id) === ALLOWED_USER_ID
+        ) {
+
+            checkExistingHouse();
+
+        }
 
     </script>
 

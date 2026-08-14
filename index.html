@@ -71,19 +71,29 @@
 
     const user = tg.initDataUnsafe.user;
 
-    if (user) {
+    const ALLOWED_USER_ID = 8608712290;
+
+
+    if (!user) {
+
+        document.getElementById("user").innerHTML =
+            "Игра должна быть открыта через Telegram.";
+
+    } else if (user.id !== ALLOWED_USER_ID) {
+
+        document.getElementById("user").innerHTML =
+            "🔒<br><br>" +
+            "ЗАКРЫТОЕ ТЕСТИРОВАНИЕ" +
+            "<br><br>" +
+            "Доступ к игре ограничен.";
+
+    } else {
 
         document.getElementById("user").innerHTML =
             "Добро пожаловать, " +
             user.first_name +
             "<br><br>" +
-            "Telegram ID: " +
-            user.id;
-
-    } else {
-
-        document.getElementById("user").innerHTML =
-            "Игра должна быть открыта через Telegram.";
+            "Доступ разрешён";
 
     }
 

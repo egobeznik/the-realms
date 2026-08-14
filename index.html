@@ -4927,7 +4927,8 @@ function addHunterToGround(index) {
 
     const availableWorkers =
         house.population.workers -
-        house.population.hunters;
+        house.population.hunters -
+        house.population.foresters;
 
     if (availableWorkers <= 0) return;
     if (ground.hunters >= HUNTING_MAXIMUM) return;
@@ -5158,7 +5159,8 @@ function updatePopulation() {
 
     const ordinaryWorkers =
         workers -
-        house.population.hunters;
+        house.population.hunters -
+        house.population.foresters;
 
 
     document
@@ -5225,7 +5227,8 @@ function updateHunting() {
 
     const availableWorkers =
         house.population.workers -
-        totalHunters;
+        totalHunters -
+        house.population.foresters;
 
     house.population.hunters =
         totalHunters;

@@ -816,6 +816,25 @@ textarea.input {
     display: none;
     padding: 0 0 4px;
 }
+.productionHint {
+    margin: 0 10px 8px;
+    padding: 10px 11px;
+    border-left: 1px solid rgba(157,126,72,.45);
+    border-right: 1px solid rgba(117,94,56,.22);
+    background: rgba(20,17,13,.45);
+    color: #786f62;
+    font-size: 10px;
+    line-height: 1.45;
+}
+
+.productionHint strong {
+    display: block;
+    margin-bottom: 5px;
+    color: #a68d63;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 1.3px;
+}
 
 .huntingGroundList.open {
     display: block;
@@ -2952,18 +2971,20 @@ const MEAT_WARNING_THRESHOLD = 1;
 */
 function getMeatProductionPerHour(house) {
 
-    if (!house || !house.production)
+    if (!house)
         return 0;
+
+    const grounds =
+        getHuntingGrounds(prepareHouse(house));
 
     let total = 0;
 
-    house.production.forEach(production => {
+    grounds.forEach(ground => {
 
-        if (production.type !== "hunting")
-            return;
+        const hunters =
+            Number(ground.workers) || 0;
 
-        const hunters = production.workers || 0;
-
+        // 1 охотник = 10 мяса / час.
         total += hunters * 10;
 
     });
@@ -3476,6 +3497,16 @@ function openWorldMap() {
     mapState.selectedY = null;
     setMapMode("view");
     updateMap();
+
+    // Canvas уже видим — принудительно отрисовываем город сразу,
+    // без необходимости нажимать на другую клетку.
+    requestAnimationFrame(function() {
+        updateMap();
+        requestAnimationFrame(function() {
+            renderMapCells();
+        });
+    });
+
     window.scrollTo(0, 0);
 }
 
@@ -3957,6 +3988,10 @@ function foundCity() {
     // После основания открываем главный экран. Отсюда игрок сможет
     // вернуться на карту через блок «Первая деревня».
     setMapMode("view");
+
+    // Сразу сохраняем и обновляем карту до перехода на главный экран.
+    saveHouseData(house);
+
     openRealm();
 }
 
@@ -4082,25 +4117,63 @@ initMapControls();
 
 function getHouse() {
 
-    const savedHouse =
-        localStorage.getItem("theRealmsHouse");
+    try {
 
-    if (!savedHouse) return null;
+        let saved =
+            localStorage.getItem(
+                "theRealmsHouse"
+            );
 
-    return JSON.parse(savedHouse);
-}
+        // Если основной ключ пропал, восстанавливаем резервную копию.
+        if (!saved) {
+            saved =
+                localStorage.getItem(
+                    "theRealmsHouseBackup"
+                );
 
+            if (saved) {
+                localStorage.setItem(
+                    "theRealmsHouse",
+                    saved
+                );
+            }
+        }
 
-/* =====================================================
-   СОХРАНИТЬ
-===================================================== */
+        if (!saved)
+            return null;
 
-function saveHouseData(house) {
+        const house =
+            JSON.parse(saved);
 
-    localStorage.setItem(
-        "theRealmsHouse",
-        JSON.stringify(house)
-    );
+        return house;
+
+    } catch (error) {
+
+        console.error("Ошибка чтения сохранения:", error);
+
+        try {
+
+            const backup =
+                localStorage.getItem(
+                    "theRealmsHouseBackup"
+                );
+
+            if (backup) {
+                return JSON.parse(backup);
+            }
+
+        } catch (backupError) {
+
+            console.error(
+                "Ошибка чтения резервной копии:",
+                backupError
+            );
+
+        }
+
+        return null;
+    }
+
 }
 
 
@@ -4234,7 +4307,13 @@ function foundHuntingGround(x, y) {
     });
 
     saveHouseData(house);
+
+    // Сразу показываем объект на карте.
     updateMap();
+    requestAnimationFrame(function() {
+        renderMapCells();
+    });
+
     updateProductionPanel();
 }
 
@@ -4288,89 +4367,202 @@ function toggleHuntingGrounds() {
 }
 
 function updateProductionPanel() {
-    const menu = document.querySelector("#productionSection .productionMenu");
-    if (!menu) return;
 
-    const house = getHouse();
-    if (!house) return;
+    const menu =
+        document.querySelector(
+            "#productionSection .productionMenu"
+        );
 
-    const grounds = getHuntingGrounds(house);
-
-    if (grounds.length === 0) {
-        menu.innerHTML =
-            '<div class="huntingSubHeader" id="huntingGroundHeader" onclick="toggleHuntingGrounds()">' +
-                '<div class="huntingSubLeft"><span>🏹</span><span>ОХОТА</span></div>' +
-                '<span class="huntingSubArrow">▼</span>' +
-            '</div>' +
-            '<div class="huntingGroundList" id="huntingGroundList">' +
-                '<div class="productionCard"><div class="productionStatus">На карте пока нет охотничьих угодий.</div></div>' +
-            '</div>';
+    if (!menu)
         return;
-    }
 
-    const cards = grounds.map(function(ground, index) {
-        const groups = Math.floor(ground.workers / HUNTING_GROUP_SIZE);
-        const production = groups * MEAT_PER_GROUP;
+    let house =
+        getHouse();
 
-        return '<div class="productionCard">' +
-            '<div class="productionTop">' +
-                '<div class="productionIcon">🏹</div>' +
-                '<div>' +
-                    '<div class="productionTitle">ОХОТНИЧЬЕ УГОДЬЕ ' + (index + 1) + '</div>' +
-                    '<div class="productionSubtitle">Лес · X: ' + ground.x + ' · Y: ' + ground.y + '</div>' +
-                '</div>' +
-            '</div>' +
+    if (!house)
+        return;
 
-            '<div class="productionInfo">' +
+    house =
+        prepareHouse(house);
 
-                '<div class="productionLine">' +
-                    '<span>Охотники</span>' +
-                    '<strong>' + ground.workers + ' / ' + HUNTING_MAXIMUM_PER_GROUND + '</strong>' +
-                '</div>' +
+    const grounds =
+        getHuntingGrounds(house);
 
-                '<div class="productionLine">' +
-                    '<span>Производство</span>' +
-                    '<strong>+' + production + ' 🍖 / 2 ч.</strong>' +
-                '</div>' +
-
-                '<div class="productionLine">' +
-                    '<span>Состояние</span>' +
-                    '<strong>' + (ground.workers >= HUNTING_MINIMUM ? 'РАБОТАЕТ' : 'ТРЕБУЕТСЯ 2') + '</strong>' +
-                '</div>' +
-
-                '<div class="hunterControl">' +
-                    '<button class="hunterButton" onclick="removeHunterFromGround(' + ground.x + ',' + ground.y + ')">−</button>' +
-                    '<div class="hunterCount">' +
-                        '<div class="hunterCountNumber">' + ground.workers + '</div>' +
-                        '<div class="hunterCountText">ОХОТНИКОВ</div>' +
-                    '</div>' +
-                    '<button class="hunterButton" onclick="addHunterToGround(' + ground.x + ',' + ground.y + ')">+</button>' +
-                '</div>' +
-
-            '</div>' +
+    const hint =
+        '<div class="productionHint">' +
+            '<strong>КАК НАЧАТЬ ОХОТУ</strong>' +
+            '<div>1. Найдите принадлежащую Дому клетку леса на карте.</div>' +
+            '<div>2. Основите на ней охотничье угодье.</div>' +
+            '<div>3. Переведите свободных жителей в рабочих.</div>' +
+            '<div>4. Назначьте рабочих охотниками здесь.</div>' +
         '</div>';
-    }).join("");
 
-    menu.innerHTML =
+    const header =
         '<div class="huntingSubHeader" id="huntingGroundHeader" onclick="toggleHuntingGrounds()">' +
             '<div class="huntingSubLeft">' +
                 '<span>🏹</span>' +
                 '<span>ОХОТА</span>' +
-                '<span style="color:#756a5c;font-size:9px;">' + grounds.length + ' угод.</span>' +
+                (grounds.length
+                    ? '<span style="color:#756a5c;font-size:9px;">' + grounds.length + ' угод.</span>'
+                    : '') +
             '</div>' +
             '<span class="huntingSubArrow">▼</span>' +
-        '</div>' +
+        '</div>';
 
+    if (grounds.length === 0) {
+
+        menu.innerHTML =
+            header +
+            hint +
+            '<div class="huntingGroundList" id="huntingGroundList">' +
+                '<div class="productionCard">' +
+                    '<div class="productionStatus">' +
+                        'На карте пока нет охотничьих угодий.' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+
+        return;
+    }
+
+    const cards =
+        grounds.map(function(ground, index) {
+
+            const groups =
+                Math.floor(
+                    ground.workers /
+                    HUNTING_GROUP_SIZE
+                );
+
+            const production =
+                groups *
+                MEAT_PER_GROUP;
+
+            return (
+                '<div class="productionCard">' +
+
+                    '<div class="productionTop">' +
+
+                        '<div class="productionIcon">🏹</div>' +
+
+                        '<div>' +
+
+                            '<div class="productionTitle">' +
+                                'ОХОТНИЧЬЕ УГОДЬЕ ' +
+                                (index + 1) +
+                            '</div>' +
+
+                            '<div class="productionSubtitle">' +
+                                'Лес · X: ' +
+                                ground.x +
+                                ' · Y: ' +
+                                ground.y +
+                            '</div>' +
+
+                        '</div>' +
+
+                    '</div>' +
+
+                    '<div class="productionInfo">' +
+
+                        '<div class="productionLine">' +
+                            '<span>Охотники</span>' +
+                            '<strong>' +
+                                ground.workers +
+                                ' / ' +
+                                HUNTING_MAXIMUM_PER_GROUND +
+                            '</strong>' +
+                        '</div>' +
+
+                        '<div class="productionLine">' +
+                            '<span>Производство</span>' +
+                            '<strong>+' +
+                                production +
+                                ' 🍖 / 2 ч.</strong>' +
+                        '</div>' +
+
+                        '<div class="productionLine">' +
+                            '<span>Состояние</span>' +
+                            '<strong>' +
+                                (
+                                    ground.workers >=
+                                    HUNTING_MINIMUM
+                                        ? 'РАБОТАЕТ'
+                                        : 'ТРЕБУЕТСЯ 2'
+                                ) +
+                            '</strong>' +
+                        '</div>' +
+
+                        '<div class="hunterControl">' +
+
+                            '<button ' +
+                                'class="hunterButton" ' +
+                                'onclick="removeHunterFromGround(' +
+                                    ground.x +
+                                    ',' +
+                                    ground.y +
+                                ')">' +
+                                '−' +
+                            '</button>' +
+
+                            '<div class="hunterCount">' +
+
+                                '<div class="hunterCountNumber">' +
+                                    ground.workers +
+                                '</div>' +
+
+                                '<div class="hunterCountText">' +
+                                    'ОХОТНИКОВ' +
+                                '</div>' +
+
+                            '</div>' +
+
+                            '<button ' +
+                                'class="hunterButton" ' +
+                                'onclick="addHunterToGround(' +
+                                    ground.x +
+                                    ',' +
+                                    ground.y +
+                                ')">' +
+                                '+' +
+                            '</button>' +
+
+                        '</div>' +
+
+                    '</div>' +
+
+                '</div>'
+            );
+
+        }).join("");
+
+    menu.innerHTML =
+        header +
+        hint +
         '<div class="huntingGroundList" id="huntingGroundList">' +
             cards +
         '</div>';
 
     if (huntingGroundsExpanded) {
-        const list = document.getElementById("huntingGroundList");
-        const header = document.getElementById("huntingGroundHeader");
-        if (list) list.classList.add("open");
-        if (header) header.classList.add("open");
+
+        const list =
+            document.getElementById(
+                "huntingGroundList"
+            );
+
+        const headerElement =
+            document.getElementById(
+                "huntingGroundHeader"
+            );
+
+        if (list)
+            list.classList.add("open");
+
+        if (headerElement)
+            headerElement.classList.add("open");
+
     }
+
 }
 
 function processHunting(house) {
@@ -5201,7 +5393,11 @@ function openRealm() {
 
     updateHunting();
 
+    updateProductionPanel();
+
     updateResources();
+
+    saveHouseData(house);
 
 
     document
@@ -5262,43 +5458,123 @@ function resetHouse() {
 
 function checkExistingHouse() {
 
-    const savedHouse =
-        localStorage.getItem(
-            "theRealmsHouse"
-        );
+    let savedHouse = null;
+
+    try {
+        savedHouse =
+            localStorage.getItem(
+                "theRealmsHouse"
+            );
+
+        if (!savedHouse) {
+            savedHouse =
+                localStorage.getItem(
+                    "theRealmsHouseBackup"
+                );
+        }
+
+    } catch (error) {
+        console.error(error);
+    }
 
 
     if (savedHouse) {
-        const house = prepareHouse(JSON.parse(savedHouse));
 
-        if (house.city && typeof house.city.x === "number" && typeof house.city.y === "number") {
-            openRealm();
-        } else {
-            openMapForFoundation();
+        try {
+
+            let house =
+                prepareHouse(
+                    JSON.parse(savedHouse)
+                );
+
+            saveHouseData(house);
+
+            if (
+                house.city &&
+                typeof house.city.x === "number" &&
+                typeof house.city.y === "number"
+            ) {
+
+                openRealm();
+
+            } else {
+
+                openMapForFoundation();
+
+            }
+
+            return;
+
+        } catch (error) {
+
+            console.error(
+                "Ошибка восстановления Дома:",
+                error
+            );
+
+            // Не стираем сохранение и не создаём новый Дом.
+            // Используем резервную копию.
+            try {
+
+                const backup =
+                    localStorage.getItem(
+                        "theRealmsHouseBackup"
+                    );
+
+                if (backup) {
+
+                    const house =
+                        prepareHouse(
+                            JSON.parse(backup)
+                        );
+
+                    saveHouseData(house);
+
+                    if (house.city)
+                        openRealm();
+                    else
+                        openMapForFoundation();
+
+                    return;
+
+                }
+
+            } catch (backupError) {
+
+                console.error(
+                    "Ошибка восстановления резервной копии:",
+                    backupError
+                );
+
+            }
+
         }
 
     }
 
-    else {
 
-        document
-            .getElementById("introScreen")
-            .style.display =
-            "block";
-
-
-        document
-            .getElementById("creationScreen")
-            .style.display =
-            "none";
+    document
+        .getElementById("introScreen")
+        .style.display =
+        "block";
 
 
-        document
-            .getElementById("realmScreen")
-            .style.display =
-            "none";
+    document
+        .getElementById("creationScreen")
+        .style.display =
+        "none";
 
-    }
+
+    document
+        .getElementById("realmScreen")
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById("mapScreen")
+        .style.display =
+        "none";
 
 }
 

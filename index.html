@@ -6,6 +6,9 @@
 
     <title>The Realms</title>
 
+    <!-- Telegram Mini App API -->
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
     <style>
         * {
             box-sizing: border-box;
@@ -88,12 +91,44 @@
             font-size: 11px;
             letter-spacing: 2px;
         }
+
+        .access-denied {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .access-denied .icon {
+            font-size: 50px;
+        }
+
+        .access-denied h2 {
+            margin: 0;
+            font-size: 24px;
+            letter-spacing: 3px;
+        }
+
+        .access-denied p {
+            margin: 0;
+            color: #9d927e;
+            font-size: 14px;
+        }
+
+        #user-info {
+            margin-top: 25px;
+            color: #655d50;
+            font-size: 11px;
+        }
     </style>
 </head>
 
 <body>
 
-    <main class="game">
+<main class="game">
+
+    <!-- Экран игры -->
+    <div id="game-screen">
 
         <div class="symbol">♜</div>
 
@@ -109,17 +144,103 @@
             СОЗДАТЬ ДОМ
         </button>
 
-        <div class="year">
-            THE FIRST AGE
-        </div>
+        <div id="user-info"></div>
 
-    </main>
+    </div>
 
-    <script>
-        function startGame() {
-            alert("Здесь начнётся создание твоего Дома.");
-        }
-    </script>
+
+    <!-- Экран для тех, кому доступ запрещён -->
+    <div id="access-denied" class="access-denied">
+
+        <div class="icon">🔒</div>
+
+        <h2>ЗАКРЫТОЕ ТЕСТИРОВАНИЕ</h2>
+
+        <p>
+            Доступ к игре пока ограничен.
+        </p>
+
+    </div>
+
+
+    <div class="year">
+        THE FIRST AGE
+    </div>
+
+</main>
+
+
+<script>
+
+    // ==========================================
+    // TELEGRAM MINI APP
+    // ==========================================
+
+    const tg = window.Telegram.WebApp;
+
+    // Сообщаем Telegram, что приложение запущено
+    tg.ready();
+
+    // Разворачиваем Mini App
+    tg.expand();
+
+
+    // ==========================================
+    // ПОЛЬЗОВАТЕЛЬ TELEGRAM
+    // ==========================================
+
+    const user = tg.initDataUnsafe.user;
+
+
+    // ==========================================
+    // ВАЖНО:
+    // СЮДА ПОКА НИЧЕГО НЕ ВПИСЫВАЕМ.
+    // Сначала узнаем твой Telegram ID.
+    // ==========================================
+
+    const ALLOWED_USER_ID = null;
+
+
+    // ==========================================
+    // ПРОВЕРКА ДОСТУПА
+    // ==========================================
+
+    if (!user) {
+
+        document.getElementById("game-screen").style.display = "none";
+        document.getElementById("access-denied").style.display = "flex";
+
+    } else {
+
+        console.log("Telegram User ID:", user.id);
+
+        document.getElementById("user-info").innerText =
+            "Telegram ID: " + user.id;
+
+        /*
+        Пока показываем игру любому пользователю,
+        чтобы получить твой ID.
+
+        После того как мы его узнаем,
+        установим ALLOWED_USER_ID.
+        */
+
+    }
+
+
+    // ==========================================
+    // КНОПКА
+    // ==========================================
+
+    function startGame() {
+
+        alert(
+            "Акт основания Дома начнётся здесь."
+        );
+
+    }
+
+</script>
 
 </body>
 </html>

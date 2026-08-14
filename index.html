@@ -3778,7 +3778,7 @@ function updateCellInfo(x, y) {
 
             text.textContent =
                 "ЛЕСНИЧЕСТВО · " +
-                "🔨 Прочность: 0% · " +
+                "🌲 Лес: 0% · " +
                 "👷 Рабочих: " +
                 foresters +
                 " · Добыча приостановлена";
@@ -3795,7 +3795,7 @@ function updateCellInfo(x, y) {
 
             text.textContent =
                 "ЛЕСНИЧЕСТВО · " +
-                "🔨 Прочность: " +
+                "🌲 Лес: " +
                 ground.durability +
                 "% · " +
                 "👷 Рабочих: " +
@@ -4184,31 +4184,33 @@ function updateForestry() {
         if (ground.durability <= 0) {
 
             statusText =
-                "Прочность: 0% · Добыча приостановлена · " +
+                "Добыча приостановлена. " +
                 "Восстановление: " +
                 formatForestryGroundRecovery(
                     getForestryGroundRecoveryLeft(
                         ground,
                         Date.now()
                     )
-                );
+                ) +
+                ".";
 
         } else if (ground.foresters < FORESTRY_MINIMUM) {
 
             statusText =
-                "Прочность: " +
-                ground.durability +
-                "% · Недостаточно рабочих. Требуется минимум 4.";
+                "Недостаточно рабочих. Требуется минимум 4.";
 
         } else {
 
             statusText =
-                "Прочность: " +
-                ground.durability +
-                "% · Активная добыча: +" +
+                "Активная добыча: +" +
                 production +
                 " 🌲 каждые 2 часа.";
         }
+
+        const forestryLabel =
+            ground.durability <= 0
+                ? "♻️ ВОССТАНОВЛЕНИЕ"
+                : "🌲 ЛЕС";
 
         item.innerHTML =
             '<div class="huntingGroundItemTop">' +
@@ -4225,6 +4227,29 @@ function updateForestry() {
                     '</div>' +
                 '</div>' +
                 '<div style="font-size:17px;">🌲</div>' +
+            '</div>' +
+
+            '<div style="margin-top:8px;">' +
+
+                '<div style="display:flex;justify-content:space-between;align-items:center;color:#857866;font-size:9px;">' +
+                    '<span>' +
+                        forestryLabel +
+                    '</span>' +
+                    '<strong style="color:#c4ae87;">' +
+                        ground.durability +
+                        '%' +
+                    '</strong>' +
+                '</div>' +
+
+                '<div style="height:5px;margin-top:5px;border:1px solid rgba(117,94,56,.32);background:rgba(10,9,7,.65);">' +
+
+                    '<div style="height:100%;width:' +
+                        ground.durability +
+                        '%;background:rgba(157,126,72,.75);transition:width .2s ease;">' +
+                    '</div>' +
+
+                '</div>' +
+
             '</div>' +
 
             '<div class="huntingGroundControl">' +

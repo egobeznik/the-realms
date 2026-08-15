@@ -4239,8 +4239,6 @@ let mapState = {
     moved: false,
     lastPointerX: 0,
     lastPointerY: 0,
-    renderedCenterX: null,
-    renderedCenterY: null,
     renderFrame: null
 };
 /* =====================================================
@@ -4964,142 +4962,60 @@ function isWaterTerrain(type) {
 
 const terrainCache = new Map();
 
-function renderMapCells(forceRebuild = false) {
+function renderMapCells() {
     const canvas = document.getElementById("mapCanvas");
     if (!canvas) return;
-
+    canvas.innerHTML = "";
     const centerX = Math.round(mapState.x);
     const centerY = Math.round(mapState.y);
-
-    if (!forceRebuild &&
-        mapState.renderedCenterX === centerX &&
-        mapState.renderedCenterY === centerY &&
-        canvas.children.length) {
-        updateMapCanvasTransform();
-        return;
-    }
-
-    canvas.innerHTML = "";
-    canvas.style.transform = "translate3d(0,0,0)";
-
     const house = getHouse();
     const city = house && house.city;
-
     for (let y = centerY - MAP_RENDER_RADIUS_Y; y <= centerY + MAP_RENDER_RADIUS_Y; y++) {
         for (let x = centerX - MAP_RENDER_RADIUS_X; x <= centerX + MAP_RENDER_RADIUS_X; x++) {
             if (!isInsideWorld(x, y)) continue;
-
             const cell = document.createElement("div");
             const key = x + "," + y;
             let type = terrainCache.get(key);
-            if (!type) {
-                type = terrainAt(x, y);
-                terrainCache.set(key, type);
-            }
-
+            if (!type) { type = terrainAt(x, y); terrainCache.set(key, type); }
             cell.className = "mapCell " + type + " selectable";
-            cell.dataset.x = x;
-            cell.dataset.y = y;
-            cell.title = terrainName(type);
-            cell.style.left = ((x - centerX) * CELL_SIZE) + "px";
-            cell.style.top = ((y - centerY) * CELL_SIZE) + "px";
-
-            if (isTerritoryCell(house, x, y)) {
-                cell.classList.add("territory");
-            } else if (isForeignTerritoryAt(x, y, house)) {
-                cell.classList.add("foreignTerritory");
-            }
-
+            cell.style.left = (x - mapState.x) * CELL_SIZE + "px";
+            cell.style.top = (y - mapState.y) * CELL_SIZE + "px";
+            cell.dataset.x = x; cell.dataset.y = y; cell.title = terrainName(type);
+            if (isTerritoryCell(house, x, y)) cell.classList.add("territory");
+            else if (isForeignTerritoryAt(x, y, house)) cell.classList.add("foreignTerritory");
             const sharedCity = getSharedCityAt(x, y);
-
             if (city && city.x === x && city.y === y) {
                 cell.classList.add("city");
-                const crest = house.crest
-                    ? `<img src="${house.crest}" alt="Герб Дома">`
-                    : "♜";
-                cell.innerHTML = `
-                    <span class="cityMark">${crest}</span>
-                    <span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>
-                `;
-            } else if (sharedCity && !isOwnSharedCity(sharedCity, house)) {
+                const crest = house.crest ? `<img src="${house.crest}" alt="Герб Дома">` : "♜";
+                cell.innerHTML = `<span class="cityMark">${crest}</span><span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>`;
+            } else if (sharedCity) {
                 cell.classList.add("foreignCity");
-                cell.innerHTML = `
-                    <span class="cityMark">♜</span>
-                    <span class="cityLabel">${escapeHtml(sharedCity.name || "Чужой город")}<span>ЧУЖАЯ ДИНАСТИЯ</span></span>
-                `;
-            } else if (hasHouseAt(house, x, y)) {
-                cell.classList.add("houseCell");
-                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="houseMark" title="Дом">🏠</span>';
-            } else if (hasWarehouseAt(house, x, y)) {
-                cell.classList.add("warehouseCell");
-                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="warehouseMark" title="Склад">📦</span>';
-            } else if (hasForestryAt(house, x, y)) {
-                cell.classList.add("forestryCell");
-                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="forestryMark" title="Лесничество">🪵</span>';
+                cell.innerHTML = `<span class="cityMark">♜</span><span class="cityLabel">${escapeHtml(sharedCity.name || "Город")}<span>Чужие земли</span></span>`;
             } else if (hasHuntingGroundAt(house, x, y)) {
                 cell.classList.add("huntingGroundCell");
                 cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="huntingGroundMark" title="Охотничье угодье">🏹</span>';
             } else {
                 cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span>';
             }
-
-            if (mapState.selectedX === x && mapState.selectedY === y) {
-                cell.classList.add("selected");
-            }
-
+            if (mapState.selectedX === x && mapState.selectedY === y) cell.classList.add("selected");
             cell.addEventListener("click", function() {
                 if (mapState.moved) return;
                 const currentHouse = getHouse();
-                if (currentHouse && currentHouse.city && currentHouse.city.x === x && currentHouse.city.y === y) {
-                    showCityInfo(currentHouse);
-                    return;
-                }
+                if (currentHouse && currentHouse.city && currentHouse.city.x === x && currentHouse.city.y === y) { showCityInfo(currentHouse); return; }
                 selectMapCell(x, y);
             });
-
             canvas.appendChild(cell);
         }
     }
-
-    mapState.renderedCenterX = centerX;
-    mapState.renderedCenterY = centerY;
-    updateMapCanvasTransform();
-}
-
-// Во время движения карты двигаем один контейнер, а не сотни клеток.
-function updateMapCanvasTransform() {
-    const canvas = document.getElementById("mapCanvas");
-    if (!canvas) return;
-
-    const centerX = mapState.renderedCenterX;
-    const centerY = mapState.renderedCenterY;
-    if (centerX === null || centerY === null) return;
-
-    const offsetX = (centerX - mapState.x) * CELL_SIZE;
-    const offsetY = (centerY - mapState.y) * CELL_SIZE;
-
-    canvas.style.transform = `translate3d(${offsetX}px, ${offsetY}px, 0)`;
 }
 
 function scheduleMapRender() {
     if (mapState.renderFrame) return;
-
     mapState.renderFrame = requestAnimationFrame(function() {
         mapState.renderFrame = null;
-
-        const centerX = Math.round(mapState.x);
-        const centerY = Math.round(mapState.y);
-
-        if (mapState.renderedCenterX !== centerX || mapState.renderedCenterY !== centerY) {
-            renderMapCells(false);
-        } else {
-            updateMapCanvasTransform();
-        }
-
+        renderMapCells();
         const coords = document.getElementById("mapCoords");
-        if (coords) {
-            coords.textContent = "X: " + centerX + " · Y: " + centerY;
-        }
+        if (coords) coords.textContent = "X: " + Math.round(mapState.x) + " · Y: " + Math.round(mapState.y);
     });
 }
 
@@ -6378,47 +6294,25 @@ function returnToRealm() {
 
 function initMapControls() {
     const map = document.getElementById("worldMap");
-
+    if (!map) return;
     map.addEventListener("pointerdown", function(e) {
-        mapState.dragging = true;
-        mapState.moved = false;
-        mapState.lastPointerX = e.clientX;
-        mapState.lastPointerY = e.clientY;
+        mapState.dragging = true; mapState.moved = false;
+        mapState.lastPointerX = e.clientX; mapState.lastPointerY = e.clientY;
         map.setPointerCapture?.(e.pointerId);
     });
-
     map.addEventListener("pointermove", function(e) {
         if (!mapState.dragging) return;
-
         const dx = e.clientX - mapState.lastPointerX;
         const dy = e.clientY - mapState.lastPointerY;
-
-        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) {
-            mapState.moved = true;
-        }
-
-        mapState.lastPointerX = e.clientX;
-        mapState.lastPointerY = e.clientY;
-
-        mapState.x -= dx / CELL_SIZE;
-        mapState.y -= dy / CELL_SIZE;
-
+        if (Math.abs(dx) > 2 || Math.abs(dy) > 2) mapState.moved = true;
+        mapState.lastPointerX = e.clientX; mapState.lastPointerY = e.clientY;
+        mapState.x -= dx / CELL_SIZE; mapState.y -= dy / CELL_SIZE;
         mapState.x = Math.max(-WORLD_SIZE/2 + 5, Math.min(WORLD_SIZE/2 - 5, mapState.x));
         mapState.y = Math.max(-WORLD_SIZE/2 + 5, Math.min(WORLD_SIZE/2 - 5, mapState.y));
-
         scheduleMapRender();
     });
-
-    map.addEventListener("pointerup", function() {
-        mapState.dragging = false;
-        scheduleMapRender();
-        setTimeout(() => mapState.moved = false, 50);
-    });
-
-    map.addEventListener("pointercancel", function() {
-        mapState.dragging = false;
-        scheduleMapRender();
-    });
+    map.addEventListener("pointerup", function() { mapState.dragging = false; scheduleMapRender(); setTimeout(() => mapState.moved = false, 50); });
+    map.addEventListener("pointercancel", function() { mapState.dragging = false; scheduleMapRender(); });
 }
 
 initMapControls();

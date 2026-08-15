@@ -2104,6 +2104,28 @@ textarea.input {
     justify-content: center;
 }
 
+#tradeNotificationOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10070;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(0,0,0,.78);
+}
+.tradeNotificationWindow {
+    width: min(92vw, 390px);
+    border: 1px solid rgba(139,112,67,.38);
+    background: #17130f;
+    padding: 20px;
+}
+.tradeNotificationIcon { text-align:center; font-size:28px; }
+.tradeNotificationTitle { margin-top:8px; text-align:center; color:#d0bc94; font-size:12px; letter-spacing:1.5px; }
+.tradeNotificationFrom { margin-top:7px; text-align:center; color:#8a7b67; font-size:9px; }
+.tradeNotificationText { margin-top:13px; text-align:center; color:#bca984; font-size:9px; line-height:1.5; }
+.tradeNotificationActions { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:15px; }
+.tradeNotificationActions button { min-height:38px; border:1px solid rgba(139,112,67,.32); background:rgba(20,17,13,.9); color:#cdb98f; font-family:inherit; font-size:8px; letter-spacing:1px; }
 .diplomacyNotificationWindow {
     width: 100%;
     max-width: 360px;
@@ -2328,6 +2350,155 @@ textarea.input {
     color: #756b5d;
     font-size: 8px;
     line-height: 1.45;
+}
+
+/* =====================================================
+   ДИПЛОМАТИЯ НА ГЛАВНОМ ЭКРАНЕ
+===================================================== */
+.diplomacyOverview {
+    margin-top: 14px;
+    display: grid;
+    gap: 10px;
+}
+.diplomacyOverviewCard {
+    border: 1px solid rgba(139,112,67,.24);
+    background: rgba(17,14,11,.72);
+    padding: 13px 14px;
+}
+.diplomacyOverviewTitle {
+    font-size: 9px;
+    letter-spacing: 1.7px;
+    color: #857866;
+    text-align: center;
+}
+.diplomacyOverviewList {
+    margin-top: 9px;
+    display: grid;
+    gap: 7px;
+}
+.diplomacyOverviewItem {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 34px;
+    border: 1px solid rgba(139,112,67,.14);
+    background: rgba(20,17,13,.7);
+    padding: 7px 9px;
+    color: #cdb98f;
+    font-size: 9px;
+    letter-spacing: .6px;
+    cursor: pointer;
+}
+.diplomacyOverviewItem span:last-child {
+    color: #756b5d;
+    font-size: 8px;
+}
+.diplomacyOverviewEmpty {
+    color: #625a4e;
+    font-size: 8px;
+    text-align: center;
+    line-height: 1.4;
+}
+
+.tradeBlock {
+    margin-top: 10px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(139,112,67,.16);
+}
+.tradeLabel {
+    font-size: 8px;
+    letter-spacing: 1.4px;
+    color: #857866;
+    text-align: center;
+}
+.tradeButton {
+    width: 100%;
+    min-height: 36px;
+    margin-top: 7px;
+    border: 1px solid rgba(139,112,67,.35);
+    background: rgba(20,17,13,.88);
+    color: #cdb98f;
+    font-family: inherit;
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+#tradeOfferOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 10060;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 18px;
+    background: rgba(0,0,0,.78);
+}
+.tradeOfferWindow {
+    width: min(92vw, 390px);
+    border: 1px solid rgba(139,112,67,.38);
+    background: #17130f;
+    padding: 20px;
+    box-sizing: border-box;
+}
+.tradeOfferTitle {
+    text-align: center;
+    color: #d0bc94;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+}
+.tradeOfferTarget {
+    margin-top: 8px;
+    text-align: center;
+    color: #817567;
+    font-size: 9px;
+}
+.tradeOfferGrid {
+    margin-top: 15px;
+    display: grid;
+    gap: 9px;
+}
+.tradeOfferRow {
+    display: grid;
+    grid-template-columns: 1fr 90px;
+    align-items: center;
+    gap: 10px;
+    color: #bca984;
+    font-size: 9px;
+}
+.tradeOfferRow input {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 38px;
+    border: 1px solid rgba(139,112,67,.3);
+    background: rgba(8,7,5,.8);
+    color: #d4c39f;
+    padding: 0 9px;
+    font-family: inherit;
+    font-size: 11px;
+    text-align: center;
+}
+.tradeOfferHint {
+    margin-top: 10px;
+    color: #625a4e;
+    font-size: 8px;
+    line-height: 1.4;
+    text-align: center;
+}
+.tradeOfferActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 15px;
+}
+.tradeOfferActions button {
+    min-height: 38px;
+    border: 1px solid rgba(139,112,67,.32);
+    background: rgba(20,17,13,.9);
+    color: #cdb98f;
+    font-family: inherit;
+    font-size: 8px;
+    letter-spacing: 1px;
 }
 .cityInfoCoordinates {
     margin-top: 9px;
@@ -2987,6 +3158,25 @@ textarea.input {
             </div>
 
         </button>
+
+
+        <div class="diplomacyOverview">
+
+            <section class="diplomacyOverviewCard">
+                <div class="diplomacyOverviewTitle">🤝 СОЮЗНИКИ</div>
+                <div class="diplomacyOverviewList" id="alliesOverviewList">
+                    <div class="diplomacyOverviewEmpty">Нет союзников</div>
+                </div>
+            </section>
+
+            <section class="diplomacyOverviewCard">
+                <div class="diplomacyOverviewTitle">⚔ ВОЙНА</div>
+                <div class="diplomacyOverviewList" id="warsOverviewList">
+                    <div class="diplomacyOverviewEmpty">Нет государств, с которыми ведётся война</div>
+                </div>
+            </section>
+
+        </div>
 
 
         <!-- =================================================
@@ -3697,6 +3887,52 @@ textarea.input {
 <!-- =====================================================
      ИНФОРМАЦИЯ О ГОРОДЕ
 ===================================================== -->
+
+<div id="tradeNotificationOverlay">
+    <div class="tradeNotificationWindow">
+        <div class="tradeNotificationIcon">⚖</div>
+        <div class="tradeNotificationTitle">ВАМ ПОСТУПИЛО ТОРГОВОЕ ПРЕДЛОЖЕНИЕ</div>
+        <div class="tradeNotificationFrom" id="tradeNotificationFrom">Союзник</div>
+        <div class="tradeNotificationText" id="tradeNotificationText"></div>
+        <div class="tradeNotificationActions">
+            <button type="button" onclick="respondTradeNotification('reject')">ОТКЛОНИТЬ</button>
+            <button type="button" onclick="respondTradeNotification('accept')">ПРИНЯТЬ</button>
+        </div>
+    </div>
+</div>
+
+<div id="tradeOfferOverlay">
+    <div class="tradeOfferWindow">
+        <div class="tradeOfferTitle">ТОРГОВОЕ ПРЕДЛОЖЕНИЕ</div>
+        <div class="tradeOfferTarget" id="tradeOfferTarget">Союзнику</div>
+
+        <div class="tradeOfferGrid">
+            <div class="tradeOfferRow">
+                <span>Вы отдаёте 🌲 дерево</span>
+                <input id="tradeGiveWood" type="number" min="0" step="1" value="0">
+            </div>
+            <div class="tradeOfferRow">
+                <span>Вы отдаёте 🍖 мясо</span>
+                <input id="tradeGiveMeat" type="number" min="0" step="1" value="0">
+            </div>
+            <div class="tradeOfferRow">
+                <span>Получаете 🌲 дерево</span>
+                <input id="tradeGetWood" type="number" min="0" step="1" value="0">
+            </div>
+            <div class="tradeOfferRow">
+                <span>Получаете 🍖 мясо</span>
+                <input id="tradeGetMeat" type="number" min="0" step="1" value="0">
+            </div>
+        </div>
+
+        <div class="tradeOfferHint">Торговля доступна только между государствами, состоящими в союзе.</div>
+
+        <div class="tradeOfferActions">
+            <button type="button" onclick="closeTradeOffer()">ОТМЕНА</button>
+            <button type="button" onclick="sendTradeOffer()">ОТПРАВИТЬ</button>
+        </div>
+    </div>
+</div>
 
 <div
     id="cityInfoOverlay"
@@ -4446,6 +4682,20 @@ let diplomacyState = {
     proposedBy: null,
     loading: false
 };
+
+let tradeState = {
+    targetDynastyId: null,
+    targetName: "",
+    loading: false
+};
+
+let tradeNotificationState = {
+    offerId: null,
+    loading: false,
+    shownThisSession: false
+};
+
+
 
 
 function getServerExternalId() {
@@ -6996,6 +7246,21 @@ function setDiplomacyUi(status, proposedBy, ownId, targetId) {
         hint.textContent = "Государства находятся в состоянии войны.";
         addButton("ЗАКЛЮЧИТЬ МИР", "make_peace", false);
     }
+
+    const tradeBlock = document.getElementById("tradeBlock");
+    if (tradeBlock) tradeBlock.remove();
+
+    if (status === "allied") {
+        const parent = block;
+        const trade = document.createElement("div");
+        trade.id = "tradeBlock";
+        trade.className = "tradeBlock";
+        trade.innerHTML = '<div class="tradeLabel">ТОРГОВЛЯ</div><button class="tradeButton" type="button">ПРЕДЛОЖИТЬ ОБМЕН</button>';
+        trade.querySelector("button").onclick = function() {
+            openTradeOffer(targetId, document.getElementById("cityInfoHouse")?.textContent || "Союзнику");
+        };
+        parent.appendChild(trade);
+    }
 }
 
 async function loadDiplomacyForTarget(targetDynastyId) {
@@ -7064,6 +7329,242 @@ async function performDiplomacyAction(action, targetDynastyId) {
         await loadDiplomacyForTarget(targetDynastyId);
     } finally {
         diplomacyState.loading = false;
+    }
+}
+
+function openTradeOffer(targetDynastyId, targetName) {
+    if (!targetDynastyId || diplomacyState.status !== "allied") {
+        alert("Торговля доступна только между союзниками.");
+        return;
+    }
+
+    tradeState.targetDynastyId = targetDynastyId;
+    tradeState.targetName = targetName || "Союзнику";
+
+    document.getElementById("tradeOfferTarget").textContent = tradeState.targetName;
+    document.getElementById("tradeGiveWood").value = 0;
+    document.getElementById("tradeGiveMeat").value = 0;
+    document.getElementById("tradeGetWood").value = 0;
+    document.getElementById("tradeGetMeat").value = 0;
+    document.getElementById("tradeOfferOverlay").style.display = "flex";
+}
+
+function closeTradeOffer() {
+    const overlay = document.getElementById("tradeOfferOverlay");
+    if (overlay) overlay.style.display = "none";
+}
+
+async function sendTradeOffer() {
+    if (tradeState.loading) return;
+
+    const house = getHouse();
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId || !tradeState.targetDynastyId) {
+        alert("Не удалось определить государство для торговли.");
+        return;
+    }
+
+    if (diplomacyState.status !== "allied") {
+        alert("Торговля доступна только между союзниками.");
+        return;
+    }
+
+    const giveWood = Math.max(0, Math.floor(Number(document.getElementById("tradeGiveWood").value) || 0));
+    const giveMeat = Math.max(0, Math.floor(Number(document.getElementById("tradeGiveMeat").value) || 0));
+    const getWood = Math.max(0, Math.floor(Number(document.getElementById("tradeGetWood").value) || 0));
+    const getMeat = Math.max(0, Math.floor(Number(document.getElementById("tradeGetMeat").value) || 0));
+
+    if (giveWood === 0 && giveMeat === 0 && getWood === 0 && getMeat === 0) {
+        alert("Укажите хотя бы один ресурс для обмена.");
+        return;
+    }
+
+    tradeState.loading = true;
+
+    try {
+        const result = await window.theRealmsSupabase.rpc("the_realms_create_trade_offer", {
+            p_external_id: getServerExternalId(),
+            p_slot: getCurrentDynastySlotNumber(),
+            p_target_dynasty_id: tradeState.targetDynastyId,
+            p_give_wood: giveWood,
+            p_give_meat: giveMeat,
+            p_get_wood: getWood,
+            p_get_meat: getMeat
+        });
+
+        if (result.error) throw result.error;
+
+        closeTradeOffer();
+        alert("Торговое предложение отправлено.");
+    } catch (error) {
+        console.error("The Realms: ошибка отправки торговли", error);
+        alert(error.message || "Не удалось отправить торговое предложение.");
+    } finally {
+        tradeState.loading = false;
+    }
+}
+
+async function checkIncomingTradeOffers() {
+    if (tradeNotificationState.shownThisSession || tradeNotificationState.loading) return;
+
+    const house = getHouse();
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return;
+
+    tradeNotificationState.loading = true;
+
+    try {
+        const { data: offers, error } = await window.theRealmsSupabase
+            .from("trade_offers")
+            .select("id,sender_dynasty_id,give_wood,give_meat,get_wood,get_meat,created_at")
+            .eq("receiver_dynasty_id", house.serverDynastyId)
+            .eq("status", "pending")
+            .order("created_at", { ascending: true })
+            .limit(1);
+
+        if (error) throw error;
+        if (!offers || !offers.length) return;
+
+        const offer = offers[0];
+        const { data: sender } = await window.theRealmsSupabase
+            .from("dynasties")
+            .select("name")
+            .eq("id", offer.sender_dynasty_id)
+            .maybeSingle();
+
+        tradeNotificationState.offerId = offer.id;
+        tradeNotificationState.shownThisSession = true;
+
+        document.getElementById("tradeNotificationFrom").textContent =
+            sender ? (sender.name || "Союзник") : "Союзник";
+
+        document.getElementById("tradeNotificationText").textContent =
+            "Отдаёт: 🌲 " + offer.give_wood + " · 🍖 " + offer.give_meat +
+            "\nПолучает: 🌲 " + offer.get_wood + " · 🍖 " + offer.get_meat;
+
+        document.getElementById("tradeNotificationOverlay").style.display = "flex";
+    } catch (error) {
+        console.error("The Realms: не удалось проверить торговые предложения", error);
+    } finally {
+        tradeNotificationState.loading = false;
+    }
+}
+
+async function respondTradeNotification(action) {
+    if (tradeNotificationState.loading || !tradeNotificationState.offerId) return;
+
+    const house = getHouse();
+    if (!window.theRealmsSupabase || !house) return;
+
+    tradeNotificationState.loading = true;
+
+    try {
+        const result = await window.theRealmsSupabase.rpc("the_realms_respond_trade_offer", {
+            p_external_id: getServerExternalId(),
+            p_slot: getCurrentDynastySlotNumber(),
+            p_offer_id: tradeNotificationState.offerId,
+            p_action: action
+        });
+
+        if (result.error) throw result.error;
+
+        document.getElementById("tradeNotificationOverlay").style.display = "none";
+        tradeNotificationState.offerId = null;
+
+        if (action === "accept") {
+            alert("Торговый обмен заключён.");
+        } else {
+            alert("Торговое предложение отклонено.");
+        }
+
+        openRealm();
+    } catch (error) {
+        console.error("The Realms: ошибка обработки торговли", error);
+        alert(error.message || "Не удалось обработать торговое предложение.");
+    } finally {
+        tradeNotificationState.loading = false;
+    }
+}
+
+async function loadDiplomacyOverview() {
+    const alliesEl = document.getElementById("alliesOverviewList");
+    const warsEl = document.getElementById("warsOverviewList");
+    if (!alliesEl || !warsEl) return;
+
+    const house = getHouse();
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) {
+        alliesEl.innerHTML = '<div class="diplomacyOverviewEmpty">Нет союзников</div>';
+        warsEl.innerHTML = '<div class="diplomacyOverviewEmpty">Нет государств, с которыми ведётся война</div>';
+        return;
+    }
+
+    try {
+        const ownId = house.serverDynastyId;
+        const { data: relations, error } = await window.theRealmsSupabase
+            .from("diplomacy_relations")
+            .select("dynasty_a,dynasty_b,status")
+            .or("dynasty_a.eq." + ownId + ",dynasty_b.eq." + ownId);
+
+        if (error) throw error;
+
+        const active = (relations || []).filter(function(r) {
+            return r.status === "allied" || r.status === "war";
+        });
+
+        const ids = active.map(function(r) {
+            return r.dynasty_a === ownId ? r.dynasty_b : r.dynasty_a;
+        });
+
+        if (!ids.length) {
+            alliesEl.innerHTML = '<div class="diplomacyOverviewEmpty">Нет союзников</div>';
+            warsEl.innerHTML = '<div class="diplomacyOverviewEmpty">Нет государств, с которыми ведётся война</div>';
+            return;
+        }
+
+        const { data: dynasties, error: dynastyError } = await window.theRealmsSupabase
+            .from("dynasties")
+            .select("id,name,game_state")
+            .in("id", ids);
+
+        if (dynastyError) throw dynastyError;
+
+        const byId = {};
+        (dynasties || []).forEach(function(d) { byId[d.id] = d; });
+
+        function renderList(status, emptyText) {
+            const list = active.filter(function(r) { return r.status === status; });
+            if (!list.length) return '<div class="diplomacyOverviewEmpty">' + emptyText + '</div>';
+
+            return list.map(function(r) {
+                const id = r.dynasty_a === ownId ? r.dynasty_b : r.dynasty_a;
+                const d = byId[id];
+                const name = d ? (d.name || "Неизвестный Дом") : "Неизвестный Дом";
+                const city = sharedWorld.cities.find(function(c) { return c.dynasty_id === id; });
+                const coord = city ? ("X: " + city.x + " · Y: " + city.y) : "КАРТА";
+                return '<button class="diplomacyOverviewItem" type="button" data-dynasty="' + id + '"><span>' + escapeHtml(name) + '</span><span>' + escapeHtml(coord) + ' ›</span></button>';
+            }).join("");
+        }
+
+        alliesEl.innerHTML = renderList("allied", "Нет союзников");
+        warsEl.innerHTML = renderList("war", "Нет государств, с которыми ведётся война");
+
+        document.querySelectorAll(".diplomacyOverviewItem").forEach(function(button) {
+            button.onclick = function() {
+                const dynastyId = button.getAttribute("data-dynasty");
+                const city = sharedWorld.cities.find(function(c) { return c.dynasty_id === dynastyId; });
+                if (!city) {
+                    alert("Город этого государства пока не загружен на карту.");
+                    return;
+                }
+                openWorldMap();
+                mapState.x = Number(city.x);
+                mapState.y = Number(city.y);
+                mapState.selectedX = Number(city.x);
+                mapState.selectedY = Number(city.y);
+                updateMap();
+                setTimeout(function() { showSharedCityInfo(city); }, 50);
+            };
+        });
+    } catch (error) {
+        console.error("The Realms: не удалось загрузить дипломатию", error);
     }
 }
 
@@ -9755,6 +10256,21 @@ function openRealm() {
 
     // Проверяем входящие предложения союза только при входе в государство.
     checkIncomingDiplomacyNotifications();
+    checkIncomingTradeOffers();
+
+    // Обновляем два дипломатических блока на главном экране.
+    if (window.theRealmsSupabase && house) {
+        const refreshDiplomacy = function() {
+            return loadDiplomacyOverview();
+        };
+        if (!house.serverDynastyId) {
+            ensureCurrentServerDynasty(house).then(refreshDiplomacy).catch(function(error) {
+                console.error("The Realms: не удалось синхронизировать дипломатию", error);
+            });
+        } else {
+            refreshDiplomacy();
+        }
+    }
 }
 
 

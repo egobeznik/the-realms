@@ -4331,11 +4331,30 @@ function getHouseWorldBuildings(house) {
 }
 
 function buildServerGameState(house) {
+    const population = house && house.population || {};
+    const free = Math.max(0, Math.floor(Number(population.free) || 0));
+    const workers = Math.max(0, Math.floor(Number(population.workers) || 0));
+    const soldiers = Math.max(0, Math.floor(Number(population.soldiers) || 0));
+    const hunters = Math.max(0, Math.floor(Number(population.hunters) || 0));
+    const foresters = Math.max(0, Math.floor(Number(population.foresters) || 0));
+    const total = free + workers + soldiers;
+
     return {
         realmName: house && house.realmName || "",
         rulerName: house && house.rulerName || "",
         motto: house && house.motto || "",
-        population: getHousePopulationTotal(house),
+        // Число total остаётся для совместимости со старыми версиями.
+        population: total,
+        // Точная разбивка нужна другим игрокам: hunters и foresters
+        // являются частью workers и отдельно к total не прибавляются.
+        populationBreakdown: {
+            free: free,
+            workers: workers,
+            soldiers: soldiers,
+            hunters: hunters,
+            foresters: foresters,
+            total: total
+        },
         crest: house && house.crest || "",
         buildings: getHouseWorldBuildings(house)
     };
@@ -4487,6 +4506,26 @@ async function syncAllLocalBuildings(house) {
     }
 }
 
+function getSharedStatePopulation(state) {
+    if (!state || typeof state !== "object") return 100;
+
+    const breakdown = state.populationBreakdown;
+    if (breakdown && typeof breakdown === "object") {
+        const free = Math.max(0, Math.floor(Number(breakdown.free) || 0));
+        const workers = Math.max(0, Math.floor(Number(breakdown.workers) || 0));
+        const soldiers = Math.max(0, Math.floor(Number(breakdown.soldiers) || 0));
+        return free + workers + soldiers;
+    }
+
+    // Старые династии до v51 хранили только одно число population.
+    // В текущей версии стартовое население Дома — 100, поэтому для
+    // старой записи не доверяем устаревшему агрегату, если разбивки нет.
+    if (typeof state.population === "number" && state.population >= 0 && state.population <= 100) {
+        return Math.floor(state.population);
+    }
+    return 100;
+}
+
 async function loadSharedWorld() {
     if (!window.theRealmsSupabase || sharedWorldLoading) return;
 
@@ -4531,9 +4570,8 @@ async function loadSharedWorld() {
                 realmName: state.realmName || "Безымянное государство",
                 rulerName: state.rulerName || "Неизвестный правитель",
                 motto: state.motto || "",
-                population: Number(state.population) > 0
-                    ? Number(state.population)
-                    : 100,
+                population: getSharedStatePopulation(state),
+                populationState: state,
                 crest: state.crest || "",
                 buildings: Array.isArray(state.buildings) ? state.buildings : []
             });
@@ -6486,7 +6524,7 @@ function showSharedCityInfo(city) {
     document.getElementById("cityInfoMotto").textContent =
         city.motto ? "«" + city.motto + "»" : "—";
     document.getElementById("cityInfoPopulation").textContent =
-        Number(city.population) || 0;
+        getSharedStatePopulation(city.populationState || { population: city.population });
     document.getElementById("cityInfoCoordinates").textContent =
         "X: " + city.x + " · Y: " + city.y;
     document.getElementById("cityInfoOverlay").style.display = "flex";

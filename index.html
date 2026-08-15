@@ -9373,7 +9373,10 @@ function processHunting(house) {
             return;
         }
 
-        if (ground.gameLife <= 0) {
+        // Во время восстановления угодье полностью не производит.
+        // Даже если часть ресурса уже восстановилась, добыча возобновляется
+        // только после достижения 100% восстановления.
+        if (ground.recoveryStartedAt !== null || ground.gameLife <= 0) {
             ground.lastProduction = now;
             return;
         }
@@ -9601,7 +9604,9 @@ function processForestry(house) {
             return;
         }
 
-        if (ground.durability <= 0) {
+        // Во время восстановления лесничество полностью не производит.
+        // Добыча возобновляется только после полного восстановления до 100%.
+        if (ground.recoveryStartedAt !== null || ground.durability <= 0) {
             ground.lastProduction = now;
             return;
         }

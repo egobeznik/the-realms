@@ -2090,6 +2090,85 @@ textarea.input {
 }
 
 /* =====================================================
+   УВЕДОМЛЕНИЕ О ДИПЛОМАТИИ
+===================================================== */
+
+#diplomacyNotificationOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 700;
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.80);
+    align-items: center;
+    justify-content: center;
+}
+
+.diplomacyNotificationWindow {
+    width: 100%;
+    max-width: 360px;
+    padding: 22px 18px 18px;
+    border: 1px solid rgba(174, 141, 82, 0.72);
+    background:
+        radial-gradient(circle at top, rgba(111, 83, 43, 0.12), transparent 58%),
+        #110e0a;
+    box-shadow: 0 14px 50px rgba(0,0,0,.75);
+    text-align: center;
+}
+
+.diplomacyNotificationIcon {
+    font-size: 30px;
+    margin-bottom: 10px;
+}
+
+.diplomacyNotificationTitle {
+    color: #c7b18a;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 14px;
+    letter-spacing: 1.5px;
+}
+
+.diplomacyNotificationFrom {
+    margin-top: 8px;
+    color: #e0c89b;
+    font-size: 12px;
+}
+
+.diplomacyNotificationText {
+    margin-top: 15px;
+    color: #9b8c78;
+    font-size: 10px;
+    line-height: 1.6;
+}
+
+.diplomacyNotificationHint {
+    margin-top: 12px;
+    padding: 10px;
+    border: 1px solid rgba(139,112,67,.20);
+    background: rgba(20,17,13,.58);
+    color: #c4ae87;
+    font-size: 9px;
+    line-height: 1.55;
+}
+
+.diplomacyNotificationActions {
+    display: grid;
+    gap: 7px;
+    margin-top: 16px;
+}
+
+.diplomacyNotificationButton {
+    width: 100%;
+    min-height: 40px;
+    border: 1px solid rgba(139,112,67,.38);
+    background: rgba(20,17,13,.92);
+    color: #cdb98f;
+    font-family: inherit;
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+/* =====================================================
    ИНФОРМАЦИЯ О ГОРОДЕ
 ===================================================== */
 
@@ -3592,6 +3671,28 @@ textarea.input {
     </div>
 
 </main>
+
+<!-- =====================================================
+     УВЕДОМЛЕНИЕ О ДИПЛОМАТИИ
+===================================================== -->
+
+<div id="diplomacyNotificationOverlay">
+    <div class="diplomacyNotificationWindow">
+        <div class="diplomacyNotificationIcon">🤝</div>
+        <div class="diplomacyNotificationTitle">ВАМ ПРЕДЛОЖЕН СОЮЗ</div>
+        <div class="diplomacyNotificationFrom" id="diplomacyNotificationFrom">Другое государство</div>
+        <div class="diplomacyNotificationText">
+            Правитель этого Дома предлагает заключить с вами союз.
+        </div>
+        <div class="diplomacyNotificationHint">
+            Найдите этот Дом на карте мира, откройте его город и в карточке государства выберите <b>ПРИНЯТЬ СОЮЗ</b> или <b>ОТКЛОНИТЬ</b>.
+        </div>
+        <div class="diplomacyNotificationActions">
+            <button class="diplomacyNotificationButton" type="button" onclick="closeDiplomacyNotification()">ПОНЯТНО</button>
+            <button class="diplomacyNotificationButton" type="button" onclick="findDiplomacyProposerOnMap()">НАЙТИ НА КАРТЕ</button>
+        </div>
+    </div>
+</div>
 
 <!-- =====================================================
      ИНФОРМАЦИЯ О ГОРОДЕ
@@ -6741,6 +6842,109 @@ async function foundCity() {
     }
 }
 
+let diplomacyNotificationState = {
+    proposerDynastyId: null,
+    city: null,
+    shownThisSession: false,
+    loading: false
+};
+
+function closeDiplomacyNotification() {
+    const overlay = document.getElementById("diplomacyNotificationOverlay");
+    if (overlay) overlay.style.display = "none";
+}
+
+function findDiplomacyProposerOnMap() {
+    const city = diplomacyNotificationState.city;
+    closeDiplomacyNotification();
+
+    if (!city || typeof city.x !== "number" || typeof city.y !== "number") {
+        openWorldMap();
+        return;
+    }
+
+    const house = getHouse();
+    if (!house || !house.city) {
+        openMapForFoundation();
+        return;
+    }
+
+    document.getElementById("introScreen").style.display = "none";
+    document.getElementById("creationScreen").style.display = "none";
+    document.getElementById("realmScreen").style.display = "none";
+    document.getElementById("mapScreen").style.display = "block";
+
+    mapState.x = Number(city.x);
+    mapState.y = Number(city.y);
+    mapState.selectedX = null;
+    mapState.selectedY = null;
+    setMapMode("view");
+    updateMap();
+    loadSharedWorld();
+    window.scrollTo(0, 0);
+}
+
+async function checkIncomingDiplomacyNotifications() {
+    const house = getHouse();
+    if (diplomacyNotificationState.loading || !window.theRealmsSupabase || !house || !house.serverDynastyId) return;
+
+    diplomacyNotificationState.loading = true;
+
+    try {
+        const ownId = house.serverDynastyId;
+        const { data, error } = await window.theRealmsSupabase
+            .from("diplomacy_relations")
+            .select("dynasty_a,dynasty_b,status,proposed_by")
+            .eq("status", "alliance_pending")
+            .neq("proposed_by", ownId);
+
+        if (error) throw error;
+
+        const incoming = (data || []).find(function(relation) {
+            return String(relation.dynasty_a) === String(ownId) ||
+                   String(relation.dynasty_b) === String(ownId);
+        });
+
+        if (!incoming || !incoming.proposed_by) return;
+
+        const proposerId = incoming.proposed_by;
+        const { data: dynasty, error: dynastyError } = await window.theRealmsSupabase
+            .from("dynasties")
+            .select("id,name,game_state")
+            .eq("id", proposerId)
+            .maybeSingle();
+
+        if (dynastyError) throw dynastyError;
+
+        const { data: city, error: cityError } = await window.theRealmsSupabase
+            .from("cities")
+            .select("id,dynasty_id,name,x,y")
+            .eq("dynasty_id", proposerId)
+            .maybeSingle();
+
+        if (cityError) throw cityError;
+
+        diplomacyNotificationState.proposerDynastyId = proposerId;
+        diplomacyNotificationState.city = city || null;
+        diplomacyNotificationState.shownThisSession = true;
+
+        const from = document.getElementById("diplomacyNotificationFrom");
+        if (from) {
+            from.textContent = (dynasty && dynasty.name)
+                ? "Дом «" + dynasty.name + "»"
+                : "Другое государство";
+        }
+
+        const overlay = document.getElementById("diplomacyNotificationOverlay");
+        if (overlay) overlay.style.display = "flex";
+
+    } catch (error) {
+        console.error("The Realms: не удалось проверить входящие дипломатические предложения", error);
+    } finally {
+        diplomacyNotificationState.loading = false;
+    }
+}
+
 function diplomacyStatusLabel(status, proposedBy, ownId) {
     if (status === "allied") return "🤝 СОЮЗ";
     if (status === "war") return "⚔ ВОЙНА";
@@ -9548,6 +9752,9 @@ function openRealm() {
 
 
     window.scrollTo(0, 0);
+
+    // Проверяем входящие предложения союза только при входе в государство.
+    checkIncomingDiplomacyNotifications();
 }
 
 

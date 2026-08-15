@@ -4219,6 +4219,13 @@ function demoAdvanceTime() {
                 DEMO_ONE_HOUR;
         }
 
+        // Если Дом уже голодает, ускоряем и таймер самого голода.
+        // Иначе кнопка ускорения двигает только питание, а время голода
+        // остаётся реальным и смертность не наступает при тестировании.
+        if (typeof house.food.hungerStartedAt === "number") {
+            house.food.hungerStartedAt -= DEMO_ONE_HOUR;
+        }
+
     }
     /*
        Запускаем существующие производственные процессы.
@@ -7240,7 +7247,6 @@ function addForesterToGround(index) {
         house.population.hunters -
         house.population.foresters;
 
-    if (isHouseHungry(house)) return;
     if (availableWorkers <= 0) return;
     if (ground.foresters >= FORESTRY_MAXIMUM) return;
 
@@ -10186,9 +10192,6 @@ function moveFreeToWorker() {
     if (house.population.free <= 0)
         return;
 
-    if (isHouseHungry(house))
-        return;
-
     house.population.free -= 1;
 
     house.population.workers += 1;
@@ -10820,8 +10823,7 @@ function updateHunting() {
                         index + ')"' +
                         (
                             availableWorkers <= 0 ||
-                            ground.hunters >= HUNTING_MAXIMUM ||
-                            isHouseHungry(house)
+                            ground.hunters >= HUNTING_MAXIMUM
                                 ? ' disabled'
                                 : ''
                         ) +

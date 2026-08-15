@@ -8,7 +8,7 @@
 <meta name="viewport"
       content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
-<title>The Realms · Merged v6</title>
+<title>The Realms · Social v1</title>
 
 <script src="https://telegram.org/js/telegram-web-app.js"></script>
 
@@ -2805,6 +2805,36 @@ textarea.input {
     cursor: pointer;
 }
 
+
+/* =====================================================
+   СОЦИАЛЬНЫЙ ЦЕНТР
+===================================================== */
+.socialOverview { margin-top:14px; display:grid; gap:10px; }
+.socialCard { border:1px solid rgba(117,94,56,.45); background:rgba(21,18,14,.72); padding:12px; }
+.socialCardTitle { color:#bca57b; font-family:"Cinzel",Georgia,serif; font-size:10px; letter-spacing:1.8px; text-align:center; }
+.socialCardText { margin-top:7px; color:#776e61; font-size:10px; line-height:1.4; text-align:center; }
+.socialOpenButton,.socialActionButton { width:100%; min-height:36px; margin-top:9px; border:1px solid rgba(139,112,67,.38); background:rgba(20,17,13,.88); color:#cdb98f; font-family:"Cinzel",Georgia,serif; font-size:8px; letter-spacing:1px; cursor:pointer; }
+.socialBadge { display:inline-block; min-width:18px; padding:2px 5px; margin-left:5px; border:1px solid rgba(174,141,82,.45); color:#d0bc94; font-size:8px; }
+#socialCenterOverlay { position:fixed; inset:0; z-index:10100; display:none; align-items:center; justify-content:center; padding:16px; background:rgba(0,0,0,.82); }
+.socialCenterWindow { width:min(94vw,430px); max-height:90vh; overflow:auto; border:1px solid rgba(174,141,82,.65); background:#17130f; padding:18px; }
+.socialCenterTitle { text-align:center; color:#d0bc94; font-family:"Cinzel",Georgia,serif; font-size:13px; letter-spacing:2px; }
+.socialCenterSubtitle { margin-top:6px; text-align:center; color:#756b5d; font-size:9px; }
+.socialSectionLabel { margin-top:16px; padding-bottom:6px; border-bottom:1px solid rgba(117,94,56,.25); color:#a89167; font-family:"Cinzel",Georgia,serif; font-size:8px; letter-spacing:1.4px; }
+.socialMessageItem,.socialRelationItem { margin-top:8px; padding:10px; border:1px solid rgba(117,94,56,.30); background:rgba(28,23,18,.68); }
+.socialMessageHead { display:flex; justify-content:space-between; gap:8px; color:#bca984; font-size:9px; }
+.socialMessageBody { margin-top:7px; color:#b0a28e; font-size:10px; line-height:1.45; white-space:pre-wrap; }
+.socialMessageMeta { margin-top:6px; color:#665f54; font-size:8px; }
+.socialRelationRow { display:flex; justify-content:space-between; gap:8px; align-items:center; }
+.socialRelationName { color:#c8baa2; font-family:"Cinzel",Georgia,serif; font-size:9px; }
+.socialRelationStatus { color:#8f806c; font-size:8px; }
+.socialCompose { margin-top:12px; padding-top:12px; border-top:1px solid rgba(117,94,56,.25); }
+.socialCompose textarea { width:100%; min-height:85px; padding:9px; border:1px solid rgba(133,108,68,.55); background:rgba(24,20,16,.78); color:#d8ccb9; font-family:"Cormorant Garamond",Georgia,serif; font-size:14px; resize:none; outline:none; }
+.socialCompose textarea:focus { border-color:rgba(181,150,91,.9); }
+.socialButtons { display:grid; grid-template-columns:1fr 1fr; gap:7px; margin-top:8px; }
+.socialTarget { color:#a68b5d; text-align:center; font-size:9px; margin-top:7px; }
+.socialReputation { margin-top:7px; color:#897d6c; font-size:9px; text-align:center; }
+.socialCloseButton { width:100%; min-height:38px; margin-top:14px; border:1px solid rgba(117,94,56,.4); background:rgba(37,30,22,.75); color:#9e8a67; font-family:"Cinzel",Georgia,serif; font-size:8px; letter-spacing:1px; cursor:pointer; }
+
 </style>
 
 </head>
@@ -3290,6 +3320,14 @@ textarea.input {
                 </div>
             </section>
 
+        </div>
+
+        <div class="socialOverview">
+            <section class="socialCard">
+                <div class="socialCardTitle">✉ СОЦИАЛЬНЫЙ ЦЕНТР <span class="socialBadge" id="socialUnreadBadge">0</span></div>
+                <div class="socialCardText" id="socialOverviewText">Сообщения и отношения между Домами.</div>
+                <button class="socialOpenButton" type="button" onclick="openSocialCenter()">ОТКРЫТЬ СОЦИАЛЬНЫЙ ЦЕНТР</button>
+            </section>
         </div>
 
 
@@ -3989,6 +4027,28 @@ textarea.input {
 <!-- =====================================================
      УВЕДОМЛЕНИЕ О ДИПЛОМАТИИ
 ===================================================== -->
+
+<div id="socialCenterOverlay">
+    <div class="socialCenterWindow">
+        <div class="socialCenterTitle">СОЦИАЛЬНЫЙ ЦЕНТР</div>
+        <div class="socialCenterSubtitle">Общение и отношения между Домами</div>
+        <div class="socialSectionLabel">ВХОДЯЩИЕ СООБЩЕНИЯ</div>
+        <div id="socialMessagesList"><div class="socialCardText">Нет новых сообщений.</div></div>
+        <div class="socialSectionLabel">МОИ СВЯЗИ</div>
+        <div id="socialRelationsList"><div class="socialCardText">Нет социальных связей.</div></div>
+        <div class="socialSectionLabel">ИСТОРИЯ ОТНОШЕНИЙ</div>
+        <div id="socialEventsList"><div class="socialCardText">История пока пуста.</div></div>
+        <div class="socialCompose" id="socialComposeBlock" style="display:none;">
+            <div class="socialTarget" id="socialComposeTarget">Дом</div>
+            <textarea id="socialComposeText" maxlength="1000" placeholder="Напишите правителю этого Дома..."></textarea>
+            <div class="socialButtons">
+                <button class="socialActionButton" type="button" onclick="sendSocialMessage()">ОТПРАВИТЬ</button>
+                <button class="socialActionButton" type="button" onclick="closeSocialCompose()">ОТМЕНА</button>
+            </div>
+        </div>
+        <button class="socialCloseButton" type="button" onclick="closeSocialCenter()">ЗАКРЫТЬ</button>
+    </div>
+</div>
 
 <div id="diplomacyNotificationOverlay">
     <div class="diplomacyNotificationWindow">
@@ -7587,6 +7647,17 @@ function setDiplomacyUi(status, proposedBy, ownId, targetId) {
 
     const tradeBlock = document.getElementById("tradeBlock");
     if (tradeBlock) tradeBlock.remove();
+
+    const socialBlock = document.getElementById("socialTargetBlock");
+    if (socialBlock) socialBlock.remove();
+    const socialTargetBlock = document.createElement("div");
+    socialTargetBlock.id = "socialTargetBlock";
+    socialTargetBlock.className = "tradeBlock";
+    socialTargetBlock.innerHTML = '<div class="tradeLabel">СВЯЗЬ С ДОМОМ</div><div class="socialButtons"><button class="tradeButton" type="button">НАПИСАТЬ</button><button class="tradeButton" type="button">ПРЕДЛОЖИТЬ ДРУЖБУ</button></div>';
+    const socialTargetName = document.getElementById("cityInfoHouse")?.textContent || "Другому Дому";
+    socialTargetBlock.querySelector("button").onclick = function() { openSocialCompose(targetId, socialTargetName); };
+    socialTargetBlock.querySelectorAll("button")[1].onclick = function() { proposeSocialFriend(targetId, socialTargetName); };
+    block.appendChild(socialTargetBlock);
 
     if (status === "allied") {
         const parent = block;
@@ -11321,6 +11392,7 @@ function openRealm() {
 
     if (window.theRealmsSupabase && house.serverDynastyId) {
         subscribeTradeUpdates(house);
+        loadSocialCenter();
     }
 
 
@@ -11592,8 +11664,55 @@ if (
 
 
 
-</script>
+/* =====================================================
+   СОЦИАЛЬНЫЙ СЛОЙ v1
+===================================================== */
+const socialState = { targetDynastyId:null, targetName:"", loading:false };
+function socialEscape(v){return escapeHtml(String(v==null?"":v));}
+function socialFormatDate(v){const d=new Date(v);return Number.isNaN(d.getTime())?"":d.toLocaleString("ru-RU",{day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"});}
+async function socialRpc(name,params){if(!window.theRealmsSupabase)throw new Error("Социальная система временно недоступна.");const r=await window.theRealmsSupabase.rpc(name,params);if(r.error)throw r.error;return r.data;}
+async function loadSocialCenter(){
+ const h=getHouse(); if(!h||!h.serverDynastyId||!window.theRealmsSupabase)return;
+ try{
+  const [messages,relations,events]=await Promise.all([
+   socialRpc("the_realms_get_social_inbox",{p_external_id:getServerExternalId(),p_slot:getCurrentDynastySlotNumber()}),
+   socialRpc("the_realms_get_social_relations",{p_external_id:getServerExternalId(),p_slot:getCurrentDynastySlotNumber()}),
+   socialRpc("the_realms_get_social_events",{p_external_id:getServerExternalId(),p_slot:getCurrentDynastySlotNumber()})
+  ]);
+  const messageRows=messages||[], relationRows=relations||[], eventRows=events||[];
+  const ids=new Set(); messageRows.forEach(m=>ids.add(String(m.sender_dynasty_id))); relationRows.forEach(r=>{ids.add(String(r.dynasty_a));ids.add(String(r.dynasty_b));}); eventRows.forEach(e=>{ids.add(String(e.dynasty_a));ids.add(String(e.dynasty_b));}); ids.delete(String(h.serverDynastyId));
+  let names={}; if(ids.size){const r=await window.theRealmsSupabase.from("dynasties").select("id,name").in("id",Array.from(ids));if(r.error)throw r.error;(r.data||[]).forEach(d=>names[String(d.id)]=d.name||"Неизвестный Дом");}
+  const unread=messageRows.filter(m=>!m.read_at).length; const badge=document.getElementById("socialUnreadBadge"); if(badge)badge.textContent=unread;
+  const overview=document.getElementById("socialOverviewText"); if(overview)overview.textContent=unread?"Непрочитанных сообщений: "+unread:"Новых сообщений нет. Отношения между Домами сохраняются здесь.";
+  const ml=document.getElementById("socialMessagesList"); if(ml)ml.innerHTML=messageRows.length?messageRows.map(m=>'<div class="socialMessageItem"><div class="socialMessageHead"><span>'+socialEscape(names[String(m.sender_dynasty_id)]||"Другой Дом")+'</span><span>'+socialFormatDate(m.created_at)+'</span></div><div class="socialMessageBody">'+socialEscape(m.body)+'</div><div class="socialMessageMeta">'+(m.read_at?"Прочитано":"Новое сообщение")+'</div></div>').join(""): '<div class="socialCardText">Нет сообщений.</div>';
+  const rl=document.getElementById("socialRelationsList");
+  if(rl){
+   const rows=relationRows.filter(r=>String(r.dynasty_a)!==String(h.serverDynastyId)||String(r.dynasty_b)!==String(h.serverDynastyId));
+   rl.innerHTML=rows.length?rows.map(r=>{
+    const other=String(r.dynasty_a)===String(h.serverDynastyId)?String(r.dynasty_b):String(r.dynasty_a); const rep=String(r.dynasty_a)===String(h.serverDynastyId)?r.reputation_a:r.reputation_b;
+    const status=r.status==="friend"?"ДРУЖБА":(r.status==="friend_pending"?"ПРЕДЛОЖЕНИЕ ДРУЖБЫ":"НЕЙТРАЛЬНО");
+    const name=names[other]||"Другой Дом"; const incoming=r.status==="friend_pending"&&String(r.proposed_by)===other;
+    let actions='<div class="socialButtons"><button class="socialActionButton" type="button" onclick="openSocialCompose(\''+other+'\',\''+socialEscape(name).replace(/'/g,"\\'")+'\')">НАПИСАТЬ</button>';
+    if(incoming) actions+='<button class="socialActionButton" type="button" onclick="socialRelationAction(\''+other+'\',\''+socialEscape(name).replace(/'/g,"\\'")+'\',\'accept_friend\')">ПРИНЯТЬ</button>';
+    else if(r.status==="friend") actions+='<button class="socialActionButton" type="button" onclick="socialRelationAction(\''+other+'\',\''+socialEscape(name).replace(/'/g,"\\'")+'\',\'remove_friend\')">РАЗОРВАТЬ</button>';
+    else if(r.status==="friend_pending") actions+='<button class="socialActionButton" type="button" onclick="socialRelationAction(\''+other+'\',\''+socialEscape(name).replace(/'/g,"\\'")+'\',\'reject_friend\')">ОТКЛОНИТЬ</button>';
+    actions+='</div>';
+    return '<div class="socialRelationItem"><div class="socialRelationRow"><span class="socialRelationName">'+socialEscape(name)+'</span><span class="socialRelationStatus">'+status+' · репутация '+Math.max(0,Math.min(100,Number(rep)||50))+'</span></div>'+actions+'</div>';
+   }).join(""): '<div class="socialCardText">Нет социальных связей.</div>';
+  }
+  const el=document.getElementById("socialEventsList"); if(el)el.innerHTML=eventRows.length?eventRows.map(e=>{const other=String(e.dynasty_a)===String(h.serverDynastyId)?String(e.dynasty_b):String(e.dynasty_a);return '<div class="socialMessageItem"><div class="socialMessageHead"><span>'+socialEscape(names[other]||"Другой Дом")+'</span><span>'+socialFormatDate(e.created_at)+'</span></div><div class="socialMessageBody">'+socialEscape(e.details||e.event_type)+'</div></div>';}).join(""): '<div class="socialCardText">История пока пуста.</div>';
+  const unreadIds=messageRows.filter(m=>!m.read_at).map(m=>m.id); if(unreadIds.length)await socialRpc("the_realms_mark_social_messages_read",{p_external_id:getServerExternalId(),p_slot:getCurrentDynastySlotNumber(),p_message_ids:unreadIds});
+ }catch(e){console.error("The Realms: ошибка социального центра",e);}
+}
+function openSocialCenter(){const o=document.getElementById("socialCenterOverlay");if(o)o.style.display="flex";loadSocialCenter();}
+function closeSocialCenter(){const o=document.getElementById("socialCenterOverlay");if(o)o.style.display="none";}
+function openSocialCompose(id,name){socialState.targetDynastyId=id;socialState.targetName=name||"Другому Дому";openSocialCenter();const b=document.getElementById("socialComposeBlock"),t=document.getElementById("socialComposeTarget"),x=document.getElementById("socialComposeText");if(b)b.style.display="block";if(t)t.textContent="Дом «"+socialState.targetName+"»";if(x){x.value="";setTimeout(()=>x.focus(),50);}}
+function closeSocialCompose(){const b=document.getElementById("socialComposeBlock");if(b)b.style.display="none";socialState.targetDynastyId=null;}
+async function sendSocialMessage(){if(socialState.loading||!socialState.targetDynastyId)return;const x=document.getElementById("socialComposeText"),body=x?x.value.trim():"";if(!body)return alert("Напишите сообщение.");socialState.loading=true;try{await socialRpc("the_realms_send_social_message",{p_external_id:getServerExternalId(),p_slot:getCurrentDynastySlotNumber(),p_receiver_dynasty_id:socialState.targetDynastyId,p_body:body});const h=getHouse();if(h){addChronicleEvent(h,"Отправлено сообщение Дому «"+socialState.targetName+"»");saveHouseData(h);}closeSocialCompose();await loadSocialCenter();alert("Сообщение отправлено.");}catch(e){alert(e.message||"Не удалось отправить сообщение.");}finally{socialState.loading=false;}}
+async function socialRelationAction(id,name,action){try{await socialRpc("the_realms_social_relation_action",{p_external_id:getServerExternalId(),p_slot:getCurrentDynastySlotNumber(),p_target_dynasty_id:id,p_action:action});const h=getHouse();const text={accept_friend:"Принята дружба с Домом «",reject_friend:"Отклонено предложение дружбы Дома «",remove_friend:"Разорвана дружба с Домом «"}[action];if(h&&text){addChronicleEvent(h,text+name+"»");saveHouseData(h);}await loadSocialCenter();}catch(e){alert(e.message||"Не удалось изменить отношения.");}}
+async function proposeSocialFriend(id,name){try{await socialRpc("the_realms_social_relation_action",{p_external_id:getServerExternalId(),p_slot:getCurrentDynastySlotNumber(),p_target_dynasty_id:id,p_action:"propose_friend"});const h=getHouse();if(h){addChronicleEvent(h,"Предложена дружба Дому «"+name+"»");saveHouseData(h);}alert("Предложение дружбы отправлено.");await loadSocialCenter();}catch(e){alert(e.message||"Не удалось изменить отношения.");}}
 
+</script>
 
 <script>
 function getTheRealmsServerStatus() {

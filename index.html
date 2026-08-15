@@ -681,6 +681,47 @@ textarea.input {
     text-align: center;
 }
 
+
+.armyTotalStats {
+    margin-bottom: 9px;
+    padding: 10px;
+    border: 1px solid rgba(117, 94, 56, 0.36);
+    background: rgba(28, 23, 18, 0.68);
+    text-align: center;
+}
+
+.armyTotalStatsTitle {
+    color: #bca57b;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    margin-bottom: 7px;
+}
+
+.armyTotalStatsValues {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    color: #8f8577;
+    font-size: 9px;
+}
+
+.armyTotalStatsValues b {
+    color: #d1c3a9;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 12px;
+}
+
+.armyUnitStats {
+    margin-top: 4px;
+    color: #786f63;
+    font-size: 8px;
+}
+
+.armyUnitStats span {
+    color: #b9aa91;
+}
+
 /* =====================================================
    РЕСУРСЫ
 ===================================================== */
@@ -2725,6 +2766,14 @@ textarea.input {
 
             <div class="armyList">
 
+                <div class="armyTotalStats">
+                    <div class="armyTotalStatsTitle">СИЛА ВОЙСК</div>
+                    <div class="armyTotalStatsValues">
+                        <span>⚔ АТАКА: <b id="armyAttack">0</b></span>
+                        <span>🛡 ЗАЩИТА: <b id="armyDefense">0</b></span>
+                    </div>
+                </div>
+
                 <div class="armyUnit">
                     <div class="armyUnitTop">
                         <div class="armyUnitIcon">🧭</div>
@@ -2733,6 +2782,10 @@ textarea.input {
                             <div class="armyUnitName">РАЗВЕДЧИКИ</div>
                             <div class="armyUnitRequirement">
                                 Назначение из свободного населения
+                            </div>
+
+                            <div class="armyUnitStats">
+                                ⚔ Атака: <span>0</span> · 🛡 Защита: <span>10</span> / 1 воин
                             </div>
                         </div>
 
@@ -2771,6 +2824,10 @@ textarea.input {
                             <div class="armyUnitName">ЛУЧНИКИ</div>
                             <div class="armyUnitRequirement">
                                 Стоимость назначения: 1 🌲 на 1 лучника
+                            </div>
+
+                            <div class="armyUnitStats">
+                                ⚔ Атака: <span>10</span> · 🛡 Защита: <span>10</span> / 1 воин
                             </div>
                         </div>
 
@@ -6803,6 +6860,26 @@ function updateArmy() {
     const total =
         scouts +
         archers;
+
+    const totalAttack =
+        (scouts * 0) +
+        (archers * 10);
+
+    const totalDefense =
+        (scouts * 10) +
+        (archers * 10);
+
+    const attackValue =
+        document.getElementById("armyAttack");
+
+    const defenseValue =
+        document.getElementById("armyDefense");
+
+    if (attackValue)
+        attackValue.textContent = totalAttack;
+
+    if (defenseValue)
+        defenseValue.textContent = totalDefense;
 
     const scoutCount =
         document.getElementById("scoutCount");

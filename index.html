@@ -2344,6 +2344,18 @@ textarea.input {
     margin-top: 16px;
 }
 
+
+/* THE REALMS — ОБЩИЙ МИР */
+.foreignTerritory {
+    box-shadow: inset 0 0 0 2px rgba(183,154,97,.32);
+}
+.foreignCity {
+    filter: saturate(.82);
+}
+.foreignCity .cityMark {
+    opacity: .9;
+}
+
 </style>
 
 </head>
@@ -4206,6 +4218,342 @@ let mapState = {
     lastPointerX: 0,
     lastPointerY: 0
 };
+/* =====================================================
+   ОБЩИЙ ОНЛАЙН-МИР — ЭТАП 1
+   Города и территории. Локальная игровая механика не
+   переносится на сервер на этом этапе.
+===================================================== */
+
+let sharedWorld = {
+    cities: [],
+    territories: []
+};
+
+let sharedWorldChannel = null;
+let sharedWorldLoading = false;
+
+function getServerExternalId() {
+    try {
+        const tgUser =
+            window.Telegram &&
+            window.Telegram.WebApp &&
+            window.Telegram.WebApp.initDataUnsafe &&
+            window.Telegram.WebApp.initDataUnsafe.user;
+
+        if (tgUser && tgUser.id) {
+            return "telegram:" + String(tgUser.id);
+        }
+    } catch (e) {}
+
+    let id = localStorage.getItem("theRealmsServerClientId");
+
+    if (!id) {
+        id = (window.crypto && crypto.randomUUID)
+            ? crypto.randomUUID()
+            : "client_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2);
+        localStorage.setItem("theRealmsServerClientId", id);
+    }
+
+    return "browser:" + id;
+}
+
+function getCurrentDynastySlotNumber() {
+    const activeId = getActiveDynastyId();
+    const slots = getDynastySlots();
+    const index = slots.findIndex(function(slot) {
+        return slot.id === activeId;
+    });
+    return index >= 0 ? index + 1 : 1;
+}
+
+async function ensureCurrentServerDynasty(house) {
+    if (!window.theRealmsSupabase || !house) return null;
+
+    const supabase = window.theRealmsSupabase;
+    const externalId = getServerExternalId();
+    const slot = getCurrentDynastySlotNumber();
+
+    const playerResult = await supabase
+        .from("players")
+        .upsert(
+            { external_id: externalId },
+            { onConflict: "external_id" }
+        )
+        .select("id")
+        .single();
+
+    if (playerResult.error) throw playerResult.error;
+
+    const dynastyResult = await supabase
+        .from("dynasties")
+        .upsert(
+            {
+                player_id: playerResult.data.id,
+                slot: slot,
+                name: house.houseName || ("Династия " + slot),
+                game_state: {
+                    realmName: house.realmName || "",
+                    rulerName: house.rulerName || ""
+                }
+            },
+            { onConflict: "player_id,slot" }
+        )
+        .select("id, player_id, slot, name")
+        .single();
+
+    if (dynastyResult.error) throw dynastyResult.error;
+
+    house.serverDynastyId = dynastyResult.data.id;
+    saveHouseData(house);
+
+    return dynastyResult.data;
+}
+
+function sharedCityKey(x, y) {
+    return String(x) + ":" + String(y);
+}
+
+function isForeignTerritoryAt(x, y, house) {
+    const localDynastyId = house && house.serverDynastyId;
+    return sharedWorld.territories.some(function(item) {
+        return Number(item.x) === Number(x) &&
+               Number(item.y) === Number(y) &&
+               (!localDynastyId || item.dynasty_id !== localDynastyId);
+    });
+}
+
+function getSharedCityAt(x, y) {
+    return sharedWorld.cities.find(function(city) {
+        return Number(city.x) === Number(x) &&
+               Number(city.y) === Number(y);
+    }) || null;
+}
+
+function isOwnSharedCity(city, house) {
+    return !!(city && house && house.serverDynastyId &&
+        city.dynasty_id === house.serverDynastyId);
+}
+
+async function loadSharedWorld() {
+    if (!window.theRealmsSupabase || sharedWorldLoading) return;
+
+    sharedWorldLoading = true;
+
+    try {
+        const supabase = window.theRealmsSupabase;
+
+        const [citiesResult, territoriesResult] = await Promise.all([
+            supabase
+                .from("cities")
+                .select("id,dynasty_id,name,x,y,created_at,updated_at"),
+            supabase
+                .from("territories")
+                .select("x,y,dynasty_id,city_id,claimed_at")
+        ]);
+
+        if (citiesResult.error) throw citiesResult.error;
+        if (territoriesResult.error) throw territoriesResult.error;
+
+        sharedWorld.cities = citiesResult.data || [];
+        sharedWorld.territories = territoriesResult.data || [];
+
+        renderMapCells();
+        updateMap();
+
+        subscribeSharedWorld();
+
+    } catch (error) {
+        console.error("The Realms: не удалось загрузить общий мир", error);
+    } finally {
+        sharedWorldLoading = false;
+    }
+}
+
+function subscribeSharedWorld() {
+    if (!window.theRealmsSupabase) return;
+    if (sharedWorldChannel) return;
+
+    sharedWorldChannel =
+        window.theRealmsSupabase
+            .channel("the-realms-shared-world")
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "cities" },
+                function() {
+                    loadSharedWorld();
+                }
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "territories" },
+                function() {
+                    loadSharedWorld();
+                }
+            )
+            .subscribe();
+}
+
+async function syncCurrentCityToServer(house) {
+    if (!window.theRealmsSupabase || !house || !house.city) return null;
+
+    const dynasty = await ensureCurrentServerDynasty(house);
+    if (!dynasty) return null;
+
+    const supabase = window.theRealmsSupabase;
+    const x = Number(house.city.x);
+    const y = Number(house.city.y);
+    const territory = getInitialTerritoryCells(x, y);
+
+    /*
+       Проверяем всю стартовую территорию, а не только клетку города.
+       Это не позволит новому городу занять уже закреплённые земли.
+    */
+    const occupied = await supabase
+        .from("territories")
+        .select("x,y,dynasty_id,city_id")
+        .in("x", territory.map(function(cell) { return cell.x; }))
+        .in("y", territory.map(function(cell) { return cell.y; }));
+
+    if (occupied.error) throw occupied.error;
+
+    const foreignOccupied = (occupied.data || []).some(function(item) {
+        return item.dynasty_id !== dynasty.id;
+    });
+
+    if (foreignOccupied) {
+        throw new Error("Стартовая территория пересекается с владениями другой династии.");
+    }
+
+    const existing = await supabase
+        .from("cities")
+        .select("id,dynasty_id,name,x,y")
+        .eq("x", x)
+        .eq("y", y)
+        .maybeSingle();
+
+    if (existing.error) throw existing.error;
+
+    if (existing.data && existing.data.dynasty_id !== dynasty.id) {
+        throw new Error("Эта клетка уже занята другим городом.");
+    }
+
+    let cityData = existing.data || null;
+
+    if (!cityData) {
+        const cityInsert = await supabase
+            .from("cities")
+            .insert({
+                dynasty_id: dynasty.id,
+                name: house.houseName || dynasty.name || "Город",
+                x: x,
+                y: y
+            })
+            .select("id,dynasty_id,name,x,y")
+            .single();
+
+        if (cityInsert.error) throw cityInsert.error;
+        cityData = cityInsert.data;
+    }
+
+    /*
+       Повторная синхронизация не должна перезаписывать чужие земли.
+       Сначала получаем уже занятые клетки стартовой территории.
+    */
+    const occupiedTerritory = await supabase
+        .from("territories")
+        .select("x,y,dynasty_id,city_id")
+        .gte("x", x - 1)
+        .lte("x", x + 1)
+        .gte("y", y - 1)
+        .lte("y", y + 1);
+
+    if (occupiedTerritory.error) throw occupiedTerritory.error;
+
+    const occupiedByKey = new Map();
+    (occupiedTerritory.data || []).forEach(function(item) {
+        occupiedByKey.set(sharedCityKey(item.x, item.y), item);
+    });
+
+    for (const cell of territory) {
+        const key = sharedCityKey(cell.x, cell.y);
+        const occupiedCell = occupiedByKey.get(key);
+
+        if (occupiedCell) {
+            if (occupiedCell.dynasty_id !== dynasty.id) {
+                throw new Error(
+                    "Стартовая территория пересекается с владениями другой династии."
+                );
+            }
+            continue;
+        }
+
+        const territoryResult = await supabase
+            .from("territories")
+            .insert({
+                x: cell.x,
+                y: cell.y,
+                dynasty_id: dynasty.id,
+                city_id: cityData.id
+            });
+
+        if (territoryResult.error) {
+            /*
+               Если другой игрок занял клетку между проверкой и INSERT,
+               уникальный ключ (x,y) остановит запись. Чужая клетка
+               никогда не перезаписывается.
+            */
+            throw territoryResult.error;
+        }
+    }
+
+    return cityData;
+}
+
+async function canFoundCityOnServer(x, y) {
+    if (!window.theRealmsSupabase) return true;
+
+    const supabase = window.theRealmsSupabase;
+
+    const [cityResult, territoryResult] = await Promise.all([
+        supabase
+            .from("cities")
+            .select("id,dynasty_id")
+            .eq("x", x)
+            .eq("y", y)
+            .maybeSingle(),
+        supabase
+            .from("territories")
+            .select("x,y,dynasty_id")
+            .eq("x", x)
+            .eq("y", y)
+            .maybeSingle()
+    ]);
+
+    if (cityResult.error) throw cityResult.error;
+    if (territoryResult.error) throw territoryResult.error;
+
+    if (cityResult.data) return false;
+    if (territoryResult.data) return false;
+
+    return true;
+}
+
+async function refreshSharedWorldNow() {
+    await loadSharedWorld();
+    return sharedWorld;
+}
+
+async function handleSharedWorldAfterFoundation(house) {
+    try {
+        await syncCurrentCityToServer(house);
+        await loadSharedWorld();
+        return true;
+    } catch (error) {
+        console.error("The Realms: ошибка синхронизации основания", error);
+        return false;
+    }
+}
+
 
 function openAfterCreation(house) {
     if (house && house.city && typeof house.city.x === "number" && typeof house.city.y === "number") {
@@ -4234,6 +4582,7 @@ function openMapForFoundation() {
     mapState.selectedY = null;
     setMapMode("foundation");
     updateMap();
+    loadSharedWorld();
     window.scrollTo(0, 0);
 }
 
@@ -4256,6 +4605,14 @@ function openWorldMap() {
     mapState.selectedY = null;
     setMapMode("view");
     updateMap();
+    loadSharedWorld();
+    if (window.theRealmsSupabase && house && house.city) {
+        ensureCurrentServerDynasty(house)
+            .then(function() { return loadSharedWorld(); })
+            .catch(function(error) {
+                console.error("The Realms: загрузка общего мира", error);
+            });
+    }
     window.scrollTo(0, 0);
 }
 
@@ -4556,7 +4913,11 @@ function renderMapCells() {
 
             if (isTerritoryCell(house, x, y)) {
                 cell.classList.add("territory");
+            } else if (isForeignTerritoryAt(x, y, house)) {
+                cell.classList.add("foreignTerritory");
             }
+
+            const sharedCity = getSharedCityAt(x, y);
 
             if (city && city.x === x && city.y === y) {
                 cell.classList.add("city");
@@ -4569,6 +4930,15 @@ function renderMapCells() {
                     <span class="cityMark">${crest}</span>
                     <span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>
                 `;
+            } else if (sharedCity && !isOwnSharedCity(sharedCity, house)) {
+
+                cell.classList.add("foreignCity");
+
+                cell.innerHTML = `
+                    <span class="cityMark">♜</span>
+                    <span class="cityLabel">${escapeHtml(sharedCity.name || "Чужой город")}<span>ЧУЖАЯ ДИНАСТИЯ</span></span>
+                `;
+
             } else if (hasHouseAt(house, x, y)) {
 
                 cell.classList.add("houseCell");
@@ -4997,10 +5367,26 @@ function updateMap() {
             " · " + terrainName(type) +
             (forestNearby ? " · РЯДОМ ЛЕС" : "");
 
-        document.getElementById("mapFoundButton").disabled =
-            !foundationMode || isWaterTerrain(type);
-
         const house = getHouse();
+
+        const sharedCityOnCell =
+            getSharedCityAt(
+                mapState.selectedX,
+                mapState.selectedY
+            );
+
+        const foreignTerritoryOnCell =
+            isForeignTerritoryAt(
+                mapState.selectedX,
+                mapState.selectedY,
+                house
+            );
+
+        document.getElementById("mapFoundButton").disabled =
+            !foundationMode ||
+            isWaterTerrain(type) ||
+            !!sharedCityOnCell ||
+            foreignTerritoryOnCell;
 
         const huntingBuilt =
             hasHuntingGroundAt(
@@ -5774,7 +6160,7 @@ function closeHuntingGroundsOutside(event) {
 }
 
 
-function foundCity() {
+async function foundCity() {
     if (mapState.selectedX === null) return;
 
     const x = mapState.selectedX;
@@ -5785,6 +6171,34 @@ function foundCity() {
     let house = getHouse();
     if (!house) return;
 
+    house = prepareHouse(house);
+
+    if (getSharedCityAt(x, y) || isForeignTerritoryAt(x, y, house)) {
+        alert("Нельзя основать город на занятой территории.");
+        updateMap();
+        return;
+    }
+
+    /*
+       Сначала проверяем общий серверный мир. Это защищает от
+       ситуации, когда два игрока одновременно выбирают одну клетку.
+    */
+    if (window.theRealmsSupabase) {
+        try {
+            const allowed = await canFoundCityOnServer(x, y);
+
+            if (!allowed) {
+                await loadSharedWorld();
+                alert("Нельзя основать город: клетка уже занята другим игроком.");
+                return;
+            }
+        } catch (error) {
+            console.error("The Realms: проверка клетки не выполнена", error);
+            alert("Не удалось проверить свободна ли клетка. Попробуйте ещё раз.");
+            return;
+        }
+    }
+
     house.city = {
         x: x,
         y: y,
@@ -5793,8 +6207,6 @@ function foundCity() {
 
     house.mapPosition = { x: x, y: y };
 
-    // Первое основание получает 3 × 3 клетки: одна клетка
-    // во все стороны от центра города. Это стартовая территория Дома.
     house.territory = {
         cells: getInitialTerritoryCells(x, y),
         forest: false
@@ -5806,10 +6218,24 @@ function foundCity() {
 
     house.mapPosition = { x: x, y: y };
 
+    /*
+       Локальное сохранение остаётся прежним. После этого
+       город и его стартовая территория публикуются в общий мир.
+    */
     saveHouseData(house);
 
-    // После основания открываем главный экран. Отсюда игрок сможет
-    // вернуться на карту через блок «Первая деревня».
+    if (window.theRealmsSupabase) {
+        const synced = await handleSharedWorldAfterFoundation(house);
+
+        if (!synced) {
+            /*
+               Не удаляем локальное основание: текущая игра не должна
+               терять прогресс из-за временной ошибки сети.
+            */
+            alert("Город сохранён локально, но пока не опубликован в общем мире. Проверьте соединение и откройте карту ещё раз.");
+        }
+    }
+
     setMapMode("view");
     openRealm();
 }

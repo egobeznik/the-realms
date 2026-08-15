@@ -3221,7 +3221,7 @@ const HUNTING_GROUND_GAME_LOSS = 5;
 const HUNTING_GROUND_RECOVERY_MS = 24 * 60 * 60 * 1000;
 const HUNTING_MAXIMUM = 10;
 const HUNTING_INTERVAL = 2 * 60 * 60 * 1000;
-const MEAT_PER_GROUP = 30;
+const MEAT_PER_GROUP = 264;
 const HUNTING_GROUP_SIZE = 2;
 const GAME_LOSS_PER_HUNT = 5;
 
@@ -3956,10 +3956,26 @@ function updateCellInfo(x, y) {
                 ? ground.hunters
                 : 0;
 
+        const huntingProductionByWorkers = {
+            2: 53,
+            4: 106,
+            6: 158,
+            8: 211,
+            10: 264
+        };
+
+        const hunterCount =
+            Math.max(
+                0,
+                Math.min(
+                    HUNTING_MAXIMUM,
+                    Math.floor(hunters)
+                )
+            );
+
         const production =
-            Math.floor(
-                hunters / HUNTING_GROUP_SIZE
-            ) * MEAT_PER_GROUP;
+            huntingProductionByWorkers[hunterCount] ||
+            0;
 
         updateHuntingGroundRecovery(
             ground,
@@ -5107,12 +5123,26 @@ function processHunting(house) {
             return;
         }
 
+        const huntingProductionByWorkers = {
+            2: 53,
+            4: 106,
+            6: 158,
+            8: 211,
+            10: 264
+        };
+
+        const hunterCount =
+            Math.max(
+                0,
+                Math.min(
+                    HUNTING_MAXIMUM,
+                    Math.floor(ground.hunters)
+                )
+            );
+
         const productionPerCycle =
-            Math.floor(
-                ground.hunters /
-                HUNTING_GROUP_SIZE
-            ) *
-            MEAT_PER_GROUP;
+            huntingProductionByWorkers[hunterCount] ||
+            0;
 
         if (productionPerCycle <= 0) {
             return;

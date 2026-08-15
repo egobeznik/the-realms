@@ -2252,12 +2252,145 @@ textarea.input {
     }
 }
 
+
+/* =====================================================
+   ВЫБОР ДИНАСТИИ
+===================================================== */
+
+#dynastySelectScreen {
+    display: none;
+    min-height: 100vh;
+    min-height: 100dvh;
+    padding: 22px 18px 30px;
+    overflow-y: auto;
+    background:
+        radial-gradient(
+            ellipse at top,
+            rgba(119, 91, 49, 0.12),
+            transparent 42%
+        ),
+        #090806;
+}
+
+.dynastySelectFrame {
+    position: relative;
+    width: 100%;
+    max-width: 520px;
+    min-height: calc(100vh - 52px);
+    min-height: calc(100dvh - 52px);
+    margin: auto;
+    padding: 28px 18px;
+    border: 1px solid rgba(157, 126, 72, 0.55);
+    background: rgba(12, 10, 8, 0.52);
+}
+
+.dynastySelectTitle {
+    color: #ddd1bd;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 18px;
+    letter-spacing: 3px;
+    text-align: center;
+    margin-top: 15px;
+}
+
+.dynastySelectSubtitle {
+    color: #958773;
+    font-size: 13px;
+    line-height: 1.4;
+    text-align: center;
+    margin: 10px auto 20px;
+    max-width: 340px;
+}
+
+.dynastySlots {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.dynastyCard {
+    border: 1px solid rgba(117, 94, 56, 0.45);
+    background: rgba(21, 18, 14, 0.72);
+    padding: 14px;
+}
+
+.dynastyCardName {
+    color: #c8baa2;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 12px;
+    letter-spacing: 1.5px;
+}
+
+.dynastyCardMeta {
+    margin-top: 5px;
+    color: #70675b;
+    font-size: 10px;
+}
+
+.dynastyCardButton,
+.dynastyCreateButton {
+    width: 100%;
+    min-height: 42px;
+    margin-top: 12px;
+    border: 1px solid rgba(174, 141, 82, 0.55);
+    background: rgba(30, 25, 19, 0.90);
+    color: #c5b28f;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+}
+
+.dynastyCreateButton {
+    margin-top: 16px;
+}
+
 </style>
 
 </head>
 
 
 <body>
+
+
+
+<!-- =====================================================
+     ВЫБОР ДИНАСТИИ
+===================================================== -->
+
+<main id="dynastySelectScreen">
+
+    <div class="dynastySelectFrame">
+
+        <div class="smallCrown" style="text-align:center;">
+            ♜
+        </div>
+
+        <div class="dynastySelectTitle">
+            ВЫБОР ДИНАСТИИ
+        </div>
+
+        <div class="dynastySelectSubtitle">
+            Выберите династию, которую хотите продолжить,
+            или создайте вторую независимую династию.
+        </div>
+
+        <div
+            id="dynastySlots"
+            class="dynastySlots"
+        ></div>
+
+        <button
+            type="button"
+            id="dynastyCreateButton"
+            class="dynastyCreateButton"
+            onclick="createSecondDynasty()"
+        >
+            СОЗДАТЬ ВТОРУЮ ДИНАСТИЮ
+        </button>
+
+    </div>
+
+</main>
 
 
 <!-- =====================================================
@@ -2275,7 +2408,7 @@ textarea.input {
     <button
         id="startButton"
         aria-label="Начать летопись"
-        onclick="openCreation()"
+        onclick="handleChronicleStart()"
     ></button>
 
 </main>
@@ -3925,6 +4058,10 @@ function saveHouse(event) {
 
             saveHouseData(house);
 
+            if (!getActiveDynastyId()) {
+                createDynastyFromHouse(house);
+            }
+
             openAfterCreation(house);
 
         };
@@ -3936,6 +4073,10 @@ function saveHouse(event) {
     else {
 
         saveHouseData(house);
+
+        if (!getActiveDynastyId()) {
+            createDynastyFromHouse(house);
+        }
 
         openAfterCreation(house);
 
@@ -5682,14 +5823,441 @@ initMapControls();
    ПОЛУЧИТЬ ДОМ
 ===================================================== */
 
+
+/* =====================================================
+   ДВЕ НЕЗАВИСИМЫЕ ДИНАСТИИ
+===================================================== */
+
+const DYNASTIES_KEY =
+    "theRealmsDynasties_v1";
+
+const ACTIVE_DYNASTY_KEY =
+    "theRealmsActiveDynasty_v1";
+
+function getDynastySlots() {
+
+    try {
+
+        const raw =
+            localStorage.getItem(
+                DYNASTIES_KEY
+            );
+
+        if (!raw)
+            return [];
+
+        const data =
+            JSON.parse(raw);
+
+        return Array.isArray(data)
+            ? data.slice(0, 2)
+            : [];
+
+    } catch (e) {
+
+        return [];
+
+    }
+}
+
+function setDynastySlots(slots) {
+
+    localStorage.setItem(
+        DYNASTIES_KEY,
+        JSON.stringify(
+            slots.slice(0, 2)
+        )
+    );
+}
+
+function getActiveDynastyId() {
+
+    return localStorage.getItem(
+        ACTIVE_DYNASTY_KEY
+    );
+}
+
+function setActiveDynastyId(id) {
+
+    if (id) {
+
+        localStorage.setItem(
+            ACTIVE_DYNASTY_KEY,
+            id
+        );
+
+    } else {
+
+        localStorage.removeItem(
+            ACTIVE_DYNASTY_KEY
+        );
+
+    }
+}
+
+function newDynastyId() {
+
+    return "dynasty_" +
+        Date.now().toString(36) +
+        "_" +
+        Math.random()
+            .toString(36)
+            .slice(2, 9);
+}
+
+function migrateOldSaveIfNeeded() {
+
+    let slots =
+        getDynastySlots();
+
+    if (slots.length)
+        return slots;
+
+    const raw =
+        localStorage.getItem(
+            "theRealmsHouse"
+        );
+
+    if (!raw)
+        return [];
+
+    try {
+
+        const data =
+            JSON.parse(raw);
+
+        const slot = {
+
+            id: newDynastyId(),
+
+            name:
+                data.houseName ||
+                "Династия 1",
+
+            createdAt:
+                data.createdAt ||
+                new Date().toISOString(),
+
+            data: data
+
+        };
+
+        slots = [slot];
+
+        setDynastySlots(slots);
+        setActiveDynastyId(slot.id);
+
+        return slots;
+
+    } catch (e) {
+
+        return [];
+
+    }
+}
+
+function createDynastyFromHouse(house) {
+
+    let slots =
+        getDynastySlots();
+
+    if (slots.length >= 2)
+        return null;
+
+    const slot = {
+
+        id: newDynastyId(),
+
+        name:
+            house.houseName ||
+            "Династия " +
+            (slots.length + 1),
+
+        createdAt:
+            house.createdAt ||
+            new Date().toISOString(),
+
+        data: house
+
+    };
+
+    slots.push(slot);
+
+    setDynastySlots(slots);
+    setActiveDynastyId(slot.id);
+
+    return slot;
+
+}
+
+function updateActiveDynasty(house) {
+
+    const activeId =
+        getActiveDynastyId();
+
+    if (!activeId)
+        return;
+
+    const slots =
+        getDynastySlots();
+
+    const index =
+        slots.findIndex(
+            function(slot) {
+                return slot.id === activeId;
+            }
+        );
+
+    if (index < 0)
+        return;
+
+    slots[index].data =
+        house;
+
+    if (
+        house.houseName
+    ) {
+
+        slots[index].name =
+            house.houseName;
+
+    }
+
+    setDynastySlots(slots);
+}
+
+function loadDynasty(id) {
+
+    const slots =
+        getDynastySlots();
+
+    const slot =
+        slots.find(
+            function(item) {
+                return item.id === id;
+            }
+        );
+
+    if (!slot)
+        return null;
+
+    setActiveDynastyId(slot.id);
+
+    localStorage.setItem(
+        "theRealmsHouse",
+        JSON.stringify(slot.data)
+    );
+
+    return slot.data;
+
+}
+
+function showDynastySelector() {
+
+    const slots =
+        migrateOldSaveIfNeeded();
+
+    const screen =
+        document.getElementById(
+            "dynastySelectScreen"
+        );
+
+    const list =
+        document.getElementById(
+            "dynastySlots"
+        );
+
+    const createButton =
+        document.getElementById(
+            "dynastyCreateButton"
+        );
+
+    if (!screen || !list)
+        return;
+
+    list.innerHTML = "";
+
+    slots.forEach(
+        function(slot, index) {
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+            card.className =
+                "dynastyCard";
+
+            const name =
+                document.createElement(
+                    "div"
+                );
+
+            name.className =
+                "dynastyCardName";
+
+            name.textContent =
+                slot.name ||
+                "Династия " +
+                (index + 1);
+
+            const meta =
+                document.createElement(
+                    "div"
+                );
+
+            meta.className =
+                "dynastyCardMeta";
+
+            meta.textContent =
+                "ДИНАСТИЯ " +
+                (index + 1);
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+            button.type = "button";
+            button.className =
+                "dynastyCardButton";
+
+            button.textContent =
+                "ПРОДОЛЖИТЬ ЛЕТОПИСЬ";
+
+            button.onclick =
+                function() {
+
+                    const house =
+                        loadDynasty(
+                            slot.id
+                        );
+
+                    if (!house)
+                        return;
+
+                    document
+                        .getElementById(
+                            "dynastySelectScreen"
+                        )
+                        .style.display =
+                        "none";
+
+                    openAfterCreation(
+                        prepareHouse(house)
+                    );
+
+                };
+
+            card.appendChild(name);
+            card.appendChild(meta);
+            card.appendChild(button);
+
+            list.appendChild(card);
+
+        }
+    );
+
+    createButton.style.display =
+        slots.length < 2
+            ? "block"
+            : "none";
+
+    document
+        .getElementById("introScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("creationScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("realmScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("mapScreen")
+        .style.display = "none";
+
+    screen.style.display =
+        "block";
+
+    window.scrollTo(0, 0);
+}
+
+function createSecondDynasty() {
+
+    const slots =
+        migrateOldSaveIfNeeded();
+
+    if (slots.length >= 2)
+        return;
+
+    /*
+       Новая династия начинается с чистого
+       второго экрана. Старую не копируем.
+    */
+    setActiveDynastyId("");
+
+    localStorage.removeItem(
+        "theRealmsHouse"
+    );
+
+    document
+        .getElementById(
+            "dynastySelectScreen"
+        )
+        .style.display = "none";
+
+    openCreation();
+
+}
+
 function getHouse() {
 
+    const activeId =
+        getActiveDynastyId();
+
+    if (activeId) {
+
+        const slots =
+            getDynastySlots();
+
+        const slot =
+            slots.find(
+                function(item) {
+                    return item.id === activeId;
+                }
+            );
+
+        if (slot && slot.data) {
+
+            return slot.data;
+
+        }
+
+    }
+
     const savedHouse =
-        localStorage.getItem("theRealmsHouse");
+        localStorage.getItem(
+            "theRealmsHouse"
+        );
 
-    if (!savedHouse) return null;
+    if (!savedHouse)
+        return null;
 
-    return JSON.parse(savedHouse);
+    try {
+
+        return JSON.parse(
+            savedHouse
+        );
+
+    } catch (e) {
+
+        return null;
+
+    }
+
 }
 
 
@@ -5703,6 +6271,8 @@ function saveHouseData(house) {
         "theRealmsHouse",
         JSON.stringify(house)
     );
+
+    updateActiveDynasty(house);
 }
 
 
@@ -7812,18 +8382,32 @@ function resetHouse() {
 
     const confirmed =
         confirm(
-            "Вы действительно хотите удалить существующий Дом и начать новую летопись?"
+            "Вы действительно хотите удалить эту династию и начать новую летопись?"
         );
-
 
     if (!confirmed)
         return;
 
+    const activeId =
+        getActiveDynastyId();
+
+    if (activeId) {
+
+        const slots =
+            getDynastySlots().filter(
+                function(slot) {
+                    return slot.id !== activeId;
+                }
+            );
+
+        setDynastySlots(slots);
+        setActiveDynastyId("");
+
+    }
 
     localStorage.removeItem(
         "theRealmsHouse"
     );
-
 
     location.reload();
 }
@@ -7831,50 +8415,66 @@ function resetHouse() {
 
 /* =====================================================
    ПРОВЕРКА СОХРАНЕНИЯ
+
 ===================================================== */
 
 function checkExistingHouse() {
 
-    const savedHouse =
-        localStorage.getItem(
-            "theRealmsHouse"
+    /*
+       При каждом запуске сначала показываем первый экран.
+       Наличие сохранений проверяется только после
+       нажатия «НАЧАТЬ ЛЕТОПИСЬ».
+    */
+
+    document
+        .getElementById("introScreen")
+        .style.display = "block";
+
+    document
+        .getElementById("creationScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("realmScreen")
+        .style.display = "none";
+
+    document
+        .getElementById("mapScreen")
+        .style.display = "none";
+
+    const selector =
+        document.getElementById(
+            "dynastySelectScreen"
         );
 
-
-    if (savedHouse) {
-        const house = prepareHouse(JSON.parse(savedHouse));
-
-        if (house.city && typeof house.city.x === "number" && typeof house.city.y === "number") {
-            openRealm();
-        } else {
-            openMapForFoundation();
-        }
-
-    }
-
-    else {
-
-        document
-            .getElementById("introScreen")
-            .style.display =
-            "block";
-
-
-        document
-            .getElementById("creationScreen")
-            .style.display =
-            "none";
-
-
-        document
-            .getElementById("realmScreen")
-            .style.display =
-            "none";
-
-    }
+    if (selector)
+        selector.style.display = "none";
 
 }
 
+
+/* =====================================================
+   ПЕРЕХОД С ПЕРВОГО ЭКРАНА
+===================================================== */
+
+function handleChronicleStart() {
+
+    const slots =
+        migrateOldSaveIfNeeded();
+
+    if (slots.length === 0) {
+
+        setActiveDynastyId("");
+
+        openCreation();
+
+        return;
+
+    }
+
+    showDynastySelector();
+
+}
 
 /* =====================================================
    ПЕРИОДИЧЕСКОЕ ОБНОВЛЕНИЕ

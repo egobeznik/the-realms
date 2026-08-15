@@ -4420,6 +4420,39 @@ function getSharedCityAt(x, y) {
     }) || null;
 }
 
+// Минимальная дистанция между городами — 15 клеток.
+// В сетке используем Chebyshev distance: город запрещён, если
+// по X ИЛИ Y до ближайшего чужого города меньше 15 клеток.
+// На расстоянии ровно 15 клеток основание разрешено.
+const MIN_CITY_DISTANCE = 15;
+
+function getNearestForeignCity(x, y, house) {
+    const localDynastyId = house && house.serverDynastyId ? String(house.serverDynastyId) : null;
+    let nearest = null;
+    let nearestDistance = Infinity;
+
+    (sharedWorld.cities || []).forEach(function(city) {
+        if (!city) return;
+        if (localDynastyId && String(city.dynasty_id) === localDynastyId) return;
+
+        const dx = Math.abs(Number(city.x) - Number(x));
+        const dy = Math.abs(Number(city.y) - Number(y));
+        const distance = Math.max(dx, dy);
+
+        if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearest = city;
+        }
+    });
+
+    return nearest ? { city: nearest, distance: nearestDistance } : null;
+}
+
+function isTooCloseToForeignCity(x, y, house) {
+    const nearest = getNearestForeignCity(x, y, house);
+    return !!(nearest && nearest.distance < MIN_CITY_DISTANCE);
+}
+
 function isOwnSharedCity(city, house) {
     return !!(city && house && house.serverDynastyId &&
         city.dynasty_id === house.serverDynastyId);
@@ -5652,11 +5685,30 @@ function updateMap() {
                 house
             );
 
+        const nearestForeignCity =
+            getNearestForeignCity(
+                mapState.selectedX,
+                mapState.selectedY,
+                house
+            );
+
+        const tooCloseToForeignCity =
+            !!(nearestForeignCity &&
+               nearestForeignCity.distance < MIN_CITY_DISTANCE);
+
+        if (tooCloseToForeignCity) {
+            document.getElementById("mapSelectionInfo").textContent +=
+                " · БЛИЗКО ДРУГОЙ ГОРОД (" +
+                nearestForeignCity.distance +
+                " клеток)";
+        }
+
         document.getElementById("mapFoundButton").disabled =
             !foundationMode ||
-            isWaterTerrain(type) ||
+            type !== "plain" ||
             !!sharedCityOnCell ||
-            foreignTerritoryOnCell;
+            foreignTerritoryOnCell ||
+            tooCloseToForeignCity;
 
         const huntingBuilt =
             hasHuntingGroundAt(
@@ -6441,7 +6493,11 @@ async function foundCity() {
     const x = mapState.selectedX;
     const y = mapState.selectedY;
 
-    if (isWaterTerrain(terrainAt(x, y))) return;
+    if (terrainAt(x, y) !== "plain") {
+        alert("Город можно основать только на равнине.");
+        updateMap();
+        return;
+    }
 
     let house = getHouse();
     if (!house) return;
@@ -6451,6 +6507,17 @@ async function foundCity() {
     /* Локальная проверка остаётся для мгновенной реакции интерфейса. */
     if (getSharedCityAt(x, y) || isForeignTerritoryAt(x, y, house)) {
         alert("Нельзя основать город на занятой территории.");
+        updateMap();
+        return;
+    }
+
+    const nearestForeignCity = getNearestForeignCity(x, y, house);
+    if (nearestForeignCity && nearestForeignCity.distance < MIN_CITY_DISTANCE) {
+        alert(
+            "Нельзя основать город рядом с другим городом.\n\n" +
+            "Минимальная дистанция — " + MIN_CITY_DISTANCE + " клеток.\n" +
+            "До ближайшего города сейчас — " + nearestForeignCity.distance + " клеток."
+        );
         updateMap();
         return;
     }

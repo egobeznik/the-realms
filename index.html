@@ -9360,8 +9360,44 @@ function showDynastyDeathScreen(house) {
     overlay.style.display = "flex";
 }
 
+async function verifyDefeatedDynastyDeleted(supabase, dynastyId) {
+    const checks = await Promise.all([
+        supabase.from("dynasties").select("id").eq("id", dynastyId).maybeSingle(),
+        supabase.from("cities").select("id", { count: "exact", head: true }).eq("dynasty_id", dynastyId),
+        supabase.from("territories").select("x", { count: "exact", head: true }).eq("dynasty_id", dynastyId),
+        supabase.from("world_buildings").select("id", { count: "exact", head: true }).eq("dynasty_id", dynastyId),
+        supabase.from("diplomacy_relations").select("dynasty_a", { count: "exact", head: true }).or("dynasty_a.eq." + dynastyId + ",dynasty_b.eq." + dynastyId),
+        supabase.from("trade_offers").select("id", { count: "exact", head: true }).or("sender_dynasty_id.eq." + dynastyId + ",receiver_dynasty_id.eq." + dynastyId)
+    ]);
+
+    checks.forEach(function(result) {
+        if (result.error) throw result.error;
+    });
+
+    const dynastyRow = checks[0].data;
+    const citiesCount = Number(checks[1].count || 0);
+    const territoriesCount = Number(checks[2].count || 0);
+    const buildingsCount = Number(checks[3].count || 0);
+    const diplomacyCount = Number(checks[4].count || 0);
+    const tradesCount = Number(checks[5].count || 0);
+
+    if (dynastyRow || citiesCount > 0 || territoriesCount > 0 || buildingsCount > 0 || diplomacyCount > 0 || tradesCount > 0) {
+        throw new Error(
+            "Серверная очистка не подтверждена: " +
+            "dynasty=" + (dynastyRow ? "есть" : "нет") +
+            ", cities=" + citiesCount +
+            ", territories=" + territoriesCount +
+            ", buildings=" + buildingsCount +
+            ", diplomacy=" + diplomacyCount +
+            ", trades=" + tradesCount
+        );
+    }
+
+    return true;
+}
+
 async function deleteDefeatedDynastyFromServer(house) {
-    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return;
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return true;
     const supabase = window.theRealmsSupabase;
     const dynastyId = house.serverDynastyId;
 
@@ -9374,11 +9410,13 @@ async function deleteDefeatedDynastyFromServer(house) {
     ];
 
     const results = await Promise.allSettled(operations);
-    const failed = results.find(function(result) { return result.status === "fulfilled" && result.value && result.value.error; });
-    if (failed) {
-        const error = failed.value.error;
-        throw error;
-    }
+    const rejected = results.find(function(result) { return result.status === "rejected"; });
+    if (rejected) throw rejected.reason;
+
+    const failed = results.find(function(result) {
+        return result.status === "fulfilled" && result.value && result.value.error;
+    });
+    if (failed) throw failed.value.error;
 
     const dynastyResult = await supabase
         .from("dynasties")
@@ -9386,6 +9424,9 @@ async function deleteDefeatedDynastyFromServer(house) {
         .eq("id", dynastyId);
 
     if (dynastyResult.error) throw dynastyResult.error;
+
+    await verifyDefeatedDynastyDeleted(supabase, dynastyId);
+    return true;
 }
 
 function clearLocalDynastyAfterDeath() {
@@ -9409,7 +9450,15 @@ async function endDynastyByStarvation(house) {
     try {
         await deleteDefeatedDynastyFromServer(house);
     } catch (error) {
-        console.error("The Realms: не удалось удалить погибшую династию с сервера", error);
+        console.error("The Realms: не удалось подтвердить удаление погибшей династии", error);
+        const text = document.getElementById("dynastyDeathText");
+        if (text) {
+            text.textContent =
+                "Династия пала, но летопись ещё не может быть окончательно закрыта. " +
+                "Сервер не подтвердил полное удаление Дома. Повторите попытку позже.";
+        }
+        dynastyDeathInProgress = false;
+        return;
     }
 
     clearLocalDynastyAfterDeath();

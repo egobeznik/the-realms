@@ -4703,6 +4703,12 @@ let sharedWorld = {
 
 let sharedWorldChannel = null;
 let sharedWorldLoading = false;
+let sharedWorldLoadPromise = null;
+let sharedWorldLastLoadedAt = 0;
+let sharedCitiesLastLoadedAt = 0;
+const SHARED_WORLD_CACHE_MS = 15000;
+const sharedDynastyDetailsCache = new Map();
+const sharedDynastyDetailsLoading = new Map();
 let diplomacyState = {
     targetDynastyId: null,
     targetCity: null,
@@ -4710,6 +4716,8 @@ let diplomacyState = {
     proposedBy: null,
     loading: false
 };
+const diplomacyRelationCache = new Map();
+const DIPLOMACY_CACHE_MS = 15000;
 
 let tradeState = {
     targetDynastyId: null,
@@ -5068,33 +5076,139 @@ function getSharedStatePopulation(state) {
     return 100;
 }
 
-async function loadSharedWorld() {
-    if (!window.theRealmsSupabase || sharedWorldLoading) return;
+async function loadSharedWorld(forceRefresh) {
+    if (!window.theRealmsSupabase) return sharedWorld;
+
+    const now = Date.now();
+    if (!forceRefresh && sharedWorld.cities.length &&
+        now - sharedWorldLastLoadedAt < SHARED_WORLD_CACHE_MS) {
+        return sharedWorld;
+    }
+
+    if (sharedWorldLoadPromise) return sharedWorldLoadPromise;
+
+    sharedWorldLoadPromise = (async function() {
+        try {
+            const supabase = window.theRealmsSupabase;
+
+            // Загружаем только данные, необходимые карте.
+            // game_state больше не тянется для всех династий сразу — это был
+            // один из главных источников долгой загрузки в Telegram WebView.
+            const [citiesResult, territoriesResult, buildingsResult, dynastiesResult] = await Promise.all([
+                supabase
+                    .from("cities")
+                    .select("id,dynasty_id,name,x,y"),
+                supabase
+                    .from("territories")
+                    .select("x,y,dynasty_id,city_id"),
+                supabase
+                    .from("world_buildings")
+                    .select("id,dynasty_id,x,y,building_type,building_data"),
+                supabase
+                    .from("dynasties")
+                    .select("id,name")
+            ]);
+
+            if (citiesResult.error) throw citiesResult.error;
+            if (territoriesResult.error) throw territoriesResult.error;
+            if (dynastiesResult.error) throw dynastiesResult.error;
+
+            const dynastyMap = new Map();
+            (dynastiesResult.data || []).forEach(function(dynasty) {
+                dynastyMap.set(String(dynasty.id), dynasty);
+            });
+
+            sharedWorld.cities = (citiesResult.data || []).map(function(city) {
+                const dynasty = dynastyMap.get(String(city.dynasty_id));
+                const cachedDetails = sharedDynastyDetailsCache.get(String(city.dynasty_id));
+                return Object.assign({}, city, {
+                    dynastyName: dynasty ? dynasty.name : city.name,
+                    realmName: cachedDetails?.realmName || "Безымянное государство",
+                    rulerName: cachedDetails?.rulerName || "Неизвестный правитель",
+                    motto: cachedDetails?.motto || "",
+                    population: cachedDetails ? cachedDetails.population : 0,
+                    populationState: cachedDetails ? cachedDetails.populationState : null,
+                    crest: cachedDetails?.crest || "",
+                    buildings: cachedDetails?.buildings || []
+                });
+            });
+            sharedWorld.territories = territoriesResult.data || [];
+
+            // Основной источник построек — отдельная таблица.
+            // game_state читается только при необходимости, если таблица
+            // world_buildings временно недоступна.
+            const buildingMap = new Map();
+            if (!buildingsResult.error) {
+                (buildingsResult.data || []).forEach(function(building) {
+                    buildingMap.set(sharedCityKey(building.x, building.y), building);
+                });
+            }
+
+            if (buildingsResult.error) {
+                const fallback = await supabase
+                    .from("dynasties")
+                    .select("id,game_state");
+                if (!fallback.error) {
+                    (fallback.data || []).forEach(function(dynasty) {
+                        const state = dynasty && dynasty.game_state && typeof dynasty.game_state === "object"
+                            ? dynasty.game_state
+                            : {};
+                        (Array.isArray(state.buildings) ? state.buildings : []).forEach(function(building) {
+                            const key = sharedCityKey(building.x, building.y);
+                            if (!buildingMap.has(key)) {
+                                buildingMap.set(key, {
+                                    id: "state-" + String(dynasty.id) + "-" + key,
+                                    dynasty_id: dynasty.id,
+                                    x: Number(building.x),
+                                    y: Number(building.y),
+                                    building_type: building.building_type,
+                                    building_data: building.building_data || {},
+                                    created_at: null,
+                                    updated_at: null
+                                });
+                            }
+                        });
+                    });
+                }
+            }
+
+            sharedWorld.buildings = Array.from(buildingMap.values());
+            sharedWorldLastLoadedAt = Date.now();
+
+            renderMapCells();
+            updateMap();
+            subscribeSharedWorld();
+
+            return sharedWorld;
+        } catch (error) {
+            console.error("The Realms: не удалось загрузить общий мир", error);
+            return sharedWorld;
+        } finally {
+            sharedWorldLoading = false;
+            sharedWorldLoadPromise = null;
+        }
+    })();
 
     sharedWorldLoading = true;
+    return sharedWorldLoadPromise;
+}
 
+async function loadSharedCities(forceRefresh) {
+    if (!window.theRealmsSupabase) return sharedWorld.cities;
+
+    const now = Date.now();
+    if (!forceRefresh && sharedWorld.cities.length &&
+        now - sharedCitiesLastLoadedAt < SHARED_WORLD_CACHE_MS) {
+        return sharedWorld.cities;
+    }
+
+    const supabase = window.theRealmsSupabase;
     try {
-        const supabase = window.theRealmsSupabase;
-
-        const [citiesResult, territoriesResult, buildingsResult, dynastiesResult] = await Promise.all([
-            supabase
-                .from("cities")
-                .select("id,dynasty_id,name,x,y,created_at,updated_at"),
-            supabase
-                .from("territories")
-                .select("x,y,dynasty_id,city_id,claimed_at"),
-            supabase
-                .from("world_buildings")
-                .select("id,dynasty_id,x,y,building_type,building_data,created_at,updated_at"),
-            supabase
-                .from("dynasties")
-                .select("id,name,game_state")
+        const [citiesResult, dynastiesResult] = await Promise.all([
+            supabase.from("cities").select("id,dynasty_id,name,x,y"),
+            supabase.from("dynasties").select("id,name")
         ]);
-
         if (citiesResult.error) throw citiesResult.error;
-        if (territoriesResult.error) throw territoriesResult.error;
-        // world_buildings может быть временно недоступна из Telegram WebView.
-        // В этом случае ниже используем копию построек из game_state династий.
         if (dynastiesResult.error) throw dynastiesResult.error;
 
         const dynastyMap = new Map();
@@ -5104,11 +5218,44 @@ async function loadSharedWorld() {
 
         sharedWorld.cities = (citiesResult.data || []).map(function(city) {
             const dynasty = dynastyMap.get(String(city.dynasty_id));
-            const state = dynasty && dynasty.game_state && typeof dynasty.game_state === "object"
-                ? dynasty.game_state
-                : {};
+            const cachedDetails = sharedDynastyDetailsCache.get(String(city.dynasty_id));
             return Object.assign({}, city, {
                 dynastyName: dynasty ? dynasty.name : city.name,
+                realmName: cachedDetails?.realmName || "Безымянное государство",
+                rulerName: cachedDetails?.rulerName || "Неизвестный правитель",
+                motto: cachedDetails?.motto || "",
+                population: cachedDetails ? cachedDetails.population : 0,
+                populationState: cachedDetails ? cachedDetails.populationState : null,
+                crest: cachedDetails?.crest || "",
+                buildings: cachedDetails?.buildings || []
+            });
+        });
+        sharedCitiesLastLoadedAt = Date.now();
+        return sharedWorld.cities;
+    } catch (error) {
+        console.error("The Realms: не удалось быстро загрузить города", error);
+        return sharedWorld.cities;
+    }
+}
+
+async function loadSharedDynastyDetails(dynastyId) {
+    if (!window.theRealmsSupabase || !dynastyId) return null;
+    const key = String(dynastyId);
+    if (sharedDynastyDetailsCache.has(key)) return sharedDynastyDetailsCache.get(key);
+    if (sharedDynastyDetailsLoading.has(key)) return sharedDynastyDetailsLoading.get(key);
+
+    const promise = window.theRealmsSupabase
+        .from("dynasties")
+        .select("id,name,game_state")
+        .eq("id", dynastyId)
+        .maybeSingle()
+        .then(function(result) {
+            if (result.error || !result.data) return null;
+            const state = result.data.game_state && typeof result.data.game_state === "object"
+                ? result.data.game_state
+                : {};
+            const details = {
+                name: result.data.name || "Безымянный Дом",
                 realmName: state.realmName || "Безымянное государство",
                 rulerName: state.rulerName || "Неизвестный правитель",
                 motto: state.motto || "",
@@ -5116,52 +5263,16 @@ async function loadSharedWorld() {
                 populationState: state,
                 crest: state.crest || "",
                 buildings: Array.isArray(state.buildings) ? state.buildings : []
-            });
+            };
+            sharedDynastyDetailsCache.set(key, details);
+            return details;
+        })
+        .finally(function() {
+            sharedDynastyDetailsLoading.delete(key);
         });
-        sharedWorld.territories = territoriesResult.data || [];
 
-        // Основной источник — world_buildings. Дополнительно читаем
-        // копию построек из game_state династий, чтобы чужие постройки
-        // оставались видимыми даже если таблица world_buildings ещё не
-        // отдала строки в Telegram WebView.
-        const buildingMap = new Map();
-        if (!buildingsResult.error) {
-            (buildingsResult.data || []).forEach(function(building) {
-                buildingMap.set(sharedCityKey(building.x, building.y), building);
-            });
-        }
-        (dynastiesResult.data || []).forEach(function(dynasty) {
-            const state = dynasty && dynasty.game_state && typeof dynasty.game_state === "object"
-                ? dynasty.game_state
-                : {};
-            (Array.isArray(state.buildings) ? state.buildings : []).forEach(function(building) {
-                const key = sharedCityKey(building.x, building.y);
-                if (!buildingMap.has(key)) {
-                    buildingMap.set(key, {
-                        id: "state-" + String(dynasty.id) + "-" + key,
-                        dynasty_id: dynasty.id,
-                        x: Number(building.x),
-                        y: Number(building.y),
-                        building_type: building.building_type,
-                        building_data: building.building_data || {},
-                        created_at: null,
-                        updated_at: null
-                    });
-                }
-            });
-        });
-        sharedWorld.buildings = Array.from(buildingMap.values());
-
-        renderMapCells();
-        updateMap();
-
-        subscribeSharedWorld();
-
-    } catch (error) {
-        console.error("The Realms: не удалось загрузить общий мир", error);
-    } finally {
-        sharedWorldLoading = false;
-    }
+    sharedDynastyDetailsLoading.set(key, promise);
+    return promise;
 }
 
 function subscribeSharedWorld() {
@@ -5453,7 +5564,7 @@ function openWorldMap() {
     mapState.selectedY = null;
     setMapMode("view");
     updateMap();
-    loadSharedWorld();
+    loadSharedWorld(false);
     if (window.theRealmsSupabase && house && house.city) {
         ensureCurrentServerDynasty(house)
             .then(function() { return syncAllLocalBuildings(house); })
@@ -7245,7 +7356,7 @@ async function checkIncomingDiplomacyNotifications() {
         const proposerId = incoming.proposed_by;
         const { data: dynasty, error: dynastyError } = await window.theRealmsSupabase
             .from("dynasties")
-            .select("id,name,game_state")
+            .select("id,name")
             .eq("id", proposerId)
             .maybeSingle();
 
@@ -7354,7 +7465,15 @@ async function loadDiplomacyForTarget(targetDynastyId) {
 
     diplomacyState.targetDynastyId = targetDynastyId;
     diplomacyState.loading = true;
-    setDiplomacyUi("neutral", null, ownHouse.serverDynastyId, targetDynastyId);
+
+    const cachedRelation = diplomacyRelationCache.get(String(targetDynastyId));
+    if (cachedRelation && Date.now() - cachedRelation.loadedAt < DIPLOMACY_CACHE_MS) {
+        diplomacyState.status = cachedRelation.status || "neutral";
+        diplomacyState.proposedBy = cachedRelation.proposedBy || null;
+        setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, ownHouse.serverDynastyId, targetDynastyId);
+    } else {
+        setDiplomacyUi("neutral", null, ownHouse.serverDynastyId, targetDynastyId);
+    }
 
     try {
         const { data, error } = await window.theRealmsSupabase
@@ -7368,6 +7487,11 @@ async function loadDiplomacyForTarget(targetDynastyId) {
 
         diplomacyState.status = data ? data.status : "neutral";
         diplomacyState.proposedBy = data ? data.proposed_by : null;
+        diplomacyRelationCache.set(String(targetDynastyId), {
+            status: diplomacyState.status,
+            proposedBy: diplomacyState.proposedBy,
+            loadedAt: Date.now()
+        });
         setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, ownHouse.serverDynastyId, targetDynastyId);
     } catch (error) {
         console.error("The Realms: не удалось загрузить дипломатию", error);
@@ -7412,6 +7536,11 @@ async function performDiplomacyAction(action, targetDynastyId) {
         const result = data || {};
         diplomacyState.status = result.status || "neutral";
         diplomacyState.proposedBy = result.proposed_by || null;
+        diplomacyRelationCache.set(String(targetDynastyId), {
+            status: diplomacyState.status,
+            proposedBy: diplomacyState.proposedBy,
+            loadedAt: Date.now()
+        });
         setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, house.serverDynastyId, targetDynastyId);
 
         if (action === "accept_alliance" || action === "break_alliance" || action === "declare_war" || action === "make_peace") {
@@ -7714,6 +7843,10 @@ async function loadDiplomacyOverview() {
     }
 
     try {
+        // Координаты нужны блоку союзников сразу. Загружаем только города и
+        // названия домов, не вытягивая тяжёлые территории и постройки карты.
+        await loadSharedCities();
+
         const ownId = house.serverDynastyId;
         const { data: relations, error } = await window.theRealmsSupabase
             .from("diplomacy_relations")
@@ -7738,13 +7871,21 @@ async function loadDiplomacyOverview() {
 
         const { data: dynasties, error: dynastyError } = await window.theRealmsSupabase
             .from("dynasties")
-            .select("id,name,game_state")
+            .select("id,name")
             .in("id", ids);
 
         if (dynastyError) throw dynastyError;
 
         const byId = {};
         (dynasties || []).forEach(function(d) { byId[d.id] = d; });
+        active.forEach(function(r) {
+            const id = r.dynasty_a === ownId ? r.dynasty_b : r.dynasty_a;
+            diplomacyRelationCache.set(String(id), {
+                status: r.status,
+                proposedBy: r.proposed_by || null,
+                loadedAt: Date.now()
+            });
+        });
 
         function renderList(status, emptyText) {
             const list = active.filter(function(r) { return r.status === status; });
@@ -7808,6 +7949,34 @@ function showSharedCityInfo(city) {
     document.getElementById("cityInfoCoordinates").textContent =
         "X: " + city.x + " · Y: " + city.y;
     document.getElementById("cityInfoOverlay").style.display = "flex";
+
+    // Карточка города открывается сразу. Подробные данные дома подгружаются
+    // отдельно, только для выбранного дома, а не для всех домов мира.
+    if (city.dynasty_id && !sharedDynastyDetailsCache.has(String(city.dynasty_id))) {
+        loadSharedDynastyDetails(city.dynasty_id).then(function(details) {
+            if (!details) return;
+            const currentHouseId = document.getElementById("cityInfoHouse")?.textContent || "";
+            if (currentHouseId !== (city.dynastyName || city.name || "Безымянный Дом")) return;
+            document.getElementById("cityInfoRuler").textContent = details.rulerName;
+            document.getElementById("cityInfoHouse").textContent = details.name;
+            document.getElementById("cityInfoRealm").textContent = details.realmName;
+            document.getElementById("cityInfoMotto").textContent = details.motto ? "«" + details.motto + "»" : "—";
+            document.getElementById("cityInfoPopulation").textContent = details.population;
+            if (details.crest) {
+                document.getElementById("cityInfoCrest").innerHTML = `<img src="${escapeHtml(details.crest)}" alt="Герб Дома">`;
+            }
+            city.dynastyName = details.name;
+            city.realmName = details.realmName;
+            city.rulerName = details.rulerName;
+            city.motto = details.motto;
+            city.population = details.population;
+            city.populationState = details.populationState;
+            city.crest = details.crest;
+            city.buildings = details.buildings;
+        }).catch(function(error) {
+            console.error("The Realms: не удалось загрузить данные дома", error);
+        });
+    }
 
     const ownHouse = getHouse();
     if (ownHouse && city.dynasty_id && String(city.dynasty_id) !== String(ownHouse.serverDynastyId)) {

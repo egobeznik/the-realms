@@ -8533,6 +8533,10 @@ function scheduleHouseSave() {
 }
 
 function saveHouseData(house) {
+    // Летопись всегда нормализуется перед любым сохранением.
+    // Это гарантирует жёсткий лимит в 20 записей даже если
+    // сохранение вызывается другой системой игры.
+    if (house) ensureChronicleHistory(house);
     runtimeHouseCache = house;
     runtimeHouseCacheKey = getActiveDynastyId() || "__legacy_house__";
     scheduleHouseSave();
@@ -8556,7 +8560,8 @@ function ensureChronicleHistory(house) {
 function renderChronicleHistory(house) {
     const historyEl = document.getElementById("realmHistory");
     if (!historyEl || !house) return;
-    const history = ensureChronicleHistory(house);
+    // Дополнительная защита: отображаем только последние 20 записей.
+    const history = ensureChronicleHistory(house).slice(-CHRONICLE_HISTORY_LIMIT);
     if (!history.length) {
         historyEl.textContent = house.description || "История этого Дома ещё только начинается.";
         return;

@@ -1313,6 +1313,50 @@ textarea.input {
     filter: none;
 }
 
+
+.houseMark {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    z-index: 5;
+    width: 23px;
+    height: 23px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(174, 141, 82, 0.68);
+    border-radius: 50%;
+    background: rgba(17, 13, 9, 0.88);
+    box-shadow:
+        0 2px 7px rgba(0, 0, 0, 0.55),
+        0 0 6px rgba(174, 141, 82, 0.18);
+    font-size: 12px;
+    line-height: 1;
+}
+
+.houseCell {
+    box-shadow:
+        inset 0 0 0 1px rgba(174, 141, 82, 0.28);
+}
+
+.mapDeleteBuildingButton {
+    pointer-events: auto;
+    width: 100%;
+    min-height: 32px;
+    margin-top: 7px;
+    border: 1px solid rgba(130, 72, 55, 0.65);
+    background: rgba(43, 25, 20, 0.9);
+    color: #b58f7f;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 1.3px;
+    cursor: pointer;
+}
+
+.mapDeleteBuildingButton:active {
+    transform: scale(.98);
+}
+
 .warehouseCell {
     box-shadow:
         inset 0 0 0 1px rgba(174, 141, 82, 0.28);
@@ -1474,6 +1518,39 @@ textarea.input {
 .mapFoundButton:active { transform: translateX(-50%) scale(.98); }
 .mapFoundButton:disabled { opacity: .38; }
 /* Компактная кнопка строительства охотничьего угодья */
+#mapBuildHouseButton {
+    width: calc(100% - 28px);
+    max-width: 390px;
+    min-width: 0;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 12px;
+    left: 50%;
+    right: auto;
+    bottom: calc(172px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    white-space: nowrap;
+    font-size: 9px;
+    letter-spacing: 1.1px;
+}
+
+#mapBuildHouseButton:active {
+    transform: translateX(-50%) scale(0.95);
+}
+
+#mapBuildHouseButton .houseBuildIcon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+#mapBuildHouseButton .houseBuildText {
+    font-family: "Cinzel", Georgia, serif;
+}
+
 #mapBuildHuntingButton {
     width: calc(100% - 28px);
     max-width: 390px;
@@ -2836,6 +2913,18 @@ textarea.input {
 
     <button
         class="mapFoundButton"
+        id="mapBuildHouseButton"
+        onclick="buildHouseBuilding()"
+        title="Построить дом"
+        aria-label="Построить дом"
+        style="display:none;"
+    >
+        <span class="houseBuildIcon">🏠</span>
+        <span class="houseBuildText">ПОСТРОИТЬ ДОМ · 50 🌲 · 25 🍖</span>
+    </button>
+
+    <button
+        class="mapFoundButton"
         id="mapBuildHuntingButton"
         onclick="buildHuntingGround()"
         title="Построить охотничье угодье"
@@ -3136,6 +3225,14 @@ function hasWarehouseAt(house, x, y) {
     });
 }
 
+function hasHouseAt(house, x, y) {
+    if (!house || !Array.isArray(house.houses)) return false;
+
+    return house.houses.some(function(building) {
+        return building.x === x && building.y === y;
+    });
+}
+
 function hasAnyBuildingAt(house, x, y) {
     if (!house) return false;
 
@@ -3150,7 +3247,8 @@ function hasAnyBuildingAt(house, x, y) {
     return (
         hasHuntingGroundAt(house, x, y) ||
         hasForestryAt(house, x, y) ||
-        hasWarehouseAt(house, x, y)
+        hasWarehouseAt(house, x, y) ||
+        hasHouseAt(house, x, y)
     );
 }
 
@@ -3333,6 +3431,12 @@ const FORESTRY_BUILD_COST = 15;
 const FORESTRY_UPKEEP = 15;
 const WAREHOUSE_BUILD_COST = 100;
 const WAREHOUSE_UPKEEP = 100;
+const HOUSE_BUILD_WOOD_COST = 50;
+const HOUSE_BUILD_MEAT_COST = 25;
+const HOUSE_UPKEEP_WOOD = 50;
+const HOUSE_UPKEEP_MEAT = 25;
+const HOUSE_POPULATION_BONUS = 25;
+
 function getStoredResourcesTotal(house) {
     if (!house || !house.resources) return 0;
 
@@ -3495,6 +3599,8 @@ function saveHouse(event) {
         warehouses: [],
 
         warehouse: null,
+
+        houses: [],
 
         hunting: {
 
@@ -3931,6 +4037,16 @@ function renderMapCells() {
                     <span class="cityMark">${crest}</span>
                     <span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>
                 `;
+            } else if (hasHouseAt(house, x, y)) {
+
+                cell.classList.add("houseCell");
+
+                cell.innerHTML =
+                    '<span class="terrainMark">' +
+                        terrainIcon(type) +
+                    '</span>' +
+                    '<span class="houseMark" title="Дом">🏠</span>';
+
             } else if (hasWarehouseAt(house, x, y)) {
 
                 cell.classList.add("warehouseCell");
@@ -4031,9 +4147,46 @@ function updateCellInfo(x, y) {
         y
     );
 
+    const houseBuilding = hasHouseAt(
+        house,
+        x,
+        y
+    );
+
     title.textContent = terrainName(type);
 
-    if (hasWarehouseAt(house, x, y)) {
+    removeDeleteBuildingButton();
+
+    if (houseBuilding) {
+
+        title.textContent = "ДОМ";
+
+        const building =
+            house.houses.find(function(item) {
+                return item.x === x && item.y === y;
+            });
+
+        text.textContent =
+            "ДОМ · " +
+            "👥 +25 СВОБОДНЫХ ЖИТЕЛЕЙ · " +
+            (
+                building && building.active === false
+                    ? "Содержание не оплачено"
+                    : "Содержание: " +
+                      HOUSE_UPKEEP_WOOD +
+                      " 🌲 + " +
+                      HOUSE_UPKEEP_MEAT +
+                      " 🍖 / 48 ч."
+            );
+
+        coords.textContent =
+            "X: " + x +
+            " · Y: " + y +
+            " · 🏠 ДОМ";
+
+        addDeleteBuildingButton(x, y, "ДОМ");
+
+    } else if (hasWarehouseAt(house, x, y)) {
 
         title.textContent = "СКЛАД";
 
@@ -4223,6 +4376,40 @@ function updateCellInfo(x, y) {
     }
 }
 
+function removeDeleteBuildingButton() {
+    const button =
+        document.getElementById("mapDeleteBuildingButton");
+
+    if (button) {
+        button.remove();
+    }
+}
+
+function addDeleteBuildingButton(x, y, label) {
+    removeDeleteBuildingButton();
+
+    const info =
+        document.getElementById("mapCellInfo");
+
+    if (!info) return;
+
+    const button =
+        document.createElement("button");
+
+    button.type = "button";
+    button.id = "mapDeleteBuildingButton";
+    button.className = "mapDeleteBuildingButton";
+    button.textContent =
+        "УДАЛИТЬ " + label;
+
+    button.onclick = function(event) {
+        event.stopPropagation();
+        deleteBuildingAt(x, y);
+    };
+
+    info.appendChild(button);
+}
+
 function updateMap() {
     renderMapCells();
 
@@ -4241,6 +4428,9 @@ function updateMap() {
         document.getElementById("mapBuildForestryButton");
     const warehouseButton =
         document.getElementById("mapBuildWarehouseButton");
+
+    const houseButton =
+        document.getElementById("mapBuildHouseButton");
 
     if (mapState.selectedX !== null) {
 
@@ -4291,6 +4481,13 @@ function updateMap() {
                 mapState.selectedY
             );
 
+        const houseBuilt =
+            hasHouseAt(
+                house,
+                mapState.selectedX,
+                mapState.selectedY
+            );
+
         const canBuild =
             !foundationMode &&
             house.resources.wood >= HUNTING_GROUND_BUILD_COST &&
@@ -4321,6 +4518,24 @@ function updateMap() {
         const canPayWarehouse =
             house.resources.wood >= WAREHOUSE_BUILD_COST;
 
+        const canBuildHouse =
+            !foundationMode &&
+            !isWaterTerrain(type) &&
+            isTerritoryCell(
+                house,
+                mapState.selectedX,
+                mapState.selectedY
+            ) &&
+            !hasAnyBuildingAt(
+                house,
+                mapState.selectedX,
+                mapState.selectedY
+            );
+
+        const canPayHouse =
+            house.resources.wood >= HOUSE_BUILD_WOOD_COST &&
+            house.resources.meat >= HOUSE_BUILD_MEAT_COST;
+
         if (huntingButton) {
             huntingButton.style.display =
                 canBuild ? "inline-flex" : "none";
@@ -4350,6 +4565,17 @@ function updateMap() {
                     : "Нужно 100 леса для строительства склада";
         }
 
+        if (houseButton) {
+            houseButton.style.display =
+                canBuildHouse ? "inline-flex" : "none";
+            houseButton.disabled =
+                !canBuildHouse || !canPayHouse;
+            houseButton.title =
+                canPayHouse
+                    ? "Построить дом · 50 леса + 25 мяса"
+                    : "Нужно 50 леса и 25 мяса для строительства дома";
+        }
+
     } else {
 
         document.getElementById("mapSelectionInfo").textContent =
@@ -4373,6 +4599,13 @@ function updateMap() {
             warehouseButton.style.display = "none";
             warehouseButton.disabled = true;
         }
+
+        if (houseButton) {
+            houseButton.style.display = "none";
+            houseButton.disabled = true;
+        }
+
+        removeDeleteBuildingButton();
     }
 }
 
@@ -4498,6 +4731,55 @@ function buildWarehouse() {
     updateMap();
 }
 
+function buildHouseBuilding() {
+
+    if (
+        mapState.selectedX === null ||
+        mapState.selectedY === null
+    ) {
+        return;
+    }
+
+    let house = getHouse();
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const x = mapState.selectedX;
+    const y = mapState.selectedY;
+
+    if (mapState.mode === "foundation") return;
+    if (isWaterTerrain(terrainAt(x, y))) return;
+    if (!isTerritoryCell(house, x, y)) return;
+    if (hasAnyBuildingAt(house, x, y)) return;
+
+    if (house.resources.wood < HOUSE_BUILD_WOOD_COST) return;
+    if (house.resources.meat < HOUSE_BUILD_MEAT_COST) return;
+
+    const now = Date.now();
+
+    house.resources.wood -= HOUSE_BUILD_WOOD_COST;
+    house.resources.meat -= HOUSE_BUILD_MEAT_COST;
+
+    house.population.free += HOUSE_POPULATION_BONUS;
+
+    house.houses.push({
+        x: x,
+        y: y,
+        builtAt: new Date().toISOString(),
+        lastUpkeep: now,
+        upkeepPaidUntil: now + BUILDING_UPKEEP_INTERVAL,
+        active: true,
+        maintenanceDue: false
+    });
+
+    saveHouseData(house);
+
+    updateMap();
+    updatePopulation();
+    updateResources();
+}
+
 function buildForestry() {
 
     if (
@@ -4543,6 +4825,103 @@ function buildForestry() {
     updateForestry();
 }
 
+
+function deleteBuildingAt(x, y) {
+
+    let house = getHouse();
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    if (house.city &&
+        house.city.x === x &&
+        house.city.y === y) {
+        return;
+    }
+
+    let deleted = false;
+
+    if (Array.isArray(house.houses)) {
+        const houseIndex =
+            house.houses.findIndex(function(building) {
+                return building.x === x && building.y === y;
+            });
+
+        if (houseIndex >= 0) {
+            house.houses.splice(houseIndex, 1);
+            deleted = true;
+        }
+    }
+
+    if (!deleted && Array.isArray(house.warehouses)) {
+        const warehouseIndex =
+            house.warehouses.findIndex(function(building) {
+                return building.x === x && building.y === y;
+            });
+
+        if (warehouseIndex >= 0) {
+            house.warehouses.splice(warehouseIndex, 1);
+            deleted = true;
+        }
+    }
+
+    if (!deleted && Array.isArray(house.forestryGrounds)) {
+        const forestryIndex =
+            house.forestryGrounds.findIndex(function(building) {
+                return building.x === x && building.y === y;
+            });
+
+        if (forestryIndex >= 0) {
+            const ground =
+                house.forestryGrounds[forestryIndex];
+
+            house.forestryGrounds.splice(forestryIndex, 1);
+
+            house.population.foresters =
+                Math.max(
+                    0,
+                    house.population.foresters -
+                    (Number(ground.foresters) || 0)
+                );
+
+            deleted = true;
+        }
+    }
+
+    if (!deleted && Array.isArray(house.huntingGrounds)) {
+        const huntingIndex =
+            house.huntingGrounds.findIndex(function(building) {
+                return building.x === x && building.y === y;
+            });
+
+        if (huntingIndex >= 0) {
+            const ground =
+                house.huntingGrounds[huntingIndex];
+
+            house.huntingGrounds.splice(huntingIndex, 1);
+
+            house.population.hunters =
+                Math.max(
+                    0,
+                    house.population.hunters -
+                    (Number(ground.hunters) || 0)
+                );
+
+            deleted = true;
+        }
+    }
+
+    if (!deleted) return;
+
+    saveHouseData(house);
+
+    removeDeleteBuildingButton();
+    updateMap();
+    updatePopulation();
+    updateHunting();
+    updateForestry();
+    updateResources();
+}
 
 function toggleForestryCategory() {
 
@@ -5105,6 +5484,25 @@ function prepareHouse(house) {
     // Совместимость: больше не используем одиночное поле.
     house.warehouse = null;
 
+    if (!Array.isArray(house.houses)) {
+        house.houses = [];
+    }
+
+    house.houses.forEach(function(building) {
+        if (typeof building.active !== "boolean") building.active = true;
+        if (typeof building.lastUpkeep !== "number") {
+            building.lastUpkeep = Date.now();
+        }
+        if (typeof building.maintenanceDue !== "boolean") {
+            building.maintenanceDue = false;
+        }
+    });
+
+    const activeHouseCount =
+        house.houses.filter(function(building) {
+            return building.active !== false;
+        }).length;
+
     const activeWarehouseCount = house.warehouses.filter(function(warehouse) {
         return warehouse.active !== false;
     }).length;
@@ -5489,6 +5887,63 @@ function processBuildingUpkeep(house) {
 
     house.warehouses.forEach(function(warehouse) {
         processBuilding(warehouse, WAREHOUSE_UPKEEP);
+    });
+
+    function processHouseUpkeep(building) {
+        if (!building) return;
+
+        if (typeof building.lastUpkeep !== "number") {
+            building.lastUpkeep = now;
+        }
+
+        if (typeof building.active !== "boolean") {
+            building.active = true;
+        }
+
+        if (typeof building.maintenanceDue !== "boolean") {
+            building.maintenanceDue = false;
+        }
+
+        const dueCycles = Math.floor(
+            Math.max(0, now - building.lastUpkeep) /
+            BUILDING_UPKEEP_INTERVAL
+        );
+
+        if (dueCycles <= 0 && !building.maintenanceDue) return;
+
+        const requiredWood =
+            HOUSE_UPKEEP_WOOD *
+            (
+                building.maintenanceDue
+                    ? 1
+                    : dueCycles
+            );
+
+        const requiredMeat =
+            HOUSE_UPKEEP_MEAT *
+            (
+                building.maintenanceDue
+                    ? 1
+                    : dueCycles
+            );
+
+        if (
+            house.resources.wood >= requiredWood &&
+            house.resources.meat >= requiredMeat
+        ) {
+            house.resources.wood -= requiredWood;
+            house.resources.meat -= requiredMeat;
+            building.active = true;
+            building.maintenanceDue = false;
+            building.lastUpkeep = now;
+        } else {
+            building.active = false;
+            building.maintenanceDue = true;
+        }
+    }
+
+    house.houses.forEach(function(building) {
+        processHouseUpkeep(building);
     });
 
     const activeWarehouseCount = house.warehouses.filter(function(warehouse) {

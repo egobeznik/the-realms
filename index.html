@@ -4980,6 +4980,15 @@ function renderMapCells() {
             } else if (sharedCity) {
                 cell.classList.add("foreignCity");
                 cell.innerHTML = `<span class="cityMark">♜</span><span class="cityLabel">${escapeHtml(sharedCity.name || "Город")}<span>Чужие земли</span></span>`;
+            } else if (hasHouseAt(house, x, y)) {
+                cell.classList.add("houseCell");
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="houseMark" title="Дом">🏠</span>';
+            } else if (hasWarehouseAt(house, x, y)) {
+                cell.classList.add("warehouseCell");
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="warehouseMark" title="Склад">📦</span>';
+            } else if (hasForestryAt(house, x, y)) {
+                cell.classList.add("forestryCell");
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="forestryMark" title="Лесничество">🪵</span>';
             } else if (hasHuntingGroundAt(house, x, y)) {
                 cell.classList.add("huntingGroundCell");
                 cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="huntingGroundMark" title="Охотничье угодье">🏹</span>';

@@ -1517,6 +1517,40 @@ textarea.input {
 
 .mapFoundButton:active { transform: translateX(-50%) scale(.98); }
 .mapFoundButton:disabled { opacity: .38; }
+
+/* =====================================================
+   КНОПКИ СТРОИТЕЛЬСТВА — ЕДИНЫЙ ВЕРТИКАЛЬНЫЙ СТЕК
+===================================================== */
+
+.mapBuildStack {
+    position: absolute;
+    left: 50%;
+    bottom: calc(235px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    z-index: 31;
+    width: calc(100% - 28px);
+    max-width: 390px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.mapBuildStack .mapFoundButton {
+    position: static !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    min-width: 0;
+    margin: 0;
+    transform: none !important;
+}
+
+.mapBuildStack .mapFoundButton:active {
+    transform: scale(.98) !important;
+}
+
 /* Компактная кнопка строительства охотничьего угодья */
 #mapBuildHouseButton {
     width: calc(100% - 28px);
@@ -2911,6 +2945,7 @@ textarea.input {
         ОСНОВАТЬ ГОРОД
     </button>
 
+    <div class="mapBuildStack" id="mapBuildStack">
     <button
         class="mapFoundButton"
         id="mapBuildHouseButton"
@@ -2958,6 +2993,7 @@ textarea.input {
         <span class="forestryBuildIcon">🪵</span>
         <span class="forestryBuildText">ПОСТРОИТЬ ЛЕСНИЧЕСТВО · 15 🌲</span>
     </button>
+    </div>
 
 </main>
 

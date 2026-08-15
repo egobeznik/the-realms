@@ -2200,6 +2200,56 @@ textarea.input {
     font-style: italic;
 }
 
+
+.diplomacyBlock {
+    margin-top: 16px;
+    padding-top: 14px;
+    border-top: 1px solid rgba(139,112,67,.22);
+}
+.diplomacyLabel {
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: #857866;
+    text-align: center;
+}
+.diplomacyStatus {
+    margin-top: 6px;
+    text-align: center;
+    color: #c4ae87;
+    font-size: 12px;
+    letter-spacing: .5px;
+}
+.diplomacyActions {
+    display: grid;
+    gap: 7px;
+    margin-top: 10px;
+}
+.diplomacyButton {
+    width: 100%;
+    min-height: 38px;
+    border: 1px solid rgba(139,112,67,.35);
+    background: rgba(20,17,13,.88);
+    color: #cdb98f;
+    font-family: inherit;
+    font-size: 9px;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+.diplomacyButton:disabled {
+    opacity: .45;
+    cursor: default;
+}
+.diplomacyButton.danger {
+    color: #b98a82;
+    border-color: rgba(145,75,65,.35);
+}
+.diplomacyHint {
+    margin-top: 7px;
+    text-align: center;
+    color: #756b5d;
+    font-size: 8px;
+    line-height: 1.45;
+}
 .cityInfoCoordinates {
     margin-top: 9px;
     color: #6f6659;
@@ -3585,6 +3635,13 @@ textarea.input {
 
         <div class="cityInfoCoordinates" id="cityInfoCoordinates">X: 0 · Y: 0</div>
 
+        <div class="diplomacyBlock" id="diplomacyBlock" style="display:none;">
+            <div class="diplomacyLabel">ОТНОШЕНИЯ</div>
+            <div class="diplomacyStatus" id="diplomacyStatus">НЕЙТРАЛИТЕТ</div>
+            <div class="diplomacyActions" id="diplomacyActions"></div>
+            <div class="diplomacyHint" id="diplomacyHint"></div>
+        </div>
+
         <button
             class="cityInfoClose"
             onclick="closeCityInfo()"
@@ -4281,6 +4338,14 @@ let sharedWorld = {
 
 let sharedWorldChannel = null;
 let sharedWorldLoading = false;
+let diplomacyState = {
+    targetDynastyId: null,
+    targetCity: null,
+    status: "neutral",
+    proposedBy: null,
+    loading: false
+};
+
 
 function getServerExternalId() {
     try {
@@ -6676,6 +6741,128 @@ async function foundCity() {
     }
 }
 
+function diplomacyStatusLabel(status, proposedBy, ownId) {
+    if (status === "allied") return "🤝 СОЮЗ";
+    if (status === "war") return "⚔ ВОЙНА";
+    if (status === "alliance_pending") {
+        return String(proposedBy) === String(ownId)
+            ? "ОЖИДАНИЕ ОТВЕТА"
+            : "ПРЕДЛОЖЕНИЕ СОЮЗА";
+    }
+    return "НЕЙТРАЛИТЕТ";
+}
+
+function setDiplomacyUi(status, proposedBy, ownId, targetId) {
+    const block = document.getElementById("diplomacyBlock");
+    const statusEl = document.getElementById("diplomacyStatus");
+    const actions = document.getElementById("diplomacyActions");
+    const hint = document.getElementById("diplomacyHint");
+    if (!block || !statusEl || !actions || !hint) return;
+
+    block.style.display = "block";
+    statusEl.textContent = diplomacyStatusLabel(status, proposedBy, ownId);
+    actions.innerHTML = "";
+    hint.textContent = "";
+
+    function addButton(text, action, danger) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "diplomacyButton" + (danger ? " danger" : "");
+        button.textContent = text;
+        button.onclick = function() { performDiplomacyAction(action, targetId); };
+        actions.appendChild(button);
+    }
+
+    if (status === "neutral") {
+        addButton("ПРЕДЛОЖИТЬ СОЮЗ", "propose_alliance", false);
+        addButton("ОБЪЯВИТЬ ВОЙНУ", "declare_war", true);
+        hint.textContent = "Союз вступает в силу после принятия другой стороной.";
+    } else if (status === "alliance_pending") {
+        if (String(proposedBy) === String(ownId)) {
+            addButton("ОТМЕНИТЬ ПРЕДЛОЖЕНИЕ", "cancel_alliance", false);
+            hint.textContent = "Ожидаем решения другого государства.";
+        } else {
+            addButton("ПРИНЯТЬ СОЮЗ", "accept_alliance", false);
+            addButton("ОТКЛОНИТЬ", "reject_alliance", true);
+        }
+    } else if (status === "allied") {
+        addButton("РАЗОРВАТЬ СОЮЗ", "break_alliance", false);
+        addButton("ОБЪЯВИТЬ ВОЙНУ", "declare_war", true);
+    } else if (status === "war") {
+        hint.textContent = "Государства находятся в состоянии войны.";
+        addButton("ЗАКЛЮЧИТЬ МИР", "make_peace", false);
+    }
+}
+
+async function loadDiplomacyForTarget(targetDynastyId) {
+    const ownHouse = getHouse();
+    if (!window.theRealmsSupabase || !ownHouse || !ownHouse.serverDynastyId || !targetDynastyId) return;
+
+    diplomacyState.targetDynastyId = targetDynastyId;
+    diplomacyState.loading = true;
+    setDiplomacyUi("neutral", null, ownHouse.serverDynastyId, targetDynastyId);
+
+    try {
+        const { data, error } = await window.theRealmsSupabase
+            .from("diplomacy_relations")
+            .select("dynasty_a,dynasty_b,status,proposed_by")
+            .or("and(dynasty_a.eq." + ownHouse.serverDynastyId + ",dynasty_b.eq." + targetDynastyId + "),and(dynasty_a.eq." + targetDynastyId + ",dynasty_b.eq." + ownHouse.serverDynastyId + ")")
+            .maybeSingle();
+
+        if (error) throw error;
+        if (diplomacyState.targetDynastyId !== targetDynastyId) return;
+
+        diplomacyState.status = data ? data.status : "neutral";
+        diplomacyState.proposedBy = data ? data.proposed_by : null;
+        setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, ownHouse.serverDynastyId, targetDynastyId);
+    } catch (error) {
+        console.error("The Realms: не удалось загрузить дипломатию", error);
+        setDiplomacyUi("neutral", null, ownHouse.serverDynastyId, targetDynastyId);
+        const hint = document.getElementById("diplomacyHint");
+        if (hint) hint.textContent = "Дипломатия временно недоступна.";
+    } finally {
+        diplomacyState.loading = false;
+    }
+}
+
+async function performDiplomacyAction(action, targetDynastyId) {
+    const house = getHouse();
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId || !targetDynastyId || diplomacyState.loading) return;
+
+    const messages = {
+        propose_alliance: "Предложить этому государству союз?",
+        accept_alliance: "Принять предложение союза?",
+        reject_alliance: "Отклонить предложение союза?",
+        cancel_alliance: "Отменить предложение союза?",
+        break_alliance: "Разорвать союз?",
+        declare_war: "Объявить этому государству войну?",
+        make_peace: "Предложить прекратить войну и вернуться к нейтралитету?"
+    };
+
+    if (messages[action] && !confirm(messages[action])) return;
+
+    diplomacyState.loading = true;
+    try {
+        const { data, error } = await window.theRealmsSupabase.rpc("the_realms_diplomacy_action", {
+            p_external_id: getServerExternalId(),
+            p_slot: getCurrentDynastySlotNumber(),
+            p_target_dynasty_id: targetDynastyId,
+            p_action: action
+        });
+        if (error) throw error;
+        const result = data || {};
+        diplomacyState.status = result.status || "neutral";
+        diplomacyState.proposedBy = result.proposed_by || null;
+        setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, house.serverDynastyId, targetDynastyId);
+    } catch (error) {
+        console.error("The Realms: ошибка дипломатии", error);
+        alert("Не удалось изменить отношения.\n\n" + (error.message || "Попробуйте ещё раз."));
+        await loadDiplomacyForTarget(targetDynastyId);
+    } finally {
+        diplomacyState.loading = false;
+    }
+}
+
 function showSharedCityInfo(city) {
     if (!city) return;
 
@@ -6699,6 +6886,14 @@ function showSharedCityInfo(city) {
     document.getElementById("cityInfoCoordinates").textContent =
         "X: " + city.x + " · Y: " + city.y;
     document.getElementById("cityInfoOverlay").style.display = "flex";
+
+    const ownHouse = getHouse();
+    if (ownHouse && city.dynasty_id && String(city.dynasty_id) !== String(ownHouse.serverDynastyId)) {
+        loadDiplomacyForTarget(city.dynasty_id);
+    } else {
+        const block = document.getElementById("diplomacyBlock");
+        if (block) block.style.display = "none";
+    }
 }
 
 function showCityInfo(house) {
@@ -6736,11 +6931,16 @@ function showCityInfo(house) {
     document.getElementById("cityInfoCoordinates").textContent =
         "X: " + house.city.x + " · Y: " + house.city.y;
 
+    const block = document.getElementById("diplomacyBlock");
+    if (block) block.style.display = "none";
+    diplomacyState.targetDynastyId = null;
+
     document.getElementById("cityInfoOverlay").style.display = "flex";
 }
 
 function closeCityInfo() {
     document.getElementById("cityInfoOverlay").style.display = "none";
+    diplomacyState.targetDynastyId = null;
 }
 
 function closeCityInfoOutside(event) {

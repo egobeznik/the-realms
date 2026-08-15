@@ -4009,7 +4009,7 @@ function updateCellInfo(x, y) {
 
         text.textContent =
             "ХРАНЕНИЕ РЕСУРСОВ · Вместимость: " +
-            warehouseCapacity;
+            warehouseCapacity + " · Содержание: " + WAREHOUSE_UPKEEP_COST + " 🌲 / 48 ч.";
 
         coords.textContent =
             "X: " + x +
@@ -4051,7 +4051,7 @@ function updateCellInfo(x, y) {
                 "🌲 Лес: 0% · " +
                 "👷 Рабочих: " +
                 foresters +
-                " · Добыча приостановлена";
+                " · Добыча приостановлена" + " · Содержание: " + FORESTRY_BUILD_UPKEEP_COST + " 🌲 / 48 ч.";
 
             coords.textContent =
                 "X: " + x +
@@ -4131,7 +4131,7 @@ function updateCellInfo(x, y) {
                 "🦌 Звери: 0% · " +
                 "👷 Рабочих: " +
                 hunters +
-                " · Добыча приостановлена";
+                " · Добыча приостановлена" + " · Содержание: " + HUNTING_GROUND_UPKEEP_COST + " 🌲 / 48 ч.";
 
             coords.textContent =
                 "X: " + x +
@@ -4254,7 +4254,6 @@ function updateMap() {
 
         const canBuildWarehouse =
             !foundationMode &&
-            house.resources.wood >= WAREHOUSE_BUILD_COST &&
             !isWaterTerrain(type) &&
             isTerritoryCell(
                 house,
@@ -4266,6 +4265,9 @@ function updateMap() {
                 mapState.selectedX,
                 mapState.selectedY
             );
+
+        const canPayWarehouse =
+            house.resources.wood >= WAREHOUSE_BUILD_COST;
 
         if (huntingButton) {
             huntingButton.style.display =
@@ -4289,7 +4291,11 @@ function updateMap() {
             warehouseButton.style.display =
                 canBuildWarehouse ? "inline-flex" : "none";
             warehouseButton.disabled =
-                !canBuildWarehouse;
+                !canBuildWarehouse || !canPayWarehouse;
+            warehouseButton.title =
+                canPayWarehouse
+                    ? "Построить склад · 100 леса"
+                    : "Нужно 100 леса для строительства склада";
         }
 
     } else {

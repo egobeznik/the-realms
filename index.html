@@ -1259,6 +1259,65 @@ textarea.input {
 
 .mapCell .terrainMark { opacity: .9; }
 
+#mapBuildWarehouseButton {
+    width: calc(100% - 28px);
+    max-width: 390px;
+    min-width: 0;
+    height: 40px;
+    min-height: 40px;
+    padding: 0 12px;
+    left: 50%;
+    right: auto;
+    bottom: calc(172px + env(safe-area-inset-bottom));
+    transform: translateX(-50%);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    white-space: nowrap;
+    font-size: 9px;
+    letter-spacing: 1.1px;
+}
+
+#mapBuildWarehouseButton:active {
+    transform: translateX(-50%) scale(0.95);
+}
+
+#mapBuildWarehouseButton .warehouseBuildIcon {
+    font-size: 16px;
+    line-height: 1;
+}
+
+#mapBuildWarehouseButton .warehouseBuildText {
+    font-family: "Cinzel", Georgia, serif;
+}
+
+.warehouseMark {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    z-index: 5;
+    width: 23px;
+    height: 23px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(174, 141, 82, 0.68);
+    border-radius: 50%;
+    background: rgba(17, 13, 9, 0.88);
+    box-shadow:
+        0 2px 7px rgba(0, 0, 0, 0.55),
+        0 0 6px rgba(174, 141, 82, 0.18);
+    font-size: 12px;
+    line-height: 1;
+    filter: none;
+}
+
+.warehouseCell {
+    box-shadow:
+        inset 0 0 0 1px rgba(174, 141, 82, 0.28);
+}
+
 #mapBuildForestryButton {
     width: calc(100% - 28px);
     max-width: 390px;
@@ -1617,6 +1676,48 @@ textarea.input {
     text-align: center;
 }
 
+
+
+.storageList {
+    padding: 4px 10px 10px;
+}
+
+.storageRow {
+    min-height: 48px;
+    display: grid;
+    grid-template-columns: 34px 1fr auto;
+    align-items: center;
+    gap: 9px;
+    padding: 8px 10px;
+    border-bottom: 1px solid rgba(117, 94, 56, 0.18);
+}
+
+.storageRow:last-child {
+    border-bottom: none;
+}
+
+.storageRowIcon {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(117, 94, 56, 0.34);
+    font-size: 16px;
+}
+
+.storageRowName {
+    color: #c2b292;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+    letter-spacing: 1.2px;
+}
+
+.storageRowValue {
+    color: #d0c0a5;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 15px;
+}
 
 .mapLegend {
     position: absolute;
@@ -2400,148 +2501,32 @@ textarea.input {
 
 
         <!-- =================================================
-             РЕСУРСЫ
+             СКЛАД
         ================================================== -->
 
         <section class="realmSection resourcesSection">
 
             <div class="sectionHeader">
-
-                <div class="sectionTitle">
-                    РЕСУРСЫ
+                <div class="sectionTitle">СКЛАД</div>
+                <div class="sectionTotal" id="storageCapacityLabel">
+                    ВМЕСТИМОСТЬ: 5000
                 </div>
-
-                <div class="sectionTotal">
-                    ЗАПАСЫ
-                </div>
-
             </div>
 
+            <div class="storageList">
 
-            <div
-                class="resourceCategory"
-                id="foodCategory"
-            >
-
-                <button
-                    class="resourceCategoryHeader"
-                    onclick="toggleResourceCategory('foodCategory')"
-                >
-
-                    <div class="resourceCategoryLeft">
-
-                        <span class="resourceCategoryIcon">
-                            🍖
-                        </span>
-
-                        <span>
-                            ЕДА
-                        </span>
-
-                    </div>
-
-                    <span class="resourceCategoryArrow">
-                        ▼
-                    </span>
-
-                </button>
-
-
-                <div class="resourceCategoryContent">
-
-
-                    <div
-                        class="resourceItem"
-                        onclick="showHuntingGrounds()"
-                        role="button"
-                        tabindex="0"
-                        onkeydown="if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); showHuntingGrounds(); }"
-                    >
-
-                        <div class="resourceItemIcon">
-                            🍖
-                        </div>
-
-
-                        <div class="resourceItemInfo">
-
-                            <div class="resourceItemName">
-                                МЯСО
-                            </div>
-
-                            <div class="resourceItemDescription">
-                                Основной запас пищи
-                            </div>
-
-                            <div class="resourceItemDescription">
-                                Постройте охотничье угодье на клетке Лес, чтобы добывать мясо.
-                            </div>
-
-                        </div>
-
-
-                        <div
-                            class="resourceItemValue"
-                            id="foodValue"
-                        >
-                            100
-                        </div>
-
-
-                        <button
-                            class="resourceInfoButton"
-                            onclick="event.stopPropagation(); showResourceInfo('meat')"
-                        >
-                            ⓘ
-                        </button>
-
-                    </div>
-
+                <div class="storageRow">
+                    <div class="storageRowIcon">🍖</div>
+                    <div class="storageRowName">МЯСО</div>
+                    <div class="storageRowValue" id="foodValue">100</div>
                 </div>
 
-            </div>
-            <div
-                class="resourceCategory"
-                id="woodCategory"
-            >
-                <button
-                    class="resourceCategoryHeader"
-                    onclick="toggleResourceCategory('woodCategory')"
-                >
-                    <div class="resourceCategoryLeft">
-                        <span class="resourceCategoryIcon">🌲</span>
-                        <span>МАТЕРИАЛЫ</span>
-                    </div>
-                    <span class="resourceCategoryArrow">▼</span>
-                </button>
-
-                <div class="resourceCategoryContent">
-                    <div
-                        class="resourceItem"
-                        onclick="showResourceInfo('wood')"
-                        role="button"
-                        tabindex="0"
-                    >
-                        <div class="resourceItemIcon">🌲</div>
-
-                        <div class="resourceItemInfo">
-                            <div class="resourceItemName">ЛЕС</div>
-                            <div class="resourceItemDescription">
-                                Основной строительный материал
-                            </div>
-                            <div class="resourceItemDescription">
-                                Постройте лесничество на клетке Лес, чтобы добывать лес.
-                            </div>
-                        </div>
-
-                        <div class="resourceItemValue" id="woodValue">50</div>
-
-                        <button
-                            class="resourceInfoButton"
-                            onclick="event.stopPropagation(); showResourceInfo('wood')"
-                        >ⓘ</button>
-                    </div>
+                <div class="storageRow">
+                    <div class="storageRowIcon">🌲</div>
+                    <div class="storageRowName">ЛЕС</div>
+                    <div class="storageRowValue" id="woodValue">50</div>
                 </div>
+
             </div>
 
         </section>
@@ -2863,6 +2848,18 @@ textarea.input {
 
     <button
         class="mapFoundButton"
+        id="mapBuildWarehouseButton"
+        onclick="buildWarehouse()"
+        title="Построить склад"
+        aria-label="Построить склад"
+        style="display:none;"
+    >
+        <span class="warehouseBuildIcon">📦</span>
+        <span class="warehouseBuildText">ПОСТРОИТЬ СКЛАД</span>
+    </button>
+
+    <button
+        class="mapFoundButton"
         id="mapBuildForestryButton"
         onclick="buildForestry()"
         title="Построить лесничество"
@@ -3130,6 +3127,33 @@ function hasForestryAt(house, x, y) {
 }
 
 
+function hasWarehouseAt(house, x, y) {
+    return !!(
+        house &&
+        house.warehouse &&
+        house.warehouse.x === x &&
+        house.warehouse.y === y
+    );
+}
+
+function hasAnyBuildingAt(house, x, y) {
+    if (!house) return false;
+
+    if (
+        house.city &&
+        house.city.x === x &&
+        house.city.y === y
+    ) {
+        return true;
+    }
+
+    return (
+        hasHuntingGroundAt(house, x, y) ||
+        hasForestryAt(house, x, y) ||
+        hasWarehouseAt(house, x, y)
+    );
+}
+
 function hasHuntingGroundAt(house, x, y) {
     if (!house || !Array.isArray(house.huntingGrounds)) {
         return false;
@@ -3300,6 +3324,7 @@ const FOOD_CONSUMPTION_INTERVAL =
 const FORESTRY_GROUND_DURABILITY_MAX = 100;
 const FORESTRY_GROUND_DURABILITY_LOSS = 10;
 const FORESTRY_GROUND_RECOVERY_MS = 48 * 60 * 60 * 1000;
+const STORAGE_CAPACITY = 5000;
 
 
 /* =====================================================
@@ -3418,6 +3443,12 @@ function saveHouse(event) {
             gold: 0
 
         },
+
+        storage: {
+            capacity: STORAGE_CAPACITY
+        },
+
+        warehouse: null,
 
         hunting: {
 
@@ -3553,12 +3584,19 @@ function setMapMode(mode) {
     const forestryButton =
         document.getElementById("mapBuildForestryButton");
 
+    const warehouseButton =
+        document.getElementById("mapBuildWarehouseButton");
+
     if (buildButton) {
         buildButton.style.display = "none";
     }
 
     if (forestryButton) {
         forestryButton.style.display = "none";
+    }
+
+    if (warehouseButton) {
+        warehouseButton.style.display = "none";
     }
 
     const instruction = document.getElementById("mapInstruction");
@@ -3847,6 +3885,16 @@ function renderMapCells() {
                     <span class="cityMark">${crest}</span>
                     <span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>
                 `;
+            } else if (hasWarehouseAt(house, x, y)) {
+
+                cell.classList.add("warehouseCell");
+
+                cell.innerHTML =
+                    '<span class="terrainMark">' +
+                        terrainIcon(type) +
+                    '</span>' +
+                    '<span class="warehouseMark" title="Склад">📦</span>';
+
             } else if (hasForestryAt(house, x, y)) {
 
                 cell.classList.add("forestryCell");
@@ -3939,7 +3987,20 @@ function updateCellInfo(x, y) {
 
     title.textContent = terrainName(type);
 
-    if (forestryGround) {
+    if (hasWarehouseAt(house, x, y)) {
+
+        title.textContent = "СКЛАД";
+
+        text.textContent =
+            "ХРАНЕНИЕ РЕСУРСОВ · Вместимость: " +
+            STORAGE_CAPACITY;
+
+        coords.textContent =
+            "X: " + x +
+            " · Y: " + y +
+            " · 📦 СКЛАД";
+
+    } else if (forestryGround) {
 
         const ground =
             house.forestryGrounds.find(function(item) {
@@ -4110,6 +4171,8 @@ function updateMap() {
 
     const forestryButton =
         document.getElementById("mapBuildForestryButton");
+    const warehouseButton =
+        document.getElementById("mapBuildWarehouseButton");
 
     if (mapState.selectedX !== null) {
 
@@ -4153,6 +4216,13 @@ function updateMap() {
                 mapState.selectedY
             );
 
+        const warehouseBuilt =
+            hasWarehouseAt(
+                house,
+                mapState.selectedX,
+                mapState.selectedY
+            );
+
         const canBuild =
             !foundationMode &&
             type === "forest" &&
@@ -4162,7 +4232,23 @@ function updateMap() {
                 mapState.selectedY
             ) &&
             !huntingBuilt &&
-            !forestryBuilt;
+            !forestryBuilt &&
+            !warehouseBuilt;
+
+        const canBuildWarehouse =
+            !foundationMode &&
+            !isWaterTerrain(type) &&
+            isTerritoryCell(
+                house,
+                mapState.selectedX,
+                mapState.selectedY
+            ) &&
+            !hasAnyBuildingAt(
+                house,
+                mapState.selectedX,
+                mapState.selectedY
+            ) &&
+            !house.warehouse;
 
         if (huntingButton) {
             huntingButton.style.display =
@@ -4176,6 +4262,13 @@ function updateMap() {
                 canBuild ? "inline-flex" : "none";
             forestryButton.disabled =
                 !canBuild;
+        }
+
+        if (warehouseButton) {
+            warehouseButton.style.display =
+                canBuildWarehouse ? "inline-flex" : "none";
+            warehouseButton.disabled =
+                !canBuildWarehouse;
         }
 
     } else {
@@ -4195,6 +4288,11 @@ function updateMap() {
         if (forestryButton) {
             forestryButton.style.display = "none";
             forestryButton.disabled = true;
+        }
+
+        if (warehouseButton) {
+            warehouseButton.style.display = "none";
+            warehouseButton.disabled = true;
         }
     }
 }
@@ -4270,6 +4368,39 @@ function buildHuntingGround() {
 
 
 function updateForestryBuildButton() {
+    updateMap();
+}
+
+function buildWarehouse() {
+
+    if (
+        mapState.selectedX === null ||
+        mapState.selectedY === null
+    ) {
+        return;
+    }
+
+    let house = getHouse();
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const x = mapState.selectedX;
+    const y = mapState.selectedY;
+
+    if (mapState.mode === "foundation") return;
+    if (isWaterTerrain(terrainAt(x, y))) return;
+    if (!isTerritoryCell(house, x, y)) return;
+    if (hasAnyBuildingAt(house, x, y)) return;
+    if (house.warehouse) return;
+
+    house.warehouse = {
+        x: x,
+        y: y,
+        builtAt: new Date().toISOString()
+    };
+
+    saveHouseData(house);
     updateMap();
 }
 
@@ -4845,6 +4976,26 @@ function prepareHouse(house) {
     if (typeof house.resources.wood !== "number")
         house.resources.wood = 50;
 
+    if (!house.storage || typeof house.storage !== "object") {
+        house.storage = {};
+    }
+
+    house.storage.capacity = STORAGE_CAPACITY;
+
+    house.resources.meat = Math.max(
+        0,
+        Math.min(STORAGE_CAPACITY, house.resources.meat)
+    );
+
+    house.resources.wood = Math.max(
+        0,
+        Math.min(STORAGE_CAPACITY, house.resources.wood)
+    );
+
+    if (!house.warehouse || typeof house.warehouse !== "object") {
+        house.warehouse = null;
+    }
+
 
     if (!house.hunting) {
 
@@ -5252,7 +5403,11 @@ function processHunting(house) {
             0
         );
 
-    house.resources.meat += totalProduction;
+    house.resources.meat =
+        Math.min(
+            STORAGE_CAPACITY,
+            house.resources.meat + totalProduction
+        );
 
     // Реальный таймер теперь хранится у каждого угодья отдельно.
     house.hunting.lastProduction = now;
@@ -5419,7 +5574,11 @@ function processForestry(house) {
         }
     });
 
-    house.resources.wood += totalProduction;
+    house.resources.wood =
+        Math.min(
+            STORAGE_CAPACITY,
+            house.resources.wood + totalProduction
+        );
     house.forestry.lastProduction = now;
 
     saveHouseData(house);
@@ -5972,6 +6131,20 @@ function updateResources() {
     const house = getHouse();
 
     if (!house) return;
+
+    const capacity =
+        house.storage &&
+        typeof house.storage.capacity === "number"
+            ? house.storage.capacity
+            : STORAGE_CAPACITY;
+
+    const capacityLabel =
+        document.getElementById("storageCapacityLabel");
+
+    if (capacityLabel) {
+        capacityLabel.textContent =
+            "ВМЕСТИМОСТЬ: " + capacity;
+    }
 
 
     document

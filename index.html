@@ -2004,6 +2004,16 @@ textarea.input {
     color: #d0c0a5;
     font-family: "Cinzel", Georgia, serif;
     font-size: 15px;
+    text-align: right;
+}
+
+.storageRowMeta {
+    margin-top: 3px;
+    color: #756b60;
+    font-family: Arial, sans-serif;
+    font-size: 8px;
+    line-height: 1.25;
+    white-space: nowrap;
 }
 
 .mapLegend {
@@ -3522,13 +3532,19 @@ textarea.input {
                 <div class="storageRow">
                     <div class="storageRowIcon">🍖</div>
                     <div class="storageRowName">МЯСО</div>
-                    <div class="storageRowValue" id="foodValue">100</div>
+                    <div class="storageRowValue">
+                        <div id="foodValue">100</div>
+                        <div class="storageRowMeta" id="foodStockMeta"></div>
+                    </div>
                 </div>
 
                 <div class="storageRow">
                     <div class="storageRowIcon">🌲</div>
                     <div class="storageRowName">ЛЕС</div>
-                    <div class="storageRowValue" id="woodValue">50</div>
+                    <div class="storageRowValue">
+                        <div id="woodValue">50</div>
+                        <div class="storageRowMeta" id="woodStockMeta"></div>
+                    </div>
                 </div>
 
             </div>
@@ -4076,6 +4092,10 @@ function demoAdvanceTime() {
             if (typeof ground.recoveryStartedAt === "number") {
                 ground.recoveryStartedAt -= DEMO_ONE_HOUR;
             }
+
+            if (typeof ground.recoveryLastUpdatedAt === "number") {
+                ground.recoveryLastUpdatedAt -= DEMO_ONE_HOUR;
+            }
         });
     }
 
@@ -4087,6 +4107,10 @@ function demoAdvanceTime() {
 
             if (typeof ground.recoveryStartedAt === "number") {
                 ground.recoveryStartedAt -= DEMO_ONE_HOUR;
+            }
+
+            if (typeof ground.recoveryLastUpdatedAt === "number") {
+                ground.recoveryLastUpdatedAt -= DEMO_ONE_HOUR;
             }
         });
     }
@@ -4234,24 +4258,46 @@ function updateHuntingGroundRecovery(ground, now) {
 
     if (!ground) return;
 
-    if (ground.gameLife > 0) {
+    if (ground.gameLife >= HUNTING_GROUND_GAME_MAX) {
+        ground.gameLife = HUNTING_GROUND_GAME_MAX;
         ground.recoveryStartedAt = null;
+        ground.recoveryLastUpdatedAt = null;
         return;
     }
 
     if (ground.recoveryStartedAt === null) {
-        ground.recoveryStartedAt = now;
-        return;
+        if (ground.gameLife <= 0) {
+            ground.gameLife = 0;
+            ground.recoveryStartedAt = now;
+            ground.recoveryLastUpdatedAt = now;
+        } else {
+            return;
+        }
     }
 
-    if (
-        now - ground.recoveryStartedAt >=
-        HUNTING_GROUND_RECOVERY_MS
-    ) {
-        ground.gameLife =
-            HUNTING_GROUND_GAME_MAX;
+    if (typeof ground.recoveryLastUpdatedAt !== "number") {
+        ground.recoveryLastUpdatedAt = ground.recoveryStartedAt || now;
+    }
 
+    const elapsed = Math.max(0, now - ground.recoveryLastUpdatedAt);
+
+    if (elapsed <= 0) return;
+
+    const recovered =
+        (HUNTING_GROUND_GAME_MAX / HUNTING_GROUND_RECOVERY_MS) *
+        elapsed;
+
+    ground.gameLife = Math.min(
+        HUNTING_GROUND_GAME_MAX,
+        roundResourceRecovery(ground.gameLife + recovered)
+    );
+
+    ground.recoveryLastUpdatedAt = now;
+
+    if (ground.gameLife >= HUNTING_GROUND_GAME_MAX) {
+        ground.gameLife = HUNTING_GROUND_GAME_MAX;
         ground.recoveryStartedAt = null;
+        ground.recoveryLastUpdatedAt = null;
         ground.lastProduction = now;
     }
 }
@@ -4259,18 +4305,22 @@ function updateHuntingGroundRecovery(ground, now) {
 
 function getHuntingGroundRecoveryLeft(ground, now) {
 
-    if (
-        !ground ||
-        ground.gameLife > 0 ||
-        ground.recoveryStartedAt === null
-    ) {
+    if (!ground || ground.gameLife >= HUNTING_GROUND_GAME_MAX || ground.recoveryStartedAt === null) {
         return 0;
     }
 
+    const recoveryProgress = Math.max(
+        0,
+        Math.min(
+            HUNTING_GROUND_GAME_MAX,
+            Number(ground.gameLife) || 0
+        )
+    );
+
     return Math.max(
         0,
-        HUNTING_GROUND_RECOVERY_MS -
-        (now - ground.recoveryStartedAt)
+        HUNTING_GROUND_RECOVERY_MS *
+        (1 - recoveryProgress / HUNTING_GROUND_GAME_MAX)
     );
 }
 
@@ -4404,6 +4454,12 @@ const HOUSE_BUILD_MEAT_COST = 25;
 const HOUSE_UPKEEP_WOOD = 50;
 const HOUSE_UPKEEP_MEAT = 25;
 const HOUSE_POPULATION_BONUS = 25;
+
+const RESOURCE_RECOVERY_PRECISION = 1000;
+
+function roundResourceRecovery(value) {
+    return Math.round(value * RESOURCE_RECOVERY_PRECISION) / RESOURCE_RECOVERY_PRECISION;
+}
 
 function getStoredResourcesTotal(house) {
     if (!house || !house.resources) return 0;
@@ -6598,6 +6654,7 @@ function buildHuntingGround() {
         hunters: 0,
         gameLife: HUNTING_GROUND_GAME_MAX,
         recoveryStartedAt: null,
+        recoveryLastUpdatedAt: null,
         lastProduction: now,
         lastUpkeep: now,
         upkeepPaidUntil: now + BUILDING_UPKEEP_INTERVAL,
@@ -6746,6 +6803,7 @@ function buildForestry() {
         foresters: 0,
         durability: FORESTRY_GROUND_DURABILITY_MAX,
         recoveryStartedAt: null,
+        recoveryLastUpdatedAt: null,
         lastProduction: now,
         lastUpkeep: now,
         upkeepPaidUntil: now + BUILDING_UPKEEP_INTERVAL,
@@ -6943,11 +7001,11 @@ function updateForestry() {
             statusText =
                 "Производство приостановлено, склады заполнены.";
 
-        } else if (ground.durability <= 0) {
+        } else if (ground.recoveryStartedAt !== null && ground.durability < FORESTRY_GROUND_DURABILITY_MAX) {
 
             statusText =
-                "Добыча приостановлена. " +
-                "Восстановление: " +
+                "Восстановление леса. " +
+                "Осталось: " +
                 formatForestryGroundRecovery(
                     getForestryGroundRecoveryLeft(
                         ground,
@@ -6982,7 +7040,7 @@ function updateForestry() {
         }
 
         const forestryLabel =
-            ground.durability <= 0
+            ground.recoveryStartedAt !== null && ground.durability < FORESTRY_GROUND_DURABILITY_MAX
                 ? "♻️ ВОССТАНОВЛЕНИЕ"
                 : "🌲 ЛЕС";
 
@@ -8862,7 +8920,7 @@ function prepareHouse(house) {
             0,
             Math.min(
                 FORESTRY_GROUND_DURABILITY_MAX,
-                Math.floor(ground.durability)
+                roundResourceRecovery(ground.durability)
             )
         );
 
@@ -8871,6 +8929,17 @@ function prepareHouse(house) {
             typeof ground.recoveryStartedAt !== "number"
         ) {
             ground.recoveryStartedAt = null;
+        }
+
+        if (
+            ground.recoveryLastUpdatedAt !== null &&
+            typeof ground.recoveryLastUpdatedAt !== "number"
+        ) {
+            ground.recoveryLastUpdatedAt = null;
+        }
+
+        if (ground.durability <= 0 && ground.recoveryStartedAt !== null && ground.recoveryLastUpdatedAt === null) {
+            ground.recoveryLastUpdatedAt = ground.recoveryStartedAt;
         }
 
         if (
@@ -8906,12 +8975,23 @@ function prepareHouse(house) {
             0,
             Math.min(
                 HUNTING_GROUND_GAME_MAX,
-                Math.floor(ground.gameLife)
+                roundResourceRecovery(ground.gameLife)
             )
         );
 
         if (typeof ground.recoveryStartedAt !== "number") {
             ground.recoveryStartedAt = null;
+        }
+
+        if (
+            ground.recoveryLastUpdatedAt !== null &&
+            typeof ground.recoveryLastUpdatedAt !== "number"
+        ) {
+            ground.recoveryLastUpdatedAt = null;
+        }
+
+        if (ground.gameLife <= 0 && ground.recoveryStartedAt !== null && ground.recoveryLastUpdatedAt === null) {
+            ground.recoveryLastUpdatedAt = ground.recoveryStartedAt;
         }
 
         if (
@@ -8929,7 +9009,9 @@ function prepareHouse(house) {
             ground.gameLife >= HUNTING_GROUND_GAME_MAX &&
             ground.recoveryStartedAt !== null
         ) {
+            ground.gameLife = HUNTING_GROUND_GAME_MAX;
             ground.recoveryStartedAt = null;
+            ground.recoveryLastUpdatedAt = null;
         }
 
         if (typeof ground.hunters !== "number") {
@@ -9275,22 +9357,22 @@ function processHunting(house) {
 
     const now = Date.now();
     let totalProduction = 0;
-
-    if (isStorageFull(house)) {
-        saveHouseData(house);
-        return;
-    }
+    const storageFullAtStart = isStorageFull(house);
 
     house.huntingGrounds.forEach(function(ground) {
+
+        updateHuntingGroundRecovery(ground, now);
 
         if (ground.active === false) {
             ground.lastProduction = now;
             return;
         }
 
-        updateHuntingGroundRecovery(ground, now);
+        if (storageFullAtStart || isStorageFull(house)) {
+            ground.lastProduction = now;
+            return;
+        }
 
-        // Восстановление не накапливает производственные циклы.
         if (ground.gameLife <= 0) {
             ground.lastProduction = now;
             return;
@@ -9395,24 +9477,46 @@ function updateForestryGroundRecovery(ground, now) {
 
     if (!ground) return;
 
-    if (ground.durability > 0) {
+    if (ground.durability >= FORESTRY_GROUND_DURABILITY_MAX) {
+        ground.durability = FORESTRY_GROUND_DURABILITY_MAX;
         ground.recoveryStartedAt = null;
+        ground.recoveryLastUpdatedAt = null;
         return;
     }
 
     if (ground.recoveryStartedAt === null) {
-        ground.recoveryStartedAt = now;
-        return;
+        if (ground.durability <= 0) {
+            ground.durability = 0;
+            ground.recoveryStartedAt = now;
+            ground.recoveryLastUpdatedAt = now;
+        } else {
+            return;
+        }
     }
 
-    if (
-        now - ground.recoveryStartedAt >=
-        FORESTRY_GROUND_RECOVERY_MS
-    ) {
-        ground.durability =
-            FORESTRY_GROUND_DURABILITY_MAX;
+    if (typeof ground.recoveryLastUpdatedAt !== "number") {
+        ground.recoveryLastUpdatedAt = ground.recoveryStartedAt || now;
+    }
 
+    const elapsed = Math.max(0, now - ground.recoveryLastUpdatedAt);
+
+    if (elapsed <= 0) return;
+
+    const recovered =
+        (FORESTRY_GROUND_DURABILITY_MAX / FORESTRY_GROUND_RECOVERY_MS) *
+        elapsed;
+
+    ground.durability = Math.min(
+        FORESTRY_GROUND_DURABILITY_MAX,
+        roundResourceRecovery(ground.durability + recovered)
+    );
+
+    ground.recoveryLastUpdatedAt = now;
+
+    if (ground.durability >= FORESTRY_GROUND_DURABILITY_MAX) {
+        ground.durability = FORESTRY_GROUND_DURABILITY_MAX;
         ground.recoveryStartedAt = null;
+        ground.recoveryLastUpdatedAt = null;
         ground.lastProduction = now;
     }
 }
@@ -9420,18 +9524,22 @@ function updateForestryGroundRecovery(ground, now) {
 
 function getForestryGroundRecoveryLeft(ground, now) {
 
-    if (
-        !ground ||
-        ground.durability > 0 ||
-        ground.recoveryStartedAt === null
-    ) {
+    if (!ground || ground.durability >= FORESTRY_GROUND_DURABILITY_MAX || ground.recoveryStartedAt === null) {
         return 0;
     }
 
+    const recoveryProgress = Math.max(
+        0,
+        Math.min(
+            FORESTRY_GROUND_DURABILITY_MAX,
+            Number(ground.durability) || 0
+        )
+    );
+
     return Math.max(
         0,
-        FORESTRY_GROUND_RECOVERY_MS -
-        (now - ground.recoveryStartedAt)
+        FORESTRY_GROUND_RECOVERY_MS *
+        (1 - recoveryProgress / FORESTRY_GROUND_DURABILITY_MAX)
     );
 }
 
@@ -9477,22 +9585,22 @@ function processForestry(house) {
 
     const now = Date.now();
     let totalProduction = 0;
-
-    if (isStorageFull(house)) {
-        saveHouseData(house);
-        return;
-    }
+    const storageFullAtStart = isStorageFull(house);
 
     house.forestryGrounds.forEach(function(ground) {
+
+        updateForestryGroundRecovery(ground, now);
 
         if (ground.active === false) {
             ground.lastProduction = now;
             return;
         }
 
-        updateForestryGroundRecovery(ground, now);
+        if (storageFullAtStart || isStorageFull(house)) {
+            ground.lastProduction = now;
+            return;
+        }
 
-        // Восстановление не накапливает производственные циклы.
         if (ground.durability <= 0) {
             ground.lastProduction = now;
             return;
@@ -10203,7 +10311,7 @@ function updateHunting() {
                 statusText =
                     "Производство приостановлено, склады заполнены.";
 
-            } else if (ground.gameLife <= 0) {
+            } else if (ground.recoveryStartedAt !== null && ground.gameLife < HUNTING_GROUND_GAME_MAX) {
 
                 const recoveryLeft =
                     getHuntingGroundRecoveryLeft(
@@ -10212,8 +10320,8 @@ function updateHunting() {
                     );
 
                 statusText =
-                    "Звери закончились. " +
-                    "Восстановление: " +
+                    "Восстановление угодья. " +
+                    "Осталось: " +
                     formatHuntingGroundRecovery(
                         recoveryLeft
                     ) +
@@ -10247,7 +10355,7 @@ function updateHunting() {
             }
 
             const recoveryLabel =
-                ground.gameLife <= 0
+                ground.recoveryStartedAt !== null && ground.gameLife < HUNTING_GROUND_GAME_MAX
                     ? "♻️ ВОССТАНОВЛЕНИЕ"
                     : "🦌 ЗВЕРИ";
 
@@ -10349,6 +10457,57 @@ function updateHunting() {
    РЕСУРСЫ
 ===================================================== */
 
+function getHourlyFoodConsumption(house) {
+    if (!house || !house.population) return 0;
+
+    const free = Math.max(0, Math.floor(Number(house.population.free) || 0));
+    const workers = Math.max(0, Math.floor(Number(house.population.workers) || 0));
+    const soldiers = Math.max(0, Math.floor(Number(house.population.soldiers) || 0));
+
+    return free + workers * 2 + soldiers * 4;
+}
+
+function getHourlyWoodUpkeep(house) {
+    if (!house) return 0;
+
+    const hunting = Array.isArray(house.huntingGrounds) ? house.huntingGrounds.length : 0;
+    const forestry = Array.isArray(house.forestryGrounds) ? house.forestryGrounds.length : 0;
+    const warehouses = Array.isArray(house.warehouses) ? house.warehouses.length : 0;
+    const houses = Array.isArray(house.houses) ? house.houses.length : 0;
+
+    return (
+        hunting * HUNTING_GROUND_UPKEEP +
+        forestry * FORESTRY_UPKEEP +
+        warehouses * WAREHOUSE_UPKEEP +
+        houses * HOUSE_UPKEEP_WOOD
+    ) / 48;
+}
+
+function getHourlyMeatUpkeep(house) {
+    if (!house) return 0;
+
+    const houses = Array.isArray(house.houses) ? house.houses.length : 0;
+    return (houses * HOUSE_UPKEEP_MEAT) / 48;
+}
+
+function formatResourceStockHours(amount, hourlyExpense) {
+    if (hourlyExpense <= 0) {
+        return "нет постоянного расхода";
+    }
+
+    const hours = Math.max(0, amount / hourlyExpense);
+
+    if (hours >= 24 * 7) {
+        return "запас без добычи: " + Math.floor(hours / 24) + " дн.";
+    }
+
+    if (hours >= 24) {
+        return "запас без добычи: " + Math.floor(hours / 24) + " дн. " + Math.floor(hours % 24) + " ч.";
+    }
+
+    return "запас без добычи: " + Math.floor(hours) + " ч.";
+}
+
 function updateResources() {
 
     const house = getHouse();
@@ -10370,19 +10529,43 @@ function updateResources() {
     }
 
 
+    const meat = Math.max(0, Number(house.resources.meat) || 0);
+    const wood = Math.max(0, Number(house.resources.wood) || 0);
+
     document
         .getElementById("foodValue")
-        .textContent =
-        Math.floor(
-            house.resources.meat
-        );
+        .textContent = Math.floor(meat);
 
     document
         .getElementById("woodValue")
-        .textContent =
-        Math.floor(
-            house.resources.wood
-        );
+        .textContent = Math.floor(wood);
+
+    const hourlyFood =
+        getHourlyFoodConsumption(house) +
+        getHourlyMeatUpkeep(house);
+
+    const hourlyWood =
+        getHourlyWoodUpkeep(house);
+
+    const foodMeta =
+        document.getElementById("foodStockMeta");
+
+    if (foodMeta) {
+        foodMeta.textContent =
+            "−" + Math.round(hourlyFood * 10) / 10 + " / ч. · " +
+            formatResourceStockHours(meat, hourlyFood);
+    }
+
+    const woodMeta =
+        document.getElementById("woodStockMeta");
+
+    if (woodMeta) {
+        woodMeta.textContent =
+            hourlyWood > 0
+                ? "−" + Math.round(hourlyWood * 10) / 10 + " / ч. · " +
+                  formatResourceStockHours(wood, hourlyWood)
+                : "нет постоянного расхода";
+    }
 }
 
 

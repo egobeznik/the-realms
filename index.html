@@ -6513,6 +6513,7 @@ function buildHuntingGround() {
 
     const now = Date.now();
     house.resources.wood -= HUNTING_GROUND_BUILD_COST;
+    addChronicleResourceEvent(house, "spend", { wood: HUNTING_GROUND_BUILD_COST });
 
     house.huntingGrounds.push({
         x: x,
@@ -6564,6 +6565,7 @@ function buildWarehouse() {
 
     const now = Date.now();
     house.resources.wood -= WAREHOUSE_BUILD_COST;
+    addChronicleResourceEvent(house, "spend", { wood: WAREHOUSE_BUILD_COST });
 
     house.warehouses.push({
         x: x,
@@ -6609,6 +6611,10 @@ function buildHouseBuilding() {
 
     house.resources.wood -= HOUSE_BUILD_WOOD_COST;
     house.resources.meat -= HOUSE_BUILD_MEAT_COST;
+    addChronicleResourceEvent(house, "spend", {
+        wood: HOUSE_BUILD_WOOD_COST,
+        meat: HOUSE_BUILD_MEAT_COST
+    });
 
     house.population.free += HOUSE_POPULATION_BONUS;
 
@@ -6655,6 +6661,7 @@ function buildForestry() {
 
     const now = Date.now();
     house.resources.wood -= FORESTRY_BUILD_COST;
+    addChronicleResourceEvent(house, "spend", { wood: FORESTRY_BUILD_COST });
 
     house.forestryGrounds.push({
         x: x,
@@ -7387,6 +7394,11 @@ async function performDiplomacyAction(action, targetDynastyId) {
 
     if (messages[action] && !confirm(messages[action])) return;
 
+    const chronicleTargetName = getChronicleTargetName(
+        targetDynastyId,
+        document.getElementById("cityInfoHouse")?.textContent || ""
+    );
+
     diplomacyState.loading = true;
     try {
         const { data, error } = await window.theRealmsSupabase.rpc("the_realms_diplomacy_action", {
@@ -7400,6 +7412,16 @@ async function performDiplomacyAction(action, targetDynastyId) {
         diplomacyState.status = result.status || "neutral";
         diplomacyState.proposedBy = result.proposed_by || null;
         setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, house.serverDynastyId, targetDynastyId);
+
+        if (action === "accept_alliance" || action === "break_alliance" || action === "declare_war" || action === "make_peace") {
+            const chronicleText = {
+                accept_alliance: "Заключён союз с Домом «" + chronicleTargetName + "»",
+                break_alliance: "Разорван союз с Домом «" + chronicleTargetName + "»",
+                declare_war: "Объявлена война Дому «" + chronicleTargetName + "»",
+                make_peace: "Заключён мир с Домом «" + chronicleTargetName + "»"
+            }[action];
+            addChronicleEvent(house, chronicleText);
+        }
     } catch (error) {
         console.error("The Realms: ошибка дипломатии", error);
         alert("Не удалось изменить отношения.\n\n" + (error.message || "Попробуйте ещё раз."));
@@ -7472,6 +7494,11 @@ async function sendTradeOffer() {
         return;
     }
 
+    const chronicleTradeTargetName = getChronicleTargetName(
+        tradeState.targetDynastyId,
+        tradeState.targetName
+    );
+
     tradeState.loading = true;
 
     try {
@@ -7493,8 +7520,10 @@ async function sendTradeOffer() {
         // предложение, сервер вернёт их обратно.
         house.resources.wood = Math.max(0, localWood - giveWood);
         house.resources.meat = Math.max(0, localMeat - giveMeat);
+        house.lastTradeChronicleTargetName = chronicleTradeTargetName;
         saveHouseData(house);
         updateResources();
+        addChronicleEvent(house, "Отправлено торговое предложение Дому «" + chronicleTradeTargetName + "»");
 
         closeTradeOffer();
         alert("Торговое предложение отправлено. Отданные ресурсы зарезервированы до ответа союзника.");
@@ -7535,6 +7564,7 @@ async function checkIncomingTradeOffers() {
 
         tradeNotificationState.offerId = offer.id;
         tradeNotificationState.shownThisSession = true;
+        house.pendingTradeChronicleTargetName = sender ? (sender.name || "Союзник") : "Союзник";
 
         document.getElementById("tradeNotificationFrom").textContent =
             sender ? (sender.name || "Союзник") : "Союзник";
@@ -7578,9 +7608,14 @@ async function respondTradeNotification(action) {
         document.getElementById("tradeNotificationOverlay").style.display = "none";
         tradeNotificationState.offerId = null;
 
+        const chronicleTradeTargetName = house.pendingTradeChronicleTargetName || "Союзник";
+        delete house.pendingTradeChronicleTargetName;
+
         if (action === "accept") {
+            addChronicleEvent(house, "Принято торговое предложение от Дома «" + chronicleTradeTargetName + "»");
             alert("Торговый обмен заключён.");
         } else {
+            addChronicleEvent(house, "Отклонено торговое предложение от Дома «" + chronicleTradeTargetName + "»");
             alert("Торговое предложение отклонено.");
         }
 
@@ -7606,6 +7641,11 @@ async function processTradeRealtimeRow(row) {
     if (house.tradeProcessedOffers.indexOf(row.id) !== -1) return;
 
     if (row.status === 'accepted') {
+        const chronicleTradeTargetName = getChronicleTargetName(
+            row.receiver_dynasty_id,
+            house.lastTradeChronicleTargetName
+        );
+
         // Новые предложения уже зарезервировали give_* при создании.
         // Старые pending-предложения этого не делали.
         if (!row.reserved) {
@@ -7614,10 +7654,25 @@ async function processTradeRealtimeRow(row) {
         }
         house.resources.wood = Math.max(0, (Number(house.resources.wood) || 0) + (Number(row.get_wood) || 0));
         house.resources.meat = Math.max(0, (Number(house.resources.meat) || 0) + (Number(row.get_meat) || 0));
+
+        addChronicleEvent(house, "Принято торговое предложение Домом «" + chronicleTradeTargetName + "»");
+        addChronicleResourceEvent(house, "spend", {
+            wood: Number(row.give_wood) || 0,
+            meat: Number(row.give_meat) || 0
+        });
+        delete house.lastTradeChronicleTargetName;
     } else if (row.reserved) {
         // Для новых предложений отклонение/отмена возвращает резерв.
         house.resources.wood = Math.max(0, (Number(house.resources.wood) || 0) + (Number(row.give_wood) || 0));
         house.resources.meat = Math.max(0, (Number(house.resources.meat) || 0) + (Number(row.give_meat) || 0));
+        const rejectedTradeTargetName = getChronicleTargetName(
+            row.receiver_dynasty_id,
+            house.lastTradeChronicleTargetName
+        );
+        if (row.status === 'rejected') {
+            addChronicleEvent(house, "Отклонено торговое предложение Домом «" + rejectedTradeTargetName + "»");
+        }
+        delete house.lastTradeChronicleTargetName;
     }
 
     house.tradeProcessedOffers.push(row.id);
@@ -8313,6 +8368,103 @@ function saveHouseData(house) {
     scheduleHouseSave();
 }
 
+/* =====================================================
+   ЛЕТОПИСЬ ДОМА — ИСТОРИЯ СОБЫТИЙ
+===================================================== */
+
+const CHRONICLE_HISTORY_LIMIT = 20;
+
+function ensureChronicleHistory(house) {
+    if (!house) return [];
+    if (!Array.isArray(house.chronicleHistory)) house.chronicleHistory = [];
+    if (house.chronicleHistory.length > CHRONICLE_HISTORY_LIMIT) {
+        house.chronicleHistory = house.chronicleHistory.slice(-CHRONICLE_HISTORY_LIMIT);
+    }
+    return house.chronicleHistory;
+}
+
+function renderChronicleHistory(house) {
+    const historyEl = document.getElementById("realmHistory");
+    if (!historyEl || !house) return;
+    const history = ensureChronicleHistory(house);
+    if (!history.length) {
+        historyEl.textContent = house.description || "История этого Дома ещё только начинается.";
+        return;
+    }
+    historyEl.textContent = history.slice().reverse()
+        .map(function(entry) { return getChronicleEventText(entry); })
+        .filter(Boolean)
+        .join("\n");
+}
+
+function addChronicleEvent(house, text) {
+    if (!house || !text) return;
+    const history = ensureChronicleHistory(house);
+    history.push({ type: "event", text: String(text), createdAt: new Date().toISOString() });
+    if (history.length > CHRONICLE_HISTORY_LIMIT) {
+        history.splice(0, history.length - CHRONICLE_HISTORY_LIMIT);
+    }
+    saveHouseData(house);
+    renderChronicleHistory(house);
+}
+
+function addChronicleResourceEvent(house, direction, resources) {
+    if (!house || !resources) return;
+    const meat = Math.max(0, Math.floor(Number(resources.meat) || 0));
+    const wood = Math.max(0, Math.floor(Number(resources.wood) || 0));
+    if (meat <= 0 && wood <= 0) return;
+
+    const history = ensureChronicleHistory(house);
+    const last = history.length ? history[history.length - 1] : null;
+
+    if (last && last.type === "resource" && last.direction === direction) {
+        last.resources = last.resources || {};
+        last.resources.meat = Math.max(0, Math.floor(Number(last.resources.meat) || 0)) + meat;
+        last.resources.wood = Math.max(0, Math.floor(Number(last.resources.wood) || 0)) + wood;
+        last.createdAt = new Date().toISOString();
+    } else {
+        history.push({
+            type: "resource",
+            direction: direction,
+            resources: { meat: meat, wood: wood },
+            createdAt: new Date().toISOString()
+        });
+    }
+
+    if (history.length > CHRONICLE_HISTORY_LIMIT) {
+        history.splice(0, history.length - CHRONICLE_HISTORY_LIMIT);
+    }
+    saveHouseData(house);
+    renderChronicleHistory(house);
+}
+
+function formatChronicleResourceEvent(entry) {
+    const resources = entry.resources || {};
+    const parts = [];
+    const meat = Math.max(0, Math.floor(Number(resources.meat) || 0));
+    const wood = Math.max(0, Math.floor(Number(resources.wood) || 0));
+    if (meat > 0) parts.push("🍖 " + meat + " мяса");
+    if (wood > 0) parts.push("🌲 " + wood + " леса");
+    return (entry.direction === "spend" ? "Потрачено ресурсов: " : "Добыто ресурсов: ") + parts.join(" · ");
+}
+
+function getChronicleEventText(entry) {
+    if (!entry) return "";
+    if (entry.type === "resource") return formatChronicleResourceEvent(entry);
+    return entry.text || "";
+}
+
+function getChronicleTargetName(targetDynastyId, fallbackName) {
+    if (fallbackName) return String(fallbackName);
+    const city = (sharedWorld.cities || []).find(function(item) {
+        return String(item.dynasty_id) === String(targetDynastyId);
+    });
+    if (city) return city.dynastyName || city.name || "Неизвестный Дом";
+    const houseNameEl = document.getElementById("cityInfoHouse");
+    if (houseNameEl && houseNameEl.textContent) return houseNameEl.textContent.trim();
+    return "Неизвестный Дом";
+}
+
 window.addEventListener("pagehide", flushHouseData);
 document.addEventListener("visibilitychange", function() {
     if (document.visibilityState === "hidden") flushHouseData();
@@ -8324,6 +8476,8 @@ document.addEventListener("visibilitychange", function() {
 ===================================================== */
 
 function prepareHouse(house) {
+
+    ensureChronicleHistory(house);
 
     if (!house.population) {
 
@@ -8770,12 +8924,19 @@ function processFoodConsumption(house) {
         meatPerCycle *
         completedCycles;
 
+    const consumedMeat = Math.min(
+        Math.max(0, Number(house.resources.meat) || 0),
+        totalConsumption
+    );
+
     house.resources.meat =
         Math.max(
             0,
             house.resources.meat -
             totalConsumption
         );
+
+    addChronicleResourceEvent(house, "spend", { meat: consumedMeat });
 
     house.food.lastConsumption +=
         FOOD_CONSUMPTION_INTERVAL *
@@ -8793,6 +8954,8 @@ function processBuildingUpkeep(house) {
     if (!house) return;
 
     const now = Date.now();
+    let upkeepWoodSpent = 0;
+    let upkeepMeatSpent = 0;
 
     function processBuilding(building, cost) {
         if (!building) return;
@@ -8823,6 +8986,7 @@ function processBuildingUpkeep(house) {
 
         if (house.resources.wood >= required) {
             house.resources.wood -= required;
+            upkeepWoodSpent += required;
             building.active = true;
             building.maintenanceDue = false;
             building.lastUpkeep = now;
@@ -8888,6 +9052,8 @@ function processBuildingUpkeep(house) {
         ) {
             house.resources.wood -= requiredWood;
             house.resources.meat -= requiredMeat;
+            upkeepWoodSpent += requiredWood;
+            upkeepMeatSpent += requiredMeat;
             building.active = true;
             building.maintenanceDue = false;
             building.lastUpkeep = now;
@@ -8918,6 +9084,11 @@ function processBuildingUpkeep(house) {
         house.resources.wood,
         house.storage.capacity
     );
+
+    addChronicleResourceEvent(house, "spend", {
+        wood: upkeepWoodSpent,
+        meat: upkeepMeatSpent
+    });
 }
 
 
@@ -9029,11 +9200,13 @@ function processHunting(house) {
     const freeStorageSpace =
         getStorageFreeSpace(house);
 
-    house.resources.meat +=
-        Math.min(
-            freeStorageSpace,
-            totalProduction
-        );
+    const addedMeat = Math.min(
+        freeStorageSpace,
+        totalProduction
+    );
+
+    house.resources.meat += addedMeat;
+    addChronicleResourceEvent(house, "gain", { meat: addedMeat });
 
     // Реальный таймер теперь хранится у каждого угодья отдельно.
     house.hunting.lastProduction = now;
@@ -9213,11 +9386,13 @@ function processForestry(house) {
     const freeStorageSpace =
         getStorageFreeSpace(house);
 
-    house.resources.wood +=
-        Math.min(
-            freeStorageSpace,
-            totalProduction
-        );
+    const addedWood = Math.min(
+        freeStorageSpace,
+        totalProduction
+    );
+
+    house.resources.wood += addedWood;
+    addChronicleResourceEvent(house, "gain", { wood: addedWood });
     house.forestry.lastProduction = now;
 
     saveHouseData(house);
@@ -9632,6 +9807,7 @@ function addArcher() {
     house.population.free -= 1;
 
     house.resources.wood -= 1;
+    addChronicleResourceEvent(house, "spend", { wood: 1 });
 
     house.army.archers += 1;
 
@@ -10342,12 +10518,7 @@ function openRealm() {
         "»";
 
 
-    document
-        .getElementById("realmHistory")
-        .textContent =
-
-        house.description ||
-        "История этого Дома ещё только начинается.";
+    renderChronicleHistory(house);
 
 
     const crest =

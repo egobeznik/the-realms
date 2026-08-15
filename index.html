@@ -2729,6 +2729,82 @@ textarea.input {
     opacity: .9;
 }
 
+
+/* =====================================================
+   ПРОДОВОЛЬСТВЕННЫЙ СТАТУС
+===================================================== */
+.foodStatus {
+    grid-column: 1 / -1;
+    margin-top: 8px;
+    padding: 0 2px 2px;
+}
+.foodStatusBar {
+    height: 4px;
+    width: 100%;
+    background: rgba(255,255,255,.08);
+    overflow: hidden;
+}
+.foodStatusFill {
+    height: 100%;
+    width: 100%;
+    background: rgba(157,126,72,.9);
+    transition: width .25s ease, background .25s ease;
+}
+.foodStatusText {
+    margin-top: 5px;
+    font-size: 10px;
+    letter-spacing: .35px;
+    opacity: .82;
+    text-align: left;
+}
+.foodStatus.foodStatusDanger .foodStatusFill { background: rgba(150,60,45,.95); }
+.foodStatus.foodStatusCrisis .foodStatusFill { background: rgba(185,105,55,.95); }
+.foodStatus.foodStatusDeath .foodStatusFill { background: rgba(120,35,35,.98); }
+#dynastyDeathOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(0, 0, 0, .94);
+}
+.dynastyDeathWindow {
+    width: min(560px, 100%);
+    padding: 34px 24px 28px;
+    border: 1px solid rgba(157, 126, 72, .72);
+    background: #0b0907;
+    text-align: center;
+    box-shadow: 0 20px 80px rgba(0,0,0,.7);
+}
+.dynastyDeathTitle {
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 24px;
+    letter-spacing: 4px;
+}
+.dynastyDeathDivider {
+    width: 90px;
+    height: 1px;
+    margin: 18px auto;
+    background: rgba(157,126,72,.7);
+}
+.dynastyDeathText {
+    font-size: 18px;
+    line-height: 1.5;
+}
+.dynastyDeathButton {
+    margin-top: 26px;
+    width: 100%;
+    padding: 14px 18px;
+    border: 1px solid rgba(157,126,72,.7);
+    background: transparent;
+    color: #d8ccb8;
+    font-family: "Cinzel", Georgia, serif;
+    letter-spacing: 2px;
+    cursor: pointer;
+}
+
 </style>
 
 </head>
@@ -3536,6 +3612,10 @@ textarea.input {
                         <div id="foodValue">100</div>
                         <div class="storageRowMeta" id="foodStockMeta"></div>
                     </div>
+                    <div class="foodStatus" id="foodStatus" style="display:none;">
+                        <div class="foodStatusBar"><div class="foodStatusFill" id="foodStatusFill"></div></div>
+                        <div class="foodStatusText" id="foodStatusText"></div>
+                    </div>
                 </div>
 
                 <div class="storageRow">
@@ -3975,6 +4055,21 @@ textarea.input {
             <button type="button" onclick="closeTradeOffer()">ОТМЕНА</button>
             <button type="button" onclick="sendTradeOffer()">ОТПРАВИТЬ</button>
         </div>
+    </div>
+</div>
+
+<div id="dynastyDeathOverlay">
+    <div class="dynastyDeathWindow">
+        <div class="dynastyDeathTitle">ГИБЕЛЬ ДИНАСТИИ</div>
+        <div class="dynastyDeathDivider"></div>
+        <div class="dynastyDeathText" id="dynastyDeathText">
+            Последний огонь Дома угас. Голод забрал жизнь последнего жителя.
+            Город опустел, знамя Дома пало, а его летопись завершена.
+            Династия больше не существует.
+        </div>
+        <button class="dynastyDeathButton" type="button" onclick="returnToBeginningAfterDeath()">
+            НАЧАТЬ НОВУЮ ЛЕТОПИСЬ
+        </button>
     </div>
 </div>
 
@@ -6986,8 +7081,7 @@ function updateForestry() {
             );
 
         const production =
-            groups *
-            WOOD_PER_GROUP;
+            Math.floor(groups * WOOD_PER_GROUP * getProductionEfficiencyMultiplier(house));
 
         updateForestryGroundRecovery(
             ground,
@@ -7108,7 +7202,8 @@ function updateForestry() {
                     index + ')"' +
                     (
                         availableWorkers <= 0 ||
-                        ground.foresters >= FORESTRY_MAXIMUM
+                        ground.foresters >= FORESTRY_MAXIMUM ||
+                        isHouseHungry(house)
                             ? ' disabled'
                             : ''
                     ) +
@@ -7145,6 +7240,7 @@ function addForesterToGround(index) {
         house.population.hunters -
         house.population.foresters;
 
+    if (isHouseHungry(house)) return;
     if (availableWorkers <= 0) return;
     if (ground.foresters >= FORESTRY_MAXIMUM) return;
 
@@ -8885,6 +8981,14 @@ function prepareHouse(house) {
         };
     }
 
+    if (typeof house.food.hungerStartedAt !== "number") {
+        house.food.hungerStartedAt = null;
+    }
+
+    if (typeof house.food.hungerProcessedHours !== "number") {
+        house.food.hungerProcessedHours = 0;
+    }
+
     if (
         typeof house.food.lastConsumption !== "number"
     ) {
@@ -9103,101 +9207,372 @@ function prepareHouse(house) {
 
 
 /* =====================================================
+   ПРОДОВОЛЬСТВЕННЫЙ КРИЗИС
+===================================================== */
+
+const HUNGER_PRODUCTION_MULTIPLIER = 0.5;
+const HUNGER_STAGE_TWO_MS = 12 * 60 * 60 * 1000;
+const HUNGER_STAGE_THREE_MS = 24 * 60 * 60 * 1000;
+const HUNGER_MORTALITY_STAGE_TWO = 5;
+const HUNGER_MORTALITY_STAGE_THREE = 15;
+const HUNGER_MORTALITY_INTERVAL = 60 * 60 * 1000;
+
+function isHouseHungry(house) {
+    return !!(
+        house &&
+        house.food &&
+        typeof house.food.hungerStartedAt === "number"
+    );
+}
+
+function getHungerElapsedMs(house, now) {
+    if (!isHouseHungry(house)) return 0;
+    return Math.max(0, now - house.food.hungerStartedAt);
+}
+
+function getProductionEfficiencyMultiplier(house) {
+    return isHouseHungry(house)
+        ? HUNGER_PRODUCTION_MULTIPLIER
+        : 1;
+}
+
+function getHungerStage(house, now) {
+    const elapsed = getHungerElapsedMs(house, now);
+    if (!elapsed) return 0;
+    if (elapsed > HUNGER_STAGE_THREE_MS) return 3;
+    if (elapsed > HUNGER_STAGE_TWO_MS) return 2;
+    return 1;
+}
+
+function formatHungerDuration(ms) {
+    const totalMinutes = Math.floor(Math.max(0, ms) / 60000);
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return hours + " ч. " + String(minutes).padStart(2, "0") + " мин.";
+}
+
+function removeHuntersForStarvation(house, count) {
+    let remaining = Math.max(0, Math.floor(count));
+    if (!remaining) return 0;
+
+    for (let i = house.huntingGrounds.length - 1; i >= 0 && remaining > 0; i--) {
+        const ground = house.huntingGrounds[i];
+        const removed = Math.min(remaining, Math.max(0, Math.floor(ground.hunters || 0)));
+        if (!removed) continue;
+        ground.hunters -= removed;
+        house.population.hunters = Math.max(0, house.population.hunters - removed);
+        house.population.workers = Math.max(0, house.population.workers - removed);
+        remaining -= removed;
+    }
+    return count - remaining;
+}
+
+function removeForestersForStarvation(house, count) {
+    let remaining = Math.max(0, Math.floor(count));
+    if (!remaining) return 0;
+
+    for (let i = house.forestryGrounds.length - 1; i >= 0 && remaining > 0; i--) {
+        const ground = house.forestryGrounds[i];
+        const removed = Math.min(remaining, Math.max(0, Math.floor(ground.foresters || 0)));
+        if (!removed) continue;
+        ground.foresters -= removed;
+        house.population.foresters = Math.max(0, house.population.foresters - removed);
+        house.population.workers = Math.max(0, house.population.workers - removed);
+        remaining -= removed;
+    }
+    return count - remaining;
+}
+
+function applyStarvationMortality(house, deaths) {
+    let remaining = Math.max(0, Math.floor(deaths));
+    if (!remaining || !house || !house.population) return 0;
+
+    // Сначала гибнет свободное население, затем рабочие, затем военнослужащие.
+    const freeDeaths = Math.min(remaining, Math.max(0, Math.floor(house.population.free || 0)));
+    house.population.free -= freeDeaths;
+    remaining -= freeDeaths;
+
+    if (remaining > 0) {
+        const ordinaryWorkers = Math.max(
+            0,
+            Math.floor(house.population.workers || 0) -
+            Math.floor(house.population.hunters || 0) -
+            Math.floor(house.population.foresters || 0)
+        );
+        const ordinaryDeaths = Math.min(remaining, ordinaryWorkers);
+        house.population.workers -= ordinaryDeaths;
+        remaining -= ordinaryDeaths;
+    }
+
+    if (remaining > 0) {
+        const removedHunters = removeHuntersForStarvation(house, remaining);
+        remaining -= removedHunters;
+    }
+
+    if (remaining > 0) {
+        const removedForesters = removeForestersForStarvation(house, remaining);
+        remaining -= removedForesters;
+    }
+
+    if (remaining > 0) {
+        const soldierDeaths = Math.min(remaining, Math.max(0, Math.floor(house.population.soldiers || 0)));
+        house.population.soldiers -= soldierDeaths;
+        remaining -= soldierDeaths;
+
+        let soldiersLeft = house.population.soldiers;
+        const archers = Math.min(soldiersLeft, Math.max(0, Math.floor(house.army.archers || 0)));
+        house.army.archers = archers;
+        soldiersLeft -= archers;
+        house.army.scouts = Math.max(0, soldiersLeft);
+    }
+
+    house.population.soldiers =
+        Math.max(0, Math.floor(house.army.scouts || 0) + Math.floor(house.army.archers || 0));
+
+    house.population.hunters = house.huntingGrounds.reduce(function(total, ground) {
+        return total + Math.max(0, Math.floor(ground.hunters || 0));
+    }, 0);
+    house.population.foresters = house.forestryGrounds.reduce(function(total, ground) {
+        return total + Math.max(0, Math.floor(ground.foresters || 0));
+    }, 0);
+
+    return deaths - remaining;
+}
+
+let dynastyDeathInProgress = false;
+
+function showDynastyDeathScreen(house) {
+    const overlay = document.getElementById("dynastyDeathOverlay");
+    if (!overlay) return;
+    const text = document.getElementById("dynastyDeathText");
+    if (text) {
+        text.textContent =
+            "Последний огонь Дома угас. Голод забрал жизнь последнего жителя. " +
+            "Город опустел, знамя Дома пало, а его летопись завершена. " +
+            "Династия «" + ((house && house.houseName) || "Безымянная") + "» больше не существует.";
+    }
+    overlay.style.display = "flex";
+}
+
+async function deleteDefeatedDynastyFromServer(house) {
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return;
+    const supabase = window.theRealmsSupabase;
+    const dynastyId = house.serverDynastyId;
+
+    const operations = [
+        supabase.from("diplomacy_relations").delete().or("dynasty_a.eq." + dynastyId + ",dynasty_b.eq." + dynastyId),
+        supabase.from("trade_offers").delete().or("sender_dynasty_id.eq." + dynastyId + ",receiver_dynasty_id.eq." + dynastyId),
+        supabase.from("world_buildings").delete().eq("dynasty_id", dynastyId),
+        supabase.from("territories").delete().eq("dynasty_id", dynastyId),
+        supabase.from("cities").delete().eq("dynasty_id", dynastyId)
+    ];
+
+    const results = await Promise.allSettled(operations);
+    const failed = results.find(function(result) { return result.status === "fulfilled" && result.value && result.value.error; });
+    if (failed) {
+        const error = failed.value.error;
+        throw error;
+    }
+
+    const dynastyResult = await supabase
+        .from("dynasties")
+        .delete()
+        .eq("id", dynastyId);
+
+    if (dynastyResult.error) throw dynastyResult.error;
+}
+
+function clearLocalDynastyAfterDeath() {
+    if (runtimeHouseSaveTimer) {
+        clearTimeout(runtimeHouseSaveTimer);
+        runtimeHouseSaveTimer = null;
+    }
+    runtimeHouseSavePending = false;
+    runtimeHouseCache = null;
+    runtimeHouseCacheKey = null;
+    localStorage.removeItem("theRealmsHouse");
+    localStorage.removeItem(DYNASTIES_KEY);
+    localStorage.removeItem(ACTIVE_DYNASTY_KEY);
+}
+
+async function endDynastyByStarvation(house) {
+    if (dynastyDeathInProgress) return;
+    dynastyDeathInProgress = true;
+    showDynastyDeathScreen(house);
+
+    try {
+        await deleteDefeatedDynastyFromServer(house);
+    } catch (error) {
+        console.error("The Realms: не удалось удалить погибшую династию с сервера", error);
+    }
+
+    clearLocalDynastyAfterDeath();
+    setTimeout(function() {
+        location.reload();
+    }, 7000);
+}
+
+function returnToBeginningAfterDeath() {
+    clearLocalDynastyAfterDeath();
+    location.reload();
+}
+
+function processHungerMortality(house, now) {
+    if (!isHouseHungry(house)) return false;
+
+    const totalHungerHours = Math.floor(
+        getHungerElapsedMs(house, now) / HUNGER_MORTALITY_INTERVAL
+    );
+    const processedHours = Math.max(0, Math.floor(Number(house.food.hungerProcessedHours) || 0));
+
+    if (totalHungerHours <= processedHours) return false;
+
+    let deaths = 0;
+    for (let hour = processedHours + 1; hour <= totalHungerHours; hour++) {
+        if (hour > 24) deaths += HUNGER_MORTALITY_STAGE_THREE;
+        else if (hour > 12) deaths += HUNGER_MORTALITY_STAGE_TWO;
+    }
+
+    house.food.hungerProcessedHours = totalHungerHours;
+
+    if (deaths > 0) {
+        const actualDeaths = applyStarvationMortality(house, deaths);
+        addChronicleEvent(
+            house,
+            "Голод забрал " + actualDeaths + " жителей Дома."
+        );
+
+        const populationTotal =
+            Math.max(0, Math.floor(house.population.free || 0)) +
+            Math.max(0, Math.floor(house.population.workers || 0)) +
+            Math.max(0, Math.floor(house.population.soldiers || 0));
+
+        if (populationTotal <= 0) {
+            endDynastyByStarvation(house);
+            return true;
+        }
+    }
+
+    return false;
+}
+
+function updateHungerUI(house) {
+    const status = document.getElementById("foodStatus");
+    const fill = document.getElementById("foodStatusFill");
+    const text = document.getElementById("foodStatusText");
+    if (!status || !fill || !text || !house) return;
+
+    const meat = Math.max(0, Number(house.resources && house.resources.meat) || 0);
+    const hourlyFood = getHourlyFoodConsumption(house) + getHourlyMeatUpkeep(house);
+    const stockHours = hourlyFood > 0 ? meat / hourlyFood : Infinity;
+    const hungry = isHouseHungry(house);
+
+    status.style.display = "block";
+    status.className = "foodStatus";
+
+    if (!hungry) {
+        let width = 100;
+        if (Number.isFinite(stockHours)) {
+            width = Math.max(8, Math.min(100, (stockHours / 48) * 100));
+        }
+        fill.style.width = width + "%";
+        if (stockHours >= 48) {
+            text.textContent = "СТАБИЛЬНО · запас без добычи: " + formatResourceStockHours(meat, hourlyFood).replace("запас без добычи: ", "");
+        } else if (stockHours > 12) {
+            status.classList.add("foodStatusCrisis");
+            text.textContent = "ПРОДОВОЛЬСТВИЕ ИСХОДИТ · запас: " + formatResourceStockHours(meat, hourlyFood).replace("запас без добычи: ", "");
+        } else {
+            status.classList.add("foodStatusDanger");
+            text.textContent = "КРИТИЧЕСКИЙ ЗАПАС · " + formatResourceStockHours(meat, hourlyFood).replace("запас без добычи: ", "");
+        }
+        return;
+    }
+
+    const now = Date.now();
+    const elapsed = getHungerElapsedMs(house, now);
+    const stage = getHungerStage(house, now);
+    const hungerHours = elapsed / 3600000;
+
+    let progress = 0;
+    if (stage === 1) progress = Math.min(100, (hungerHours / 12) * 100);
+    else if (stage === 2) progress = Math.min(100, 100 + ((hungerHours - 12) / 12) * 100);
+    else progress = 200;
+
+    fill.style.width = Math.max(6, Math.min(100, 100 - (progress / 2))) + "%";
+
+    if (stage === 1) {
+        status.classList.add("foodStatusCrisis");
+        text.textContent = "ГОЛОД · " + formatHungerDuration(elapsed) + " · производство −50% · через 12 ч смертность 5/ч";
+    } else if (stage === 2) {
+        status.classList.add("foodStatusDanger");
+        text.textContent = "ГОЛОД · " + formatHungerDuration(elapsed) + " · смертность 5 жителей/ч · через 24 ч — 15/ч";
+    } else {
+        status.classList.add("foodStatusDeath");
+        text.textContent = "ВЕЛИКИЙ ГОЛОД · " + formatHungerDuration(elapsed) + " · смертность 15 жителей/ч";
+    }
+}
+
+/* =====================================================
    ПОТРЕБЛЕНИЕ ПИЩИ
 ===================================================== */
 
 function processFoodConsumption(house) {
 
-    if (!house) return;
+    if (!house || dynastyDeathInProgress) return;
 
     house = prepareHouse(house);
-
     const now = Date.now();
 
     if (!house.food) {
-        house.food = {
-            lastConsumption: now
-        };
+        house.food = { lastConsumption: now, hungerStartedAt: null, hungerProcessedHours: 0 };
     }
 
-    if (
-        typeof house.food.lastConsumption !== "number"
-    ) {
+    if (typeof house.food.lastConsumption !== "number") {
         house.food.lastConsumption = now;
         saveHouseData(house);
         return;
     }
 
-    const elapsed =
-        now - house.food.lastConsumption;
-
-    const completedCycles =
-        Math.floor(
-            elapsed /
-            FOOD_CONSUMPTION_INTERVAL
-        );
-
+    const elapsed = now - house.food.lastConsumption;
+    const completedCycles = Math.floor(elapsed / FOOD_CONSUMPTION_INTERVAL);
     if (completedCycles <= 0) {
+        processHungerMortality(house, now);
+        updateHungerUI(house);
         return;
     }
 
-    const freePopulation =
-        Math.max(
-            0,
-            Math.floor(
-                house.population.free
-            )
-        );
+    const freePopulation = Math.max(0, Math.floor(Number(house.population.free) || 0));
+    const workingPopulation = Math.max(0, Math.floor(Number(house.population.workers) || 0));
+    const soldiers = Math.max(0, Math.floor(Number(house.population.soldiers) || 0));
+    const meatPerCycle = freePopulation + workingPopulation * 2 + soldiers * 4;
+    const totalConsumption = meatPerCycle * completedCycles;
+    const availableMeat = Math.max(0, Math.floor(Number(house.resources.meat) || 0));
 
-    const workingPopulation =
-        Math.max(
-            0,
-            Math.floor(
-                house.population.workers
-            )
-        );
+    if (availableMeat >= totalConsumption) {
+        house.resources.meat = availableMeat - totalConsumption;
+        if (totalConsumption > 0) {
+            addChronicleResourceEvent(house, "spend", { meat: totalConsumption }, "food");
+        }
+        house.food.hungerStartedAt = null;
+        house.food.hungerProcessedHours = 0;
+    } else {
+        const consumedMeat = availableMeat;
+        house.resources.meat = 0;
+        if (consumedMeat > 0) {
+            addChronicleResourceEvent(house, "spend", { meat: consumedMeat }, "food");
+        }
+        if (house.food.hungerStartedAt === null) {
+            house.food.hungerStartedAt = now;
+            house.food.hungerProcessedHours = 0;
+            addChronicleEvent(house, "В Доме начался голод: запасов мяса недостаточно для содержания населения.");
+        }
+    }
 
-    const soldiers =
-        Math.max(
-            0,
-            Math.floor(
-                house.population.soldiers
-            )
-        );
+    house.food.lastConsumption += FOOD_CONSUMPTION_INTERVAL * completedCycles;
 
-    /*
-       Охотники и лесорубы уже входят в рабочее население,
-       поэтому отдельно в потребление не добавляются.
-    */
-
-    const meatPerCycle =
-        freePopulation +
-        workingPopulation * 2 +
-        soldiers * 4;
-
-    const totalConsumption =
-        meatPerCycle *
-        completedCycles;
-
-    const consumedMeat = Math.min(
-        Math.max(0, Number(house.resources.meat) || 0),
-        totalConsumption
-    );
-
-    house.resources.meat =
-        Math.max(
-            0,
-            house.resources.meat -
-            consumedMeat
-        );
-
-    addChronicleResourceEvent(house, "spend", { meat: consumedMeat }, "food");
-
-    house.food.lastConsumption +=
-        FOOD_CONSUMPTION_INTERVAL *
-        completedCycles;
-
+    processHungerMortality(house, now);
     saveHouseData(house);
+    updateHungerUI(house);
 }
 
 /* =====================================================
@@ -9411,7 +9786,7 @@ function processHunting(house) {
         );
 
         const productionPerCycle =
-            huntingProductionByWorkers[hunterCount] || 0;
+            Math.floor((huntingProductionByWorkers[hunterCount] || 0) * getProductionEfficiencyMultiplier(house));
 
         if (productionPerCycle <= 0) {
             ground.lastProduction = now;
@@ -9624,11 +9999,13 @@ function processForestry(house) {
         if (completedCycles <= 0) return;
 
         const productionPerCycle =
-            Math.floor(
-                ground.foresters /
-                FORESTRY_GROUP_SIZE
-            ) *
-            WOOD_PER_GROUP;
+            Math.floor((
+                Math.floor(
+                    ground.foresters /
+                    FORESTRY_GROUP_SIZE
+                ) *
+                WOOD_PER_GROUP
+            ) * getProductionEfficiencyMultiplier(house));
 
         if (productionPerCycle <= 0) {
             ground.lastProduction = now;
@@ -9745,6 +10122,7 @@ function addHunterToGround(index) {
         house.population.hunters -
         house.population.foresters;
 
+    if (isHouseHungry(house)) return;
     if (availableWorkers <= 0) return;
     if (ground.hunters >= HUNTING_MAXIMUM) return;
 
@@ -9808,6 +10186,8 @@ function moveFreeToWorker() {
     if (house.population.free <= 0)
         return;
 
+    if (isHouseHungry(house))
+        return;
 
     house.population.free -= 1;
 
@@ -9995,7 +10375,7 @@ function updateArmy() {
 
     if (scoutPlus)
         scoutPlus.disabled =
-            free <= 0;
+            free <= 0 || isHouseHungry(house);
 
     if (archerMinus)
         archerMinus.disabled =
@@ -10004,7 +10384,8 @@ function updateArmy() {
     if (archerPlus)
         archerPlus.disabled =
             free <= 0 ||
-            house.resources.wood < 1;
+            house.resources.wood < 1 ||
+            isHouseHungry(house);
 
     saveHouseData(house);
 }
@@ -10023,6 +10404,9 @@ function addScout() {
     house = prepareHouse(house);
 
     if (house.population.free <= 0)
+        return;
+
+    if (isHouseHungry(house))
         return;
 
     house.population.free -= 1;
@@ -10193,13 +10577,13 @@ function updatePopulation() {
     document
         .getElementById("freeToWorkerButton")
         .disabled =
-        free <= 0;
+        free <= 0 || isHouseHungry(house);
 
 
     document
         .getElementById("freeToSoldierButton")
         .disabled =
-        free <= 0;
+        free <= 0 || isHouseHungry(house);
 
 
     const ordinaryWorkers =
@@ -10306,8 +10690,7 @@ function updateHunting() {
                 );
 
             const production =
-                huntingProductionByWorkers[hunterCount] ||
-                0;
+                Math.floor((huntingProductionByWorkers[hunterCount] || 0) * getProductionEfficiencyMultiplier(house));
 
             let statusText;
 
@@ -10437,7 +10820,8 @@ function updateHunting() {
                         index + ')"' +
                         (
                             availableWorkers <= 0 ||
-                            ground.hunters >= HUNTING_MAXIMUM
+                            ground.hunters >= HUNTING_MAXIMUM ||
+                            isHouseHungry(house)
                                 ? ' disabled'
                                 : ''
                         ) +
@@ -10563,6 +10947,8 @@ function updateResources() {
 
     const woodMeta =
         document.getElementById("woodStockMeta");
+
+    updateHungerUI(house);
 
     if (woodMeta) {
         woodMeta.textContent =
@@ -10851,6 +11237,7 @@ function openRealm() {
     }
 
     processHunting(house);
+    processFoodConsumption(house);
 
     if (window.theRealmsSupabase && house.serverDynastyId) {
         subscribeTradeUpdates(house);
@@ -11089,6 +11476,8 @@ function handleChronicleStart() {
 ===================================================== */
 
 setInterval(function() {
+
+    if (dynastyDeathInProgress) return;
 
     const house = getHouse();
     if (!house) return;

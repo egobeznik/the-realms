@@ -4722,6 +4722,8 @@ let tradeNotificationState = {
     shownThisSession: false
 };
 
+let tradeRealtimeChannel = null;
+
 
 
 
@@ -4860,6 +4862,50 @@ async function ensureCurrentServerDynasty(house) {
     saveHouseData(house);
 
     return dynastyResult.data;
+}
+
+async function restoreResourcesFromServerIfMissing(house) {
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return false;
+
+    const localMeat = Math.max(0, Math.floor(Number(house.resources?.meat) || 0));
+    const localWood = Math.max(0, Math.floor(Number(house.resources?.wood) || 0));
+
+    if (localMeat > 0 || localWood > 0) return false;
+
+    try {
+        const result = await window.theRealmsSupabase
+            .from("dynasties")
+            .select("game_state")
+            .eq("id", house.serverDynastyId)
+            .maybeSingle();
+
+        if (result.error || !result.data || !result.data.game_state) return false;
+
+        const serverResources = result.data.game_state.resources || {};
+        const meat = Math.max(0, Math.floor(Number(serverResources.meat) || 0));
+        const wood = Math.max(0, Math.floor(Number(serverResources.wood) || 0));
+
+        if (meat <= 0 && wood <= 0) return false;
+
+        house.resources = house.resources || {};
+        house.resources.meat = meat;
+        house.resources.wood = wood;
+        saveHouseData(house);
+        return true;
+    } catch (error) {
+        console.error("The Realms: не удалось восстановить ресурсы с сервера", error);
+        return false;
+    }
+}
+
+function applyServerResourcesToHouse(house, resources) {
+    if (!house || !resources) return false;
+    house.resources = house.resources || {};
+    house.resources.meat = Math.max(0, Math.floor(Number(resources.meat) || 0));
+    house.resources.wood = Math.max(0, Math.floor(Number(resources.wood) || 0));
+    saveHouseData(house);
+    updateResources();
+    return true;
 }
 
 function sharedCityKey(x, y) {
@@ -7413,6 +7459,14 @@ async function sendTradeOffer() {
     const getWood = Math.max(0, Math.floor(Number(document.getElementById("tradeGetWood").value) || 0));
     const getMeat = Math.max(0, Math.floor(Number(document.getElementById("tradeGetMeat").value) || 0));
 
+    const localWood = Math.max(0, Math.floor(Number(house.resources?.wood) || 0));
+    const localMeat = Math.max(0, Math.floor(Number(house.resources?.meat) || 0));
+
+    if (giveWood > localWood || giveMeat > localMeat) {
+        alert("Недостаточно ресурсов на складе.");
+        return;
+    }
+
     if (giveWood === 0 && giveMeat === 0 && getWood === 0 && getMeat === 0) {
         alert("Укажите хотя бы один ресурс для обмена.");
         return;
@@ -7421,9 +7475,6 @@ async function sendTradeOffer() {
     tradeState.loading = true;
 
     try {
-        // Перед созданием предложения синхронизируем актуальный склад
-        // текущей династии с сервером. Ранее game_state мог содержать
-        // старое состояние без resources, из-за чего сервер видел 0.
         await ensureCurrentServerDynasty(house);
 
         const result = await window.theRealmsSupabase.rpc("the_realms_create_trade_offer", {
@@ -7438,8 +7489,15 @@ async function sendTradeOffer() {
 
         if (result.error) throw result.error;
 
+        // Отдаваемые ресурсы резервируются сразу. Если союзник отклонит
+        // предложение, сервер вернёт их обратно.
+        house.resources.wood = Math.max(0, localWood - giveWood);
+        house.resources.meat = Math.max(0, localMeat - giveMeat);
+        saveHouseData(house);
+        updateResources();
+
         closeTradeOffer();
-        alert("Торговое предложение отправлено.");
+        alert("Торговое предложение отправлено. Отданные ресурсы зарезервированы до ответа союзника.");
     } catch (error) {
         console.error("The Realms: ошибка отправки торговли", error);
         alert(error.message || "Не удалось отправить торговое предложение.");
@@ -7459,7 +7517,7 @@ async function checkIncomingTradeOffers() {
     try {
         const { data: offers, error } = await window.theRealmsSupabase
             .from("trade_offers")
-            .select("id,sender_dynasty_id,give_wood,give_meat,get_wood,get_meat,created_at")
+            .select("id,sender_dynasty_id,give_wood,give_meat,get_wood,get_meat,reserved,created_at")
             .eq("receiver_dynasty_id", house.serverDynastyId)
             .eq("status", "pending")
             .order("created_at", { ascending: true })
@@ -7502,10 +7560,8 @@ async function respondTradeNotification(action) {
     tradeNotificationState.loading = true;
 
     try {
-        // Перед принятием/отклонением обновляем серверное состояние
-        // получателя, чтобы его актуальный склад был известен RPC.
-        await ensureCurrentServerDynasty(house);
-
+        // Не вызываем ensureCurrentServerDynasty здесь: он может перезаписать
+        // сервер старым локальным кэшем перед атомарной торговой операцией.
         const result = await window.theRealmsSupabase.rpc("the_realms_respond_trade_offer", {
             p_external_id: getServerExternalId(),
             p_slot: getCurrentDynastySlotNumber(),
@@ -7514,6 +7570,10 @@ async function respondTradeNotification(action) {
         });
 
         if (result.error) throw result.error;
+
+        if (action === "accept" && result.data && result.data.receiver_resources) {
+            applyServerResourcesToHouse(house, result.data.receiver_resources);
+        }
 
         document.getElementById("tradeNotificationOverlay").style.display = "none";
         tradeNotificationState.offerId = null;
@@ -7531,6 +7591,58 @@ async function respondTradeNotification(action) {
     } finally {
         tradeNotificationState.loading = false;
     }
+}
+
+async function processTradeRealtimeRow(row) {
+    const house = getHouse();
+    if (!house || !house.serverDynastyId || !row) return;
+    if (String(row.sender_dynasty_id) !== String(house.serverDynastyId)) return;
+    if (!['accepted', 'rejected', 'cancelled'].includes(row.status)) return;
+
+    house.tradeProcessedOffers = Array.isArray(house.tradeProcessedOffers)
+        ? house.tradeProcessedOffers
+        : [];
+
+    if (house.tradeProcessedOffers.indexOf(row.id) !== -1) return;
+
+    if (row.status === 'accepted') {
+        // Новые предложения уже зарезервировали give_* при создании.
+        // Старые pending-предложения этого не делали.
+        if (!row.reserved) {
+            house.resources.wood = Math.max(0, (Number(house.resources.wood) || 0) - (Number(row.give_wood) || 0));
+            house.resources.meat = Math.max(0, (Number(house.resources.meat) || 0) - (Number(row.give_meat) || 0));
+        }
+        house.resources.wood = Math.max(0, (Number(house.resources.wood) || 0) + (Number(row.get_wood) || 0));
+        house.resources.meat = Math.max(0, (Number(house.resources.meat) || 0) + (Number(row.get_meat) || 0));
+    } else if (row.reserved) {
+        // Для новых предложений отклонение/отмена возвращает резерв.
+        house.resources.wood = Math.max(0, (Number(house.resources.wood) || 0) + (Number(row.give_wood) || 0));
+        house.resources.meat = Math.max(0, (Number(house.resources.meat) || 0) + (Number(row.give_meat) || 0));
+    }
+
+    house.tradeProcessedOffers.push(row.id);
+    if (house.tradeProcessedOffers.length > 100) {
+        house.tradeProcessedOffers = house.tradeProcessedOffers.slice(-100);
+    }
+
+    saveHouseData(house);
+    updateResources();
+}
+
+function subscribeTradeUpdates(house) {
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return;
+    if (tradeRealtimeChannel) return;
+
+    tradeRealtimeChannel = window.theRealmsSupabase
+        .channel("the-realms-trades")
+        .on(
+            "postgres_changes",
+            { event: "UPDATE", schema: "public", table: "trade_offers" },
+            function(payload) {
+                processTradeRealtimeRow(payload.new);
+            }
+        )
+        .subscribe();
 }
 
 async function loadDiplomacyOverview() {
@@ -10187,8 +10299,25 @@ function openRealm() {
     house =
         prepareHouse(house);
 
+    if (window.theRealmsSupabase && house.city) {
+        if (!house.serverDynastyId) {
+            ensureCurrentServerDynasty(house)
+                .then(function() { return restoreResourcesFromServerIfMissing(house); })
+                .then(function() { updateResources(); })
+                .catch(function(error) {
+                    console.error("The Realms: не удалось проверить ресурсы", error);
+                });
+        } else {
+            restoreResourcesFromServerIfMissing(house)
+                .then(function(restored) { if (restored) updateResources(); });
+        }
+    }
 
     processHunting(house);
+
+    if (window.theRealmsSupabase && house.serverDynastyId) {
+        subscribeTradeUpdates(house);
+    }
 
     saveHouseData(house);
 

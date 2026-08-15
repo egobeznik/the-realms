@@ -1343,7 +1343,7 @@ textarea.input {
     pointer-events: auto;
     width: 100%;
     min-height: 32px;
-    margin-top: 7px;
+    margin-top: 10px;
     border: 1px solid rgba(130, 72, 55, 0.65);
     background: rgba(43, 25, 20, 0.9);
     color: #b58f7f;
@@ -4241,6 +4241,8 @@ function updateCellInfo(x, y) {
             " · Y: " + y +
             " · 📦 СКЛАД";
 
+        addDeleteBuildingButton(x, y, "СКЛАД");
+
     } else if (forestryGround) {
 
         const ground =
@@ -4286,6 +4288,8 @@ function updateCellInfo(x, y) {
                     recoveryLeft
                 );
 
+            addDeleteBuildingButton(x, y, "ЛЕСНИЧЕСТВО");
+
         } else {
 
             text.textContent =
@@ -4311,6 +4315,8 @@ function updateCellInfo(x, y) {
                 "X: " + x +
                 " · Y: " + y +
                 " · 🪵 ЛЕСНИЧЕСТВО";
+
+            addDeleteBuildingButton(x, y, "ЛЕСНИЧЕСТВО");
         }
 
     } else if (huntingGround) {
@@ -4374,6 +4380,8 @@ function updateCellInfo(x, y) {
                     recoveryLeft
                 );
 
+            addDeleteBuildingButton(x, y, "ОХОТНИЧЬЕ УГОДЬЕ");
+
         } else {
 
             text.textContent =
@@ -4399,6 +4407,8 @@ function updateCellInfo(x, y) {
                 "X: " + x +
                 " · Y: " + y +
                 " · 🏹 ОХОТНИЧЬЕ УГОДЬЕ";
+
+            addDeleteBuildingButton(x, y, "ОХОТНИЧЬЕ УГОДЬЕ");
         }
 
     } else {

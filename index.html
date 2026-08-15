@@ -6625,7 +6625,7 @@ function buildHuntingGround() {
 
     const now = Date.now();
     house.resources.wood -= HUNTING_GROUND_BUILD_COST;
-    addChronicleResourceEvent(house, "spend", { wood: HUNTING_GROUND_BUILD_COST });
+    addChronicleResourceEvent(house, "spend", { wood: HUNTING_GROUND_BUILD_COST }, "construction");
 
     house.huntingGrounds.push({
         x: x,
@@ -6677,7 +6677,7 @@ function buildWarehouse() {
 
     const now = Date.now();
     house.resources.wood -= WAREHOUSE_BUILD_COST;
-    addChronicleResourceEvent(house, "spend", { wood: WAREHOUSE_BUILD_COST });
+    addChronicleResourceEvent(house, "spend", { wood: WAREHOUSE_BUILD_COST }, "construction");
 
     house.warehouses.push({
         x: x,
@@ -6726,7 +6726,7 @@ function buildHouseBuilding() {
     addChronicleResourceEvent(house, "spend", {
         wood: HOUSE_BUILD_WOOD_COST,
         meat: HOUSE_BUILD_MEAT_COST
-    });
+    }, "construction");
 
     house.population.free += HOUSE_POPULATION_BONUS;
 
@@ -6773,7 +6773,7 @@ function buildForestry() {
 
     const now = Date.now();
     house.resources.wood -= FORESTRY_BUILD_COST;
-    addChronicleResourceEvent(house, "spend", { wood: FORESTRY_BUILD_COST });
+    addChronicleResourceEvent(house, "spend", { wood: FORESTRY_BUILD_COST }, "construction");
 
     house.forestryGrounds.push({
         x: x,
@@ -7789,7 +7789,7 @@ async function processTradeRealtimeRow(row) {
         addChronicleResourceEvent(house, "spend", {
             wood: Number(row.give_wood) || 0,
             meat: Number(row.give_meat) || 0
-        });
+        }, "trade");
         delete house.lastTradeChronicleTargetName;
     } else if (row.reserved) {
         // Для новых предложений отклонение/отмена возвращает резерв.
@@ -8588,29 +8588,41 @@ function addChronicleEvent(house, text) {
     renderChronicleHistory(house);
 }
 
-function addChronicleResourceEvent(house, direction, resources) {
+function addChronicleResourceEvent(house, direction, resources, category) {
     if (!house || !resources) return;
     const meat = Math.max(0, Math.floor(Number(resources.meat) || 0));
     const wood = Math.max(0, Math.floor(Number(resources.wood) || 0));
     if (meat <= 0 && wood <= 0) return;
 
     let history = ensureChronicleHistory(house);
+
+    // После 20-й записи всегда начинается новый цикл.
+    // Проверка выполняется ДО попытки объединить ресурсные события.
+    if (history.length >= CHRONICLE_HISTORY_LIMIT) {
+        house.chronicleHistory = [];
+        history = house.chronicleHistory;
+    }
+
     const last = history.length ? history[history.length - 1] : null;
 
-    if (last && last.type === "resource" && last.direction === direction) {
+    // Объединяем только события одного и того же типа операции.
+    // Расход еды, обслуживание, строительство, армия и торговля
+    // больше не смешиваются между собой.
+    if (
+        last &&
+        last.type === "resource" &&
+        last.direction === direction &&
+        last.category === category
+    ) {
         last.resources = last.resources || {};
         last.resources.meat = Math.max(0, Math.floor(Number(last.resources.meat) || 0)) + meat;
         last.resources.wood = Math.max(0, Math.floor(Number(last.resources.wood) || 0)) + wood;
         last.createdAt = new Date().toISOString();
     } else {
-        // Если 20-я запись уже занята, начинаем новый цикл истории.
-        if (history.length >= CHRONICLE_HISTORY_LIMIT) {
-            house.chronicleHistory = [];
-            history = house.chronicleHistory;
-        }
         history.push({
             type: "resource",
             direction: direction,
+            category: category || "general",
             resources: { meat: meat, wood: wood },
             createdAt: new Date().toISOString()
         });
@@ -9115,10 +9127,10 @@ function processFoodConsumption(house) {
         Math.max(
             0,
             house.resources.meat -
-            totalConsumption
+            consumedMeat
         );
 
-    addChronicleResourceEvent(house, "spend", { meat: consumedMeat });
+    addChronicleResourceEvent(house, "spend", { meat: consumedMeat }, "food");
 
     house.food.lastConsumption +=
         FOOD_CONSUMPTION_INTERVAL *
@@ -9270,7 +9282,7 @@ function processBuildingUpkeep(house) {
     addChronicleResourceEvent(house, "spend", {
         wood: upkeepWoodSpent,
         meat: upkeepMeatSpent
-    });
+    }, "upkeep");
 }
 
 
@@ -9388,7 +9400,7 @@ function processHunting(house) {
     );
 
     house.resources.meat += addedMeat;
-    addChronicleResourceEvent(house, "gain", { meat: addedMeat });
+    addChronicleResourceEvent(house, "gain", { meat: totalProduction }, "hunting");
 
     // Реальный таймер теперь хранится у каждого угодья отдельно.
     house.hunting.lastProduction = now;
@@ -9574,7 +9586,7 @@ function processForestry(house) {
     );
 
     house.resources.wood += addedWood;
-    addChronicleResourceEvent(house, "gain", { wood: addedWood });
+    addChronicleResourceEvent(house, "gain", { wood: totalProduction }, "forestry");
     house.forestry.lastProduction = now;
 
     saveHouseData(house);
@@ -9989,7 +10001,7 @@ function addArcher() {
     house.population.free -= 1;
 
     house.resources.wood -= 1;
-    addChronicleResourceEvent(house, "spend", { wood: 1 });
+    addChronicleResourceEvent(house, "spend", { wood: 1 }, "military");
 
     house.army.archers += 1;
 

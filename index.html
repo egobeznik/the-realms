@@ -4526,6 +4526,11 @@ const MEAT_PER_GROUP = 264;
 const HUNTING_GROUP_SIZE = 2;
 const GAME_LOSS_PER_HUNT = 5;
 
+// Производительность охотничьего угодья считается по полным парам
+// охотников. Неполная пара не теряет назначение: 3 охотника дают
+// тот же базовый объём, что и 2, 5 — как 4 и т.д.
+const HUNTING_PRODUCTION_BY_GROUPS = [0, 53, 106, 158, 211, 264];
+
 /* =====================================================
    ДОБЫЧА ЛЕСА
 ===================================================== */
@@ -6723,6 +6728,16 @@ function selectMapCell(x, y) {
     updateMap();
 }
 
+function getHuntingPhaseOffsetMs(existingGroundCount) {
+    // Безопасное смещение: новые угодья получают до одного часа
+    // фазового сдвига. Это не даёт двум угодьям полностью совпадать
+    // по циклам, но и не заставляет новое угодье ждать десятки часов
+    // до первой добычи.
+    if (existingGroundCount <= 0) return 0;
+    const slots = 3;
+    return Math.floor((existingGroundCount % slots) * (HUNTING_INTERVAL / slots));
+}
+
 function buildHuntingGround() {
 
     if (
@@ -6746,6 +6761,7 @@ function buildHuntingGround() {
     if (house.resources.wood < HUNTING_GROUND_BUILD_COST) return;
 
     const now = Date.now();
+    const phaseOffsetMs = getHuntingPhaseOffsetMs(house.huntingGrounds.length);
     house.resources.wood -= HUNTING_GROUND_BUILD_COST;
     addChronicleResourceEvent(house, "spend", { wood: HUNTING_GROUND_BUILD_COST }, "construction");
 
@@ -6757,7 +6773,9 @@ function buildHuntingGround() {
         gameLife: HUNTING_GROUND_GAME_MAX,
         recoveryStartedAt: null,
         recoveryLastUpdatedAt: null,
-        lastProduction: now,
+        // Сохраняем небольшой фазовый сдвиг между угодьями.
+        lastProduction: now - phaseOffsetMs,
+        productionPhaseOffsetMs: phaseOffsetMs,
         lastUpkeep: now,
         upkeepPaidUntil: now + BUILDING_UPKEEP_INTERVAL,
         active: true,
@@ -8722,7 +8740,7 @@ function addChronicleEvent(house, text) {
     renderChronicleHistory(house);
 }
 
-function addChronicleResourceEvent(house, direction, resources, category) {
+function addChronicleResourceEvent(house, direction, resources, category, productionMultiplier) {
     if (!house || !resources) return;
 
     const meat = Math.max(0, Math.floor(Number(resources.meat) || 0));
@@ -8749,6 +8767,9 @@ function addChronicleResourceEvent(house, direction, resources, category) {
         direction: direction,
         category: category || "general",
         resources: { meat: meat, wood: wood },
+        productionMultiplier: (direction === "gain" && (category === "hunting" || category === "forestry") && Number.isFinite(Number(productionMultiplier)))
+            ? Math.max(0, Math.min(1, Number(productionMultiplier)))
+            : null,
         createdAt: new Date().toISOString()
     });
 
@@ -8765,8 +8786,16 @@ function formatChronicleResourceEvent(entry) {
     if (wood > 0) parts.push("🌲 " + wood + " леса");
 
     if (entry.direction === "gain") {
-        if (entry.category === "hunting") return "Добыто мяса: " + meat;
-        if (entry.category === "forestry") return "Добыто леса: " + wood;
+        if (entry.category === "hunting") {
+            const multiplier = Number.isFinite(Number(entry.productionMultiplier)) ? Number(entry.productionMultiplier) : 1;
+            const productionNote = multiplier < 1 ? " (" + Math.round(multiplier * 100) + "% штраф голода)" : " (100% производство)";
+            return "Добыто мяса: " + meat + productionNote;
+        }
+        if (entry.category === "forestry") {
+            const multiplier = Number.isFinite(Number(entry.productionMultiplier)) ? Number(entry.productionMultiplier) : 1;
+            const productionNote = multiplier < 1 ? " (" + Math.round(multiplier * 100) + "% штраф голода)" : " (100% производство)";
+            return "Добыто леса: " + wood + productionNote;
+        }
         return "Добыто ресурсов: " + parts.join(" · ");
     }
 
@@ -9050,6 +9079,10 @@ function prepareHouse(house) {
 
         if (ground.durability <= 0 && ground.recoveryStartedAt !== null && ground.recoveryLastUpdatedAt === null) {
             ground.recoveryLastUpdatedAt = ground.recoveryStartedAt;
+        }
+
+        if (typeof ground.productionPhaseOffsetMs !== "number" || !isFinite(ground.productionPhaseOffsetMs)) {
+            ground.productionPhaseOffsetMs = 0;
         }
 
         if (
@@ -9824,14 +9857,6 @@ function processHunting(house) {
 
         if (completedCycles <= 0) return;
 
-        const huntingProductionByWorkers = {
-            2: 53,
-            4: 106,
-            6: 158,
-            8: 211,
-            10: 264
-        };
-
         const hunterCount = Math.max(
             0,
             Math.min(
@@ -9840,8 +9865,13 @@ function processHunting(house) {
             )
         );
 
+        const hunterGroups = Math.floor(hunterCount / HUNTING_GROUP_SIZE);
+        const baseProductionPerCycle = HUNTING_PRODUCTION_BY_GROUPS[
+            Math.min(hunterGroups, HUNTING_PRODUCTION_BY_GROUPS.length - 1)
+        ] || 0;
+
         const productionPerCycle =
-            Math.floor((huntingProductionByWorkers[hunterCount] || 0) * getProductionEfficiencyMultiplier(house));
+            Math.floor(baseProductionPerCycle * getProductionEfficiencyMultiplier(house));
 
         if (productionPerCycle <= 0) {
             ground.lastProduction = now;
@@ -9894,7 +9924,7 @@ function processHunting(house) {
     );
 
     house.resources.meat += addedMeat;
-    addChronicleResourceEvent(house, "gain", { meat: totalProduction }, "hunting");
+    addChronicleResourceEvent(house, "gain", { meat: totalProduction }, "hunting", getProductionEfficiencyMultiplier(house));
 
     // Реальный таймер теперь хранится у каждого угодья отдельно.
     house.hunting.lastProduction = now;
@@ -10110,7 +10140,7 @@ function processForestry(house) {
     );
 
     house.resources.wood += addedWood;
-    addChronicleResourceEvent(house, "gain", { wood: totalProduction }, "forestry");
+    addChronicleResourceEvent(house, "gain", { wood: totalProduction }, "forestry", getProductionEfficiencyMultiplier(house));
     house.forestry.lastProduction = now;
 
     saveHouseData(house);
@@ -10177,7 +10207,6 @@ function addHunterToGround(index) {
         house.population.hunters -
         house.population.foresters;
 
-    if (isHouseHungry(house)) return;
     if (availableWorkers <= 0) return;
     if (ground.hunters >= HUNTING_MAXIMUM) return;
 
@@ -10629,7 +10658,7 @@ function updatePopulation() {
     document
         .getElementById("freeToWorkerButton")
         .disabled =
-        free <= 0 || isHouseHungry(house);
+        free <= 0;
 
 
     document
@@ -10724,14 +10753,6 @@ function updateHunting() {
             item.className =
                 "huntingGroundItem";
 
-            const huntingProductionByWorkers = {
-                2: 53,
-                4: 106,
-                6: 158,
-                8: 211,
-                10: 264
-            };
-
             const hunterCount =
                 Math.max(
                     0,
@@ -10741,8 +10762,13 @@ function updateHunting() {
                     )
                 );
 
+            const hunterGroups = Math.floor(hunterCount / HUNTING_GROUP_SIZE);
+            const baseProduction = HUNTING_PRODUCTION_BY_GROUPS[
+                Math.min(hunterGroups, HUNTING_PRODUCTION_BY_GROUPS.length - 1)
+            ] || 0;
+
             const production =
-                Math.floor((huntingProductionByWorkers[hunterCount] || 0) * getProductionEfficiencyMultiplier(house));
+                Math.floor(baseProduction * getProductionEfficiencyMultiplier(house));
 
             let statusText;
 
@@ -10787,6 +10813,9 @@ function updateHunting() {
                     "Активная охота: +" +
                     production +
                     " 🍖 каждые 2 часа. " +
+                    (hunterCount % HUNTING_GROUP_SIZE === 1
+                        ? "Лишний охотник ожидает формирования следующей пары. "
+                        : "") +
                     "До добычи: " +
                     formatProductionTimeLeft(
                         huntingTimeLeft

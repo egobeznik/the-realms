@@ -2843,7 +2843,7 @@ textarea.input {
         style="display:none;"
     >
         <span class="huntingBuildIcon">🏹</span>
-        <span class="huntingBuildText">ПОСТРОИТЬ ОХОТНИЧЬЕ УГОДЬЕ</span>
+        <span class="huntingBuildText">ПОСТРОИТЬ ОХОТНИЧЬЕ УГОДЬЕ · 10 🌲</span>
     </button>
 
     <button
@@ -2855,7 +2855,7 @@ textarea.input {
         style="display:none;"
     >
         <span class="warehouseBuildIcon">📦</span>
-        <span class="warehouseBuildText">ПОСТРОИТЬ СКЛАД</span>
+        <span class="warehouseBuildText">ПОСТРОИТЬ СКЛАД · 100 🌲</span>
     </button>
 
     <button
@@ -2867,7 +2867,7 @@ textarea.input {
         style="display:none;"
     >
         <span class="forestryBuildIcon">🪵</span>
-        <span class="forestryBuildText">ПОСТРОИТЬ ЛЕСНИЧЕСТВО</span>
+        <span class="forestryBuildText">ПОСТРОИТЬ ЛЕСНИЧЕСТВО · 15 🌲</span>
     </button>
 
 </main>
@@ -3049,6 +3049,7 @@ function demoAdvanceTime() {
        Никаких новых правил добычи здесь нет.
     */
 
+    processBuildingUpkeep(house);
     processHunting(house);
     processForestry(house);
     processFoodConsumption(house);
@@ -3128,12 +3129,11 @@ function hasForestryAt(house, x, y) {
 
 
 function hasWarehouseAt(house, x, y) {
-    return !!(
-        house &&
-        house.warehouse &&
-        house.warehouse.x === x &&
-        house.warehouse.y === y
-    );
+    if (!house || !Array.isArray(house.warehouses)) return false;
+
+    return house.warehouses.some(function(warehouse) {
+        return warehouse.x === x && warehouse.y === y;
+    });
 }
 
 function hasAnyBuildingAt(house, x, y) {
@@ -3324,7 +3324,15 @@ const FOOD_CONSUMPTION_INTERVAL =
 const FORESTRY_GROUND_DURABILITY_MAX = 100;
 const FORESTRY_GROUND_DURABILITY_LOSS = 10;
 const FORESTRY_GROUND_RECOVERY_MS = 48 * 60 * 60 * 1000;
-const STORAGE_CAPACITY = 5000;
+const STORAGE_BASE_CAPACITY = 5000;
+const STORAGE_WAREHOUSE_BONUS = 1000;
+const BUILDING_UPKEEP_INTERVAL = 48 * 60 * 60 * 1000;
+const HUNTING_GROUND_BUILD_COST = 10;
+const HUNTING_GROUND_UPKEEP = 10;
+const FORESTRY_BUILD_COST = 15;
+const FORESTRY_UPKEEP = 15;
+const WAREHOUSE_BUILD_COST = 100;
+const WAREHOUSE_UPKEEP = 100;
 
 
 /* =====================================================
@@ -3445,8 +3453,10 @@ function saveHouse(event) {
         },
 
         storage: {
-            capacity: STORAGE_CAPACITY
+            capacity: STORAGE_BASE_CAPACITY
         },
+
+        warehouses: [],
 
         warehouse: null,
 
@@ -3991,9 +4001,15 @@ function updateCellInfo(x, y) {
 
         title.textContent = "СКЛАД";
 
+        const warehouseCapacity =
+            house.storage &&
+            typeof house.storage.capacity === "number"
+                ? house.storage.capacity
+                : STORAGE_BASE_CAPACITY;
+
         text.textContent =
             "ХРАНЕНИЕ РЕСУРСОВ · Вместимость: " +
-            STORAGE_CAPACITY;
+            warehouseCapacity;
 
         coords.textContent =
             "X: " + x +
@@ -4225,6 +4241,7 @@ function updateMap() {
 
         const canBuild =
             !foundationMode &&
+            house.resources.wood >= HUNTING_GROUND_BUILD_COST &&
             type === "forest" &&
             isTerritoryCell(
                 house,
@@ -4237,6 +4254,7 @@ function updateMap() {
 
         const canBuildWarehouse =
             !foundationMode &&
+            house.resources.wood >= WAREHOUSE_BUILD_COST &&
             !isWaterTerrain(type) &&
             isTerritoryCell(
                 house,
@@ -4247,8 +4265,7 @@ function updateMap() {
                 house,
                 mapState.selectedX,
                 mapState.selectedY
-            ) &&
-            !house.warehouse;
+            );
 
         if (huntingButton) {
             huntingButton.style.display =
@@ -4257,11 +4274,15 @@ function updateMap() {
                 !canBuild;
         }
 
+        const canBuildForestry =
+            canBuild &&
+            house.resources.wood >= FORESTRY_BUILD_COST;
+
         if (forestryButton) {
             forestryButton.style.display =
-                canBuild ? "inline-flex" : "none";
+                canBuildForestry ? "inline-flex" : "none";
             forestryButton.disabled =
-                !canBuild;
+                !canBuildForestry;
         }
 
         if (warehouseButton) {
@@ -4349,7 +4370,11 @@ function buildHuntingGround() {
 
     if (terrainAt(x, y) !== "forest") return;
     if (!isTerritoryCell(house, x, y)) return;
-    if (hasHuntingGroundAt(house, x, y)) return;
+    if (hasAnyBuildingAt(house, x, y)) return;
+    if (house.resources.wood < HUNTING_GROUND_BUILD_COST) return;
+
+    const now = Date.now();
+    house.resources.wood -= HUNTING_GROUND_BUILD_COST;
 
     house.huntingGrounds.push({
         x: x,
@@ -4358,7 +4383,11 @@ function buildHuntingGround() {
         hunters: 0,
         gameLife: HUNTING_GROUND_GAME_MAX,
         recoveryStartedAt: null,
-        lastProduction: Date.now()
+        lastProduction: now,
+        lastUpkeep: now,
+        upkeepPaidUntil: now + BUILDING_UPKEEP_INTERVAL,
+        active: true,
+        maintenanceDue: false
     });
 
     saveHouseData(house);
@@ -4392,13 +4421,20 @@ function buildWarehouse() {
     if (isWaterTerrain(terrainAt(x, y))) return;
     if (!isTerritoryCell(house, x, y)) return;
     if (hasAnyBuildingAt(house, x, y)) return;
-    if (house.warehouse) return;
+    if (house.resources.wood < WAREHOUSE_BUILD_COST) return;
 
-    house.warehouse = {
+    const now = Date.now();
+    house.resources.wood -= WAREHOUSE_BUILD_COST;
+
+    house.warehouses.push({
         x: x,
         y: y,
-        builtAt: new Date().toISOString()
-    };
+        builtAt: new Date().toISOString(),
+        lastUpkeep: now,
+        upkeepPaidUntil: now + BUILDING_UPKEEP_INTERVAL,
+        active: true,
+        maintenanceDue: false
+    });
 
     saveHouseData(house);
     updateMap();
@@ -4424,8 +4460,11 @@ function buildForestry() {
     if (terrainAt(x, y) !== "forest") return;
     if (!isTerritoryCell(house, x, y)) return;
 
-    if (hasHuntingGroundAt(house, x, y)) return;
-    if (hasForestryAt(house, x, y)) return;
+    if (hasAnyBuildingAt(house, x, y)) return;
+    if (house.resources.wood < FORESTRY_BUILD_COST) return;
+
+    const now = Date.now();
+    house.resources.wood -= FORESTRY_BUILD_COST;
 
     house.forestryGrounds.push({
         x: x,
@@ -4434,7 +4473,11 @@ function buildForestry() {
         foresters: 0,
         durability: FORESTRY_GROUND_DURABILITY_MAX,
         recoveryStartedAt: null,
-        lastProduction: Date.now()
+        lastProduction: now,
+        lastUpkeep: now,
+        upkeepPaidUntil: now + BUILDING_UPKEEP_INTERVAL,
+        active: true,
+        maintenanceDue: false
     });
 
     saveHouseData(house);
@@ -4980,21 +5023,42 @@ function prepareHouse(house) {
         house.storage = {};
     }
 
-    house.storage.capacity = STORAGE_CAPACITY;
+    // Стартовый склад находится в городе и не требует отдельной постройки.
+    // Старый формат одного складского здания мигрируем в массив.
+    if (Array.isArray(house.warehouses)) {
+        house.warehouses = house.warehouses;
+    } else if (house.warehouse && typeof house.warehouse === "object") {
+        house.warehouses = [house.warehouse];
+    } else {
+        house.warehouses = [];
+    }
+
+    house.warehouses.forEach(function(warehouse) {
+        if (typeof warehouse.active !== "boolean") warehouse.active = true;
+        if (typeof warehouse.lastUpkeep !== "number") warehouse.lastUpkeep = Date.now();
+        if (typeof warehouse.maintenanceDue !== "boolean") warehouse.maintenanceDue = false;
+    });
+
+    // Совместимость: больше не используем одиночное поле.
+    house.warehouse = null;
+
+    const activeWarehouseCount = house.warehouses.filter(function(warehouse) {
+        return warehouse.active !== false;
+    }).length;
+
+    house.storage.capacity =
+        STORAGE_BASE_CAPACITY +
+        activeWarehouseCount * STORAGE_WAREHOUSE_BONUS;
 
     house.resources.meat = Math.max(
         0,
-        Math.min(STORAGE_CAPACITY, house.resources.meat)
+        Math.min(house.storage.capacity, house.resources.meat)
     );
 
     house.resources.wood = Math.max(
         0,
-        Math.min(STORAGE_CAPACITY, house.resources.wood)
+        Math.min(house.storage.capacity, house.resources.wood)
     );
-
-    if (!house.warehouse || typeof house.warehouse !== "object") {
-        house.warehouse = null;
-    }
 
 
     if (!house.hunting) {
@@ -5308,6 +5372,82 @@ function processFoodConsumption(house) {
    ПРОИЗВОДСТВО
 ===================================================== */
 
+function processBuildingUpkeep(house) {
+
+    if (!house) return;
+
+    const now = Date.now();
+
+    function processBuilding(building, cost) {
+        if (!building) return;
+
+        if (typeof building.lastUpkeep !== "number") {
+            building.lastUpkeep = now;
+        }
+
+        if (typeof building.active !== "boolean") {
+            building.active = true;
+        }
+
+        if (typeof building.maintenanceDue !== "boolean") {
+            building.maintenanceDue = false;
+        }
+
+        let dueCycles = Math.floor(
+            Math.max(0, now - building.lastUpkeep) /
+            BUILDING_UPKEEP_INTERVAL
+        );
+
+        // Для старых построек первый цикл начинается с момента миграции.
+        if (dueCycles <= 0 && !building.maintenanceDue) return;
+
+        let required = building.maintenanceDue
+            ? cost
+            : dueCycles * cost;
+
+        if (house.resources.wood >= required) {
+            house.resources.wood -= required;
+            building.active = true;
+            building.maintenanceDue = false;
+            building.lastUpkeep = now;
+        } else {
+            building.active = false;
+            building.maintenanceDue = true;
+        }
+    }
+
+    house.huntingGrounds.forEach(function(ground) {
+        processBuilding(ground, HUNTING_GROUND_UPKEEP);
+    });
+
+    house.forestryGrounds.forEach(function(ground) {
+        processBuilding(ground, FORESTRY_UPKEEP);
+    });
+
+    house.warehouses.forEach(function(warehouse) {
+        processBuilding(warehouse, WAREHOUSE_UPKEEP);
+    });
+
+    const activeWarehouseCount = house.warehouses.filter(function(warehouse) {
+        return warehouse.active !== false;
+    }).length;
+
+    house.storage.capacity =
+        STORAGE_BASE_CAPACITY +
+        activeWarehouseCount * STORAGE_WAREHOUSE_BONUS;
+
+    house.resources.meat = Math.min(
+        house.resources.meat,
+        house.storage.capacity
+    );
+
+    house.resources.wood = Math.min(
+        house.resources.wood,
+        house.storage.capacity
+    );
+}
+
+
 function processHunting(house) {
 
     if (!hasHuntingGroundForHouse(house)) {
@@ -5320,6 +5460,11 @@ function processHunting(house) {
     let totalProduction = 0;
 
     house.huntingGrounds.forEach(function(ground) {
+
+        if (ground.active === false) {
+            ground.lastProduction = now;
+            return;
+        }
 
         updateHuntingGroundRecovery(ground, now);
 
@@ -5405,7 +5550,7 @@ function processHunting(house) {
 
     house.resources.meat =
         Math.min(
-            STORAGE_CAPACITY,
+            house.storage.capacity,
             house.resources.meat + totalProduction
         );
 
@@ -5508,6 +5653,11 @@ function processForestry(house) {
 
     house.forestryGrounds.forEach(function(ground) {
 
+        if (ground.active === false) {
+            ground.lastProduction = now;
+            return;
+        }
+
         updateForestryGroundRecovery(ground, now);
 
         // Восстановление не накапливает производственные циклы.
@@ -5576,7 +5726,7 @@ function processForestry(house) {
 
     house.resources.wood =
         Math.min(
-            STORAGE_CAPACITY,
+            house.storage.capacity,
             house.resources.wood + totalProduction
         );
     house.forestry.lastProduction = now;
@@ -6136,7 +6286,7 @@ function updateResources() {
         house.storage &&
         typeof house.storage.capacity === "number"
             ? house.storage.capacity
-            : STORAGE_CAPACITY;
+            : STORAGE_BASE_CAPACITY;
 
     const capacityLabel =
         document.getElementById("storageCapacityLabel");
@@ -6668,6 +6818,7 @@ setInterval(function() {
 
     if (!house) return;
 
+    processBuildingUpkeep(house);
     processForestry(house);
     processFoodConsumption(house);
     updatePopulation();

@@ -2408,16 +2408,19 @@ textarea.input {
             "initializing";
 
         /*
-           Первый тест не обращается к игровым таблицам.
-           Проверяем только доступность Supabase API.
+           Проверяем именно Data API тем же способом, которым
+           игра будет работать с таблицами. Это исключает ситуацию,
+           когда Auth доступен, а Data API недоступен.
         */
         fetch(
-            SUPABASE_URL + "/auth/v1/settings",
+            SUPABASE_URL + "/rest/v1/cities?select=id&limit=1",
             {
                 method: "GET",
+                mode: "cors",
+                cache: "no-store",
                 headers: {
-                    "apikey":
-                        SUPABASE_PUBLISHABLE_KEY
+                    "apikey": SUPABASE_PUBLISHABLE_KEY,
+                    "Accept": "application/json"
                 }
             }
         )
@@ -4427,8 +4430,10 @@ async function callTheRealmsFoundCityRpc(payload) {
                 mode: "cors",
                 cache: "no-store",
                 headers: {
+                    /* Для нового sb_publishable_* ключа Supabase требует
+                       передачу ключа через apikey. Он НЕ является JWT,
+                       поэтому Authorization: Bearer здесь не отправляем. */
                     "apikey": config.key,
-                    "Authorization": "Bearer " + config.key,
                     "Content-Type": "application/json",
                     "Accept": "application/json"
                 },

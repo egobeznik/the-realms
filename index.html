@@ -41,11 +41,8 @@ body {
 #creationScreen,
 #realmScreen {
     -webkit-overflow-scrolling: touch;
-    overscroll-behavior-y: contain;
-}
-
-.realmSection {
-    contain: layout paint;
+    overscroll-behavior-y: auto;
+    touch-action: pan-y;
 }
 
 
@@ -330,10 +327,15 @@ textarea.input {
 #realmScreen {
     display: none;
     width: 100%;
-    min-height: 100vh;
-    min-height: 100dvh;
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    max-height: 100vh;
+    max-height: 100dvh;
+    box-sizing: border-box;
     padding: 16px 14px 30px;
     overflow-y: auto;
+    overflow-x: hidden;
 
     background:
         radial-gradient(

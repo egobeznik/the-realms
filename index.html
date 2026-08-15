@@ -3333,6 +3333,42 @@ const FORESTRY_BUILD_COST = 15;
 const FORESTRY_UPKEEP = 15;
 const WAREHOUSE_BUILD_COST = 100;
 const WAREHOUSE_UPKEEP = 100;
+function getStoredResourcesTotal(house) {
+    if (!house || !house.resources) return 0;
+
+    return (
+        Math.max(0, Number(house.resources.meat) || 0) +
+        Math.max(0, Number(house.resources.wood) || 0)
+    );
+}
+
+function isStorageFull(house) {
+    if (!house) return false;
+
+    const capacity =
+        house.storage &&
+        typeof house.storage.capacity === "number"
+            ? house.storage.capacity
+            : STORAGE_BASE_CAPACITY;
+
+    return getStoredResourcesTotal(house) >= capacity;
+}
+
+function getStorageFreeSpace(house) {
+    if (!house) return 0;
+
+    const capacity =
+        house.storage &&
+        typeof house.storage.capacity === "number"
+            ? house.storage.capacity
+            : STORAGE_BASE_CAPACITY;
+
+    return Math.max(
+        0,
+        capacity - getStoredResourcesTotal(house)
+    );
+}
+
 
 
 /* =====================================================
@@ -4070,9 +4106,14 @@ function updateCellInfo(x, y) {
                 "% · " +
                 "👷 Рабочих: " +
                 foresters +
-                " · 🌲 Добыча: +" +
-                production +
-                " / 2 ч." +
+                " · " +
+                (
+                    isStorageFull(house)
+                        ? "Производство приостановлено, склады заполнены."
+                        : "🌲 Добыча: +" +
+                          production +
+                          " / 2 ч."
+                ) +
                 " · Содержание: " +
                 FORESTRY_UPKEEP +
                 " 🌲 / 48 ч.";
@@ -4153,9 +4194,14 @@ function updateCellInfo(x, y) {
                 "% · " +
                 "👷 Рабочих: " +
                 hunters +
-                " · 🍖 Добыча: +" +
-                production +
-                " / 2 ч." +
+                " · " +
+                (
+                    isStorageFull(house)
+                        ? "Производство приостановлено, склады заполнены."
+                        : "🍖 Добыча: +" +
+                          production +
+                          " / 2 ч."
+                ) +
                 " · Содержание: " +
                 HUNTING_GROUND_UPKEEP +
                 " 🌲 / 48 ч.";
@@ -4578,7 +4624,12 @@ function updateForestry() {
 
         let statusText;
 
-        if (ground.durability <= 0) {
+        if (isStorageFull(house)) {
+
+            statusText =
+                "Производство приостановлено, склады заполнены.";
+
+        } else if (ground.durability <= 0) {
 
             statusText =
                 "Добыча приостановлена. " +
@@ -5471,6 +5522,11 @@ function processHunting(house) {
     const now = Date.now();
     let totalProduction = 0;
 
+    if (isStorageFull(house)) {
+        saveHouseData(house);
+        return;
+    }
+
     house.huntingGrounds.forEach(function(ground) {
 
         if (ground.active === false) {
@@ -5560,10 +5616,13 @@ function processHunting(house) {
             0
         );
 
-    house.resources.meat =
+    const freeStorageSpace =
+        getStorageFreeSpace(house);
+
+    house.resources.meat +=
         Math.min(
-            house.storage.capacity,
-            house.resources.meat + totalProduction
+            freeStorageSpace,
+            totalProduction
         );
 
     // Реальный таймер теперь хранится у каждого угодья отдельно.
@@ -5663,6 +5722,11 @@ function processForestry(house) {
     const now = Date.now();
     let totalProduction = 0;
 
+    if (isStorageFull(house)) {
+        saveHouseData(house);
+        return;
+    }
+
     house.forestryGrounds.forEach(function(ground) {
 
         if (ground.active === false) {
@@ -5736,10 +5800,13 @@ function processForestry(house) {
         }
     });
 
-    house.resources.wood =
+    const freeStorageSpace =
+        getStorageFreeSpace(house);
+
+    house.resources.wood +=
         Math.min(
-            house.storage.capacity,
-            house.resources.wood + totalProduction
+            freeStorageSpace,
+            totalProduction
         );
     house.forestry.lastProduction = now;
 
@@ -6142,7 +6209,12 @@ function updateHunting() {
 
             let statusText;
 
-            if (ground.gameLife <= 0) {
+            if (isStorageFull(house)) {
+
+                statusText =
+                    "Производство приостановлено, склады заполнены.";
+
+            } else if (ground.gameLife <= 0) {
 
                 const recoveryLeft =
                     getHuntingGroundRecoveryLeft(

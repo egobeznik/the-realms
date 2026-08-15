@@ -2358,17 +2358,6 @@ textarea.input {
 
 </style>
 
-<style>
-/* Performance: карта перемещается через compositor без пересоздания DOM. */
-#mapCanvas .mapCell {
-    will-change: transform;
-    contain: layout paint style;
-}
-#mapCanvas {
-    contain: layout paint;
-    touch-action: none;
-}
-</style>
 </head>
 
 

@@ -2254,7 +2254,7 @@ textarea.input {
                     </div>
 
                     <div class="populationConsumption">
-                        🍖 1 мясо / 5 часов
+                        🍖 1 мясо / час
                     </div>
 
                 </div>
@@ -2312,7 +2312,7 @@ textarea.input {
                     </div>
 
                     <div class="populationConsumption">
-                        🍖 1 мясо / 5 часов
+                        🍖 2 мяса / час
                     </div>
 
                 </div>
@@ -2362,7 +2362,7 @@ textarea.input {
                     </div>
 
                     <div class="populationConsumption">
-                        🍖 2 мяса / 5 часов
+                        🍖 4 мяса / час
                     </div>
 
                 </div>
@@ -2978,33 +2978,28 @@ function demoAdvanceTime() {
        воспринимают это так, будто прошло 2 часа.
     */
 
-    if (house.hunting) {
+    if (Array.isArray(house.huntingGrounds)) {
+        house.huntingGrounds.forEach(function(ground) {
+            if (typeof ground.lastProduction === "number") {
+                ground.lastProduction -= DEMO_TWO_HOURS;
+            }
 
-        if (
-            typeof house.hunting.lastProduction === "number"
-        ) {
-            house.hunting.lastProduction -=
-                DEMO_TWO_HOURS;
-        }
-
-        if (
-            typeof house.hunting.recoveryStartedAt === "number"
-        ) {
-            house.hunting.recoveryStartedAt -=
-                DEMO_TWO_HOURS;
-        }
-
+            if (typeof ground.recoveryStartedAt === "number") {
+                ground.recoveryStartedAt -= DEMO_TWO_HOURS;
+            }
+        });
     }
 
-    if (house.forestry) {
+    if (Array.isArray(house.forestryGrounds)) {
+        house.forestryGrounds.forEach(function(ground) {
+            if (typeof ground.lastProduction === "number") {
+                ground.lastProduction -= DEMO_TWO_HOURS;
+            }
 
-        if (
-            typeof house.forestry.lastProduction === "number"
-        ) {
-            house.forestry.lastProduction -=
-                DEMO_TWO_HOURS;
-        }
-
+            if (typeof ground.recoveryStartedAt === "number") {
+                ground.recoveryStartedAt -= DEMO_TWO_HOURS;
+            }
+        });
     }
 
     if (house.food) {
@@ -3167,6 +3162,7 @@ function updateHuntingGroundRecovery(ground, now) {
             HUNTING_GROUND_GAME_MAX;
 
         ground.recoveryStartedAt = null;
+        ground.lastProduction = now;
     }
 }
 
@@ -4200,7 +4196,8 @@ function buildHuntingGround() {
         builtAt: new Date().toISOString(),
         hunters: 0,
         gameLife: HUNTING_GROUND_GAME_MAX,
-        recoveryStartedAt: null
+        recoveryStartedAt: null,
+        lastProduction: Date.now()
     });
 
     saveHouseData(house);
@@ -4242,7 +4239,8 @@ function buildForestry() {
         builtAt: new Date().toISOString(),
         foresters: 0,
         durability: FORESTRY_GROUND_DURABILITY_MAX,
-        recoveryStartedAt: null
+        recoveryStartedAt: null,
+        lastProduction: Date.now()
     });
 
     saveHouseData(house);
@@ -4468,6 +4466,7 @@ function addForesterToGround(index) {
 
     ground.foresters += 1;
     house.population.foresters += 1;
+    ground.lastProduction = Date.now();
 
     saveHouseData(house);
     updatePopulation();
@@ -4494,6 +4493,8 @@ function removeForesterFromGround(index) {
             0,
             house.population.foresters - 1
         );
+
+    ground.lastProduction = Date.now();
 
     saveHouseData(house);
     updatePopulation();
@@ -4838,6 +4839,17 @@ function prepareHouse(house) {
         ) {
             ground.recoveryStartedAt = null;
         }
+
+        if (
+            typeof ground.lastProduction !== "number" ||
+            !isFinite(ground.lastProduction)
+        ) {
+            ground.lastProduction =
+                house.forestry &&
+                typeof house.forestry.lastProduction === "number"
+                    ? house.forestry.lastProduction
+                    : Date.now();
+        }
     });
 
 
@@ -4867,6 +4879,17 @@ function prepareHouse(house) {
 
         if (typeof ground.recoveryStartedAt !== "number") {
             ground.recoveryStartedAt = null;
+        }
+
+        if (
+            typeof ground.lastProduction !== "number" ||
+            !isFinite(ground.lastProduction)
+        ) {
+            ground.lastProduction =
+                house.hunting &&
+                typeof house.hunting.lastProduction === "number"
+                    ? house.hunting.lastProduction
+                    : Date.now();
         }
 
         if (
@@ -5062,66 +5085,36 @@ function processFoodConsumption(house) {
 function processHunting(house) {
 
     if (!hasHuntingGroundForHouse(house)) {
-
         house.hunting.lastProduction = Date.now();
         saveHouseData(house);
-
         return;
     }
 
     const now = Date.now();
-
-    house.huntingGrounds.forEach(function(ground) {
-        updateHuntingGroundRecovery(ground, now);
-    });
-
-    const hunters =
-        house.huntingGrounds.reduce(
-            function(total, ground) {
-                return total + ground.hunters;
-            },
-            0
-        );
-
-    house.population.hunters = hunters;
-
-    if (hunters < HUNTING_MINIMUM) {
-
-        house.hunting.lastProduction = now;
-        saveHouseData(house);
-
-        return;
-    }
-
-    const elapsed =
-        now - house.hunting.lastProduction;
-
-    const completedCycles =
-        Math.floor(
-            elapsed / HUNTING_INTERVAL
-        );
-
-    if (completedCycles <= 0) {
-
-        saveHouseData(house);
-        return;
-    }
-
-    /*
-     * Каждое угодье работает отдельно.
-     * Если зверей 0%, это угодье не добывает мясо.
-     * Каждый завершённый цикл добычи уменьшает жизнь зверей на 5%.
-     */
     let totalProduction = 0;
 
     house.huntingGrounds.forEach(function(ground) {
 
-        if (
-            ground.hunters < HUNTING_MINIMUM ||
-            ground.gameLife <= 0
-        ) {
+        updateHuntingGroundRecovery(ground, now);
+
+        // Восстановление не накапливает производственные циклы.
+        if (ground.gameLife <= 0) {
+            ground.lastProduction = now;
             return;
         }
+
+        // При недостатке охотников цикл начинается заново после назначения людей.
+        if (ground.hunters < HUNTING_MINIMUM) {
+            ground.lastProduction = now;
+            return;
+        }
+
+        const elapsed = now - ground.lastProduction;
+        const completedCycles = Math.floor(
+            elapsed / HUNTING_INTERVAL
+        );
+
+        if (completedCycles <= 0) return;
 
         const huntingProductionByWorkers = {
             2: 53,
@@ -5131,71 +5124,66 @@ function processHunting(house) {
             10: 264
         };
 
-        const hunterCount =
-            Math.max(
-                0,
-                Math.min(
-                    HUNTING_MAXIMUM,
-                    Math.floor(ground.hunters)
-                )
-            );
+        const hunterCount = Math.max(
+            0,
+            Math.min(
+                HUNTING_MAXIMUM,
+                Math.floor(ground.hunters)
+            )
+        );
 
         const productionPerCycle =
-            huntingProductionByWorkers[hunterCount] ||
-            0;
+            huntingProductionByWorkers[hunterCount] || 0;
 
         if (productionPerCycle <= 0) {
+            ground.lastProduction = now;
             return;
         }
 
-        const availableCycles =
-            Math.min(
-                completedCycles,
-                Math.floor(
-                    ground.gameLife /
-                    HUNTING_GROUND_GAME_LOSS
-                )
-            );
+        const availableCycles = Math.min(
+            completedCycles,
+            Math.floor(
+                ground.gameLife /
+                HUNTING_GROUND_GAME_LOSS
+            )
+        );
 
         if (availableCycles <= 0) {
+            ground.lastProduction = now;
             return;
         }
 
         totalProduction +=
-            productionPerCycle *
-            availableCycles;
+            productionPerCycle * availableCycles;
 
         ground.gameLife -=
-            HUNTING_GROUND_GAME_LOSS *
-            availableCycles;
+            HUNTING_GROUND_GAME_LOSS * availableCycles;
+
+        ground.lastProduction +=
+            HUNTING_INTERVAL * availableCycles;
 
         if (ground.gameLife <= 0) {
-
             ground.gameLife = 0;
-
-            /*
-             * Отсчёт восстановления начинается
-             * именно в момент, когда звери закончились.
-             */
-            ground.recoveryStartedAt =
-                now;
+            ground.recoveryStartedAt = now;
+            ground.lastProduction = now;
         }
     });
 
-    house.resources.meat +=
-        totalProduction;
+    house.population.hunters =
+        house.huntingGrounds.reduce(
+            function(total, ground) {
+                return total + ground.hunters;
+            },
+            0
+        );
 
-    /*
-     * Общий таймер производства двигаем только на
-     * завершённые циклы. Угодья с 0% просто пропускают цикл.
-     */
-    house.hunting.lastProduction +=
-        HUNTING_INTERVAL *
-        completedCycles;
+    house.resources.meat += totalProduction;
+
+    // Реальный таймер теперь хранится у каждого угодья отдельно.
+    house.hunting.lastProduction = now;
 
     saveHouseData(house);
 }
-
 
 /* =====================================================
    ПРОЧНОСТЬ ЛЕСНИЧЕСТВА
@@ -5223,6 +5211,7 @@ function updateForestryGroundRecovery(ground, now) {
             FORESTRY_GROUND_DURABILITY_MAX;
 
         ground.recoveryStartedAt = null;
+        ground.lastProduction = now;
     }
 }
 
@@ -5285,33 +5274,29 @@ function processForestry(house) {
     }
 
     const now = Date.now();
-
-    const elapsed =
-        now - house.forestry.lastProduction;
-
-    const completedCycles =
-        Math.floor(
-            elapsed / FORESTRY_INTERVAL
-        );
-
-    if (completedCycles <= 0) return;
-
     let totalProduction = 0;
 
     house.forestryGrounds.forEach(function(ground) {
 
-        updateForestryGroundRecovery(
-            ground,
-            now
-        );
+        updateForestryGroundRecovery(ground, now);
 
+        // Восстановление не накапливает производственные циклы.
         if (ground.durability <= 0) {
+            ground.lastProduction = now;
             return;
         }
 
         if (ground.foresters < FORESTRY_MINIMUM) {
+            ground.lastProduction = now;
             return;
         }
+
+        const elapsed = now - ground.lastProduction;
+        const completedCycles = Math.floor(
+            elapsed / FORESTRY_INTERVAL
+        );
+
+        if (completedCycles <= 0) return;
 
         const productionPerCycle =
             Math.floor(
@@ -5321,25 +5306,25 @@ function processForestry(house) {
             WOOD_PER_GROUP;
 
         if (productionPerCycle <= 0) {
+            ground.lastProduction = now;
             return;
         }
 
-        let activeCycles =
-            Math.min(
-                completedCycles,
-                Math.ceil(
-                    ground.durability /
-                    FORESTRY_GROUND_DURABILITY_LOSS
-                )
-            );
+        const activeCycles = Math.min(
+            completedCycles,
+            Math.ceil(
+                ground.durability /
+                FORESTRY_GROUND_DURABILITY_LOSS
+            )
+        );
 
         if (activeCycles <= 0) {
+            ground.lastProduction = now;
             return;
         }
 
         totalProduction +=
-            productionPerCycle *
-            activeCycles;
+            productionPerCycle * activeCycles;
 
         ground.durability = Math.max(
             0,
@@ -5350,20 +5335,20 @@ function processForestry(house) {
             )
         );
 
+        ground.lastProduction +=
+            FORESTRY_INTERVAL * activeCycles;
+
         if (ground.durability <= 0) {
             ground.recoveryStartedAt = now;
+            ground.lastProduction = now;
         }
     });
 
     house.resources.wood += totalProduction;
-
-    house.forestry.lastProduction +=
-        FORESTRY_INTERVAL *
-        completedCycles;
+    house.forestry.lastProduction = now;
 
     saveHouseData(house);
 }
-
 
 /* =====================================================
    ПРОИЗВОДСТВО — ОТКРЫТЬ
@@ -5431,7 +5416,7 @@ function addHunterToGround(index) {
 
     ground.hunters += 1;
     house.population.hunters += 1;
-    house.hunting.lastProduction = Date.now();
+    ground.lastProduction = Date.now();
 
     saveHouseData(house);
 
@@ -5464,7 +5449,7 @@ function removeHunterFromGround(index) {
             house.population.hunters - 1
         );
 
-    house.hunting.lastProduction = Date.now();
+    ground.lastProduction = Date.now();
 
     saveHouseData(house);
 

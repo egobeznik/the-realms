@@ -5738,15 +5738,26 @@ function updateHunting() {
             item.className =
                 "huntingGroundItem";
 
-            const groups =
-                Math.floor(
-                    ground.hunters /
-                    HUNTING_GROUP_SIZE
+            const huntingProductionByWorkers = {
+                2: 53,
+                4: 106,
+                6: 158,
+                8: 211,
+                10: 264
+            };
+
+            const hunterCount =
+                Math.max(
+                    0,
+                    Math.min(
+                        HUNTING_MAXIMUM,
+                        Math.floor(ground.hunters)
+                    )
                 );
 
             const production =
-                groups *
-                MEAT_PER_GROUP;
+                huntingProductionByWorkers[hunterCount] ||
+                0;
 
             let statusText;
 
@@ -5925,7 +5936,7 @@ const helpData = {
             "Резерв государства. Могут быть назначены рабочими или военнослужащими.",
 
         consumption:
-            "1 мясо каждые 5 часов."
+            "1 мясо / час."
 
     },
 
@@ -5942,7 +5953,7 @@ const helpData = {
             "Производят ресурсы. В дальнейшем каждый рабочий сможет получить определённую профессию.",
 
         consumption:
-            "1 мясо каждые 5 часов."
+            "2 мяса / час."
 
     },
 
@@ -5959,7 +5970,7 @@ const helpData = {
             "Оборона государства, захват земель, военные походы и конфликты.",
 
         consumption:
-            "2 мяса каждые 5 часов."
+            "4 мяса / час."
 
     }
 

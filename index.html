@@ -8551,8 +8551,10 @@ const CHRONICLE_HISTORY_LIMIT = 20;
 function ensureChronicleHistory(house) {
     if (!house) return [];
     if (!Array.isArray(house.chronicleHistory)) house.chronicleHistory = [];
+    // История работает циклами по 20 записей. Если старые данные
+    // каким-либо образом оказались длиннее лимита, полностью очищаем их.
     if (house.chronicleHistory.length > CHRONICLE_HISTORY_LIMIT) {
-        house.chronicleHistory = house.chronicleHistory.slice(-CHRONICLE_HISTORY_LIMIT);
+        house.chronicleHistory = [];
     }
     return house.chronicleHistory;
 }
@@ -8574,11 +8576,14 @@ function renderChronicleHistory(house) {
 
 function addChronicleEvent(house, text) {
     if (!house || !text) return;
-    const history = ensureChronicleHistory(house);
-    history.push({ type: "event", text: String(text), createdAt: new Date().toISOString() });
-    if (history.length > CHRONICLE_HISTORY_LIMIT) {
-        history.splice(0, history.length - CHRONICLE_HISTORY_LIMIT);
+    let history = ensureChronicleHistory(house);
+    // После 20-й записи начинается новый цикл: старая летопись
+    // полностью удаляется, а новая запись становится первой.
+    if (history.length >= CHRONICLE_HISTORY_LIMIT) {
+        house.chronicleHistory = [];
+        history = house.chronicleHistory;
     }
+    history.push({ type: "event", text: String(text), createdAt: new Date().toISOString() });
     saveHouseData(house);
     renderChronicleHistory(house);
 }
@@ -8589,7 +8594,7 @@ function addChronicleResourceEvent(house, direction, resources) {
     const wood = Math.max(0, Math.floor(Number(resources.wood) || 0));
     if (meat <= 0 && wood <= 0) return;
 
-    const history = ensureChronicleHistory(house);
+    let history = ensureChronicleHistory(house);
     const last = history.length ? history[history.length - 1] : null;
 
     if (last && last.type === "resource" && last.direction === direction) {
@@ -8598,6 +8603,11 @@ function addChronicleResourceEvent(house, direction, resources) {
         last.resources.wood = Math.max(0, Math.floor(Number(last.resources.wood) || 0)) + wood;
         last.createdAt = new Date().toISOString();
     } else {
+        // Если 20-я запись уже занята, начинаем новый цикл истории.
+        if (history.length >= CHRONICLE_HISTORY_LIMIT) {
+            house.chronicleHistory = [];
+            history = house.chronicleHistory;
+        }
         history.push({
             type: "resource",
             direction: direction,
@@ -8606,9 +8616,6 @@ function addChronicleResourceEvent(house, direction, resources) {
         });
     }
 
-    if (history.length > CHRONICLE_HISTORY_LIMIT) {
-        history.splice(0, history.length - CHRONICLE_HISTORY_LIMIT);
-    }
     saveHouseData(house);
     renderChronicleHistory(house);
 }

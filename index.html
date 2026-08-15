@@ -582,6 +582,105 @@ textarea.input {
 }
 
 
+
+/* =====================================================
+   АРМИЯ
+===================================================== */
+
+.armyList {
+    padding: 9px;
+}
+
+.armyUnit {
+    border: 1px solid rgba(117, 94, 56, 0.36);
+    background: rgba(28, 23, 18, 0.68);
+    margin-bottom: 8px;
+}
+
+.armyUnit:last-child {
+    margin-bottom: 0;
+}
+
+.armyUnitTop {
+    display: grid;
+    grid-template-columns: 38px 1fr auto;
+    align-items: center;
+    gap: 9px;
+    padding: 9px;
+}
+
+.armyUnitIcon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(117, 94, 56, 0.42);
+    font-size: 18px;
+}
+
+.armyUnitInfo {
+    min-width: 0;
+}
+
+.armyUnitName {
+    color: #c8baa2;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 9px;
+    letter-spacing: 1px;
+}
+
+.armyUnitRequirement {
+    margin-top: 3px;
+    color: #6e665a;
+    font-size: 9px;
+}
+
+.armyUnitCount {
+    color: #d1c3a9;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 16px;
+    min-width: 32px;
+    text-align: center;
+}
+
+.armyUnitActions {
+    display: flex;
+    gap: 5px;
+    padding: 7px 9px 9px;
+    border-top: 1px solid rgba(117, 94, 56, 0.16);
+}
+
+.armyUnitButton {
+    flex: 1;
+    min-height: 34px;
+    border: 1px solid rgba(117, 94, 56, 0.4);
+    background: rgba(37, 30, 22, 0.75);
+    color: #9e8a67;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 8px;
+    letter-spacing: 1px;
+    cursor: pointer;
+}
+
+.armyUnitButton:active {
+    background: rgba(88, 66, 38, 0.7);
+    transform: scale(0.98);
+}
+
+.armyUnitButton:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+
+.armyHint {
+    padding: 0 9px 9px;
+    color: #665f54;
+    font-size: 9px;
+    line-height: 1.4;
+    text-align: center;
+}
+
 /* =====================================================
    РЕСУРСЫ
 ===================================================== */
@@ -2606,6 +2705,105 @@ textarea.input {
                     ← В СВОБОДНЫЕ
                 </button>
 
+            </div>
+
+        </section>
+
+
+        <!-- =================================================
+             АРМИЯ
+        ================================================== -->
+
+        <section class="realmSection armySection" id="armySection">
+
+            <div class="sectionHeader">
+                <div class="sectionTitle">АРМИЯ</div>
+                <div class="sectionTotal" id="armyTotalLabel">
+                    ВСЕГО: 0
+                </div>
+            </div>
+
+            <div class="armyList">
+
+                <div class="armyUnit">
+                    <div class="armyUnitTop">
+                        <div class="armyUnitIcon">🧭</div>
+
+                        <div class="armyUnitInfo">
+                            <div class="armyUnitName">РАЗВЕДЧИКИ</div>
+                            <div class="armyUnitRequirement">
+                                Назначение из свободного населения
+                            </div>
+                        </div>
+
+                        <div class="armyUnitCount" id="scoutCount">
+                            0
+                        </div>
+                    </div>
+
+                    <div class="armyUnitActions">
+                        <button
+                            type="button"
+                            class="armyUnitButton"
+                            id="scoutMinusButton"
+                            onclick="removeScout()"
+                        >
+                            −
+                        </button>
+
+                        <button
+                            type="button"
+                            class="armyUnitButton"
+                            id="scoutPlusButton"
+                            onclick="addScout()"
+                        >
+                            +
+                        </button>
+                    </div>
+                </div>
+
+
+                <div class="armyUnit">
+                    <div class="armyUnitTop">
+                        <div class="armyUnitIcon">🏹</div>
+
+                        <div class="armyUnitInfo">
+                            <div class="armyUnitName">ЛУЧНИКИ</div>
+                            <div class="armyUnitRequirement">
+                                Стоимость назначения: 1 🌲 на 1 лучника
+                            </div>
+                        </div>
+
+                        <div class="armyUnitCount" id="archerCount">
+                            0
+                        </div>
+                    </div>
+
+                    <div class="armyUnitActions">
+                        <button
+                            type="button"
+                            class="armyUnitButton"
+                            id="archerMinusButton"
+                            onclick="removeArcher()"
+                        >
+                            −
+                        </button>
+
+                        <button
+                            type="button"
+                            class="armyUnitButton"
+                            id="archerPlusButton"
+                            onclick="addArcher()"
+                        >
+                            + · 1 🌲
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="armyHint">
+                Для назначения войск используется свободное население.
             </div>
 
         </section>
@@ -5487,6 +5685,47 @@ function prepareHouse(house) {
         house.population.foresters = 0;
 
 
+    /* =================================================
+       АРМИЯ
+       Разведчики и лучники входят в общее число
+       военнослужащих.
+    ================================================= */
+
+    if (!house.army || typeof house.army !== "object") {
+
+        house.army = {
+
+            scouts:
+                Math.max(
+                    0,
+                    Math.floor(
+                        house.population.soldiers || 0
+                    )
+                ),
+
+            archers: 0
+
+        };
+
+    }
+
+    if (typeof house.army.scouts !== "number")
+        house.army.scouts = 0;
+
+    if (typeof house.army.archers !== "number")
+        house.army.archers = 0;
+
+    house.army.scouts =
+        Math.max(0, Math.floor(house.army.scouts));
+
+    house.army.archers =
+        Math.max(0, Math.floor(house.army.archers));
+
+    house.population.soldiers =
+        house.army.scouts +
+        house.army.archers;
+
+
     if (!house.resources) {
 
         house.resources = {
@@ -6492,24 +6731,13 @@ function moveWorkerToFree() {
 
 function moveFreeToSoldier() {
 
-    let house = getHouse();
+    /*
+       Старый переход «в военнослужащие» теперь
+       назначает человека в разведчики — первый
+       доступный род войск.
+    */
 
-    if (!house) return;
-
-    house = prepareHouse(house);
-
-
-    if (house.population.free <= 0)
-        return;
-
-
-    house.population.free -= 1;
-
-    house.population.soldiers += 1;
-
-    saveHouseData(house);
-
-    updatePopulation();
+    addScout();
 }
 
 
@@ -6530,13 +6758,233 @@ function moveSoldierToFree() {
         return;
 
 
-    house.population.soldiers -= 1;
+    if (house.army.archers > 0) {
+
+        house.army.archers -= 1;
+
+    } else if (house.army.scouts > 0) {
+
+        house.army.scouts -= 1;
+
+    }
+
+    house.population.soldiers =
+        house.army.scouts +
+        house.army.archers;
 
     house.population.free += 1;
 
     saveHouseData(house);
 
     updatePopulation();
+    updateArmy();
+    updateResources();
+}
+
+
+/* =====================================================
+   АРМИЯ
+===================================================== */
+
+function updateArmy() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    const scouts =
+        house.army.scouts;
+
+    const archers =
+        house.army.archers;
+
+    const total =
+        scouts +
+        archers;
+
+    const scoutCount =
+        document.getElementById("scoutCount");
+
+    const archerCount =
+        document.getElementById("archerCount");
+
+    const totalLabel =
+        document.getElementById("armyTotalLabel");
+
+    if (scoutCount)
+        scoutCount.textContent = scouts;
+
+    if (archerCount)
+        archerCount.textContent = archers;
+
+    if (totalLabel)
+        totalLabel.textContent =
+            "ВСЕГО: " + total;
+
+    const free =
+        house.population.free;
+
+    const scoutMinus =
+        document.getElementById("scoutMinusButton");
+
+    const scoutPlus =
+        document.getElementById("scoutPlusButton");
+
+    const archerMinus =
+        document.getElementById("archerMinusButton");
+
+    const archerPlus =
+        document.getElementById("archerPlusButton");
+
+    if (scoutMinus)
+        scoutMinus.disabled =
+            scouts <= 0;
+
+    if (scoutPlus)
+        scoutPlus.disabled =
+            free <= 0;
+
+    if (archerMinus)
+        archerMinus.disabled =
+            archers <= 0;
+
+    if (archerPlus)
+        archerPlus.disabled =
+            free <= 0 ||
+            house.resources.wood < 1;
+
+    saveHouseData(house);
+}
+
+
+/* =====================================================
+   НАЗНАЧИТЬ РАЗВЕДЧИКА
+===================================================== */
+
+function addScout() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    if (house.population.free <= 0)
+        return;
+
+    house.population.free -= 1;
+
+    house.army.scouts += 1;
+
+    house.population.soldiers =
+        house.army.scouts +
+        house.army.archers;
+
+    saveHouseData(house);
+
+    updatePopulation();
+    updateArmy();
+    updateResources();
+}
+
+
+/* =====================================================
+   СНЯТЬ РАЗВЕДЧИКА
+===================================================== */
+
+function removeScout() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    if (house.army.scouts <= 0)
+        return;
+
+    house.army.scouts -= 1;
+
+    house.population.free += 1;
+
+    house.population.soldiers =
+        house.army.scouts +
+        house.army.archers;
+
+    saveHouseData(house);
+
+    updatePopulation();
+    updateArmy();
+    updateResources();
+}
+
+
+/* =====================================================
+   НАЗНАЧИТЬ ЛУЧНИКА
+===================================================== */
+
+function addArcher() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    if (house.population.free <= 0)
+        return;
+
+    if (house.resources.wood < 1)
+        return;
+
+    house.population.free -= 1;
+
+    house.resources.wood -= 1;
+
+    house.army.archers += 1;
+
+    house.population.soldiers =
+        house.army.scouts +
+        house.army.archers;
+
+    saveHouseData(house);
+
+    updatePopulation();
+    updateArmy();
+    updateResources();
+}
+
+
+/* =====================================================
+   СНЯТЬ ЛУЧНИКА
+===================================================== */
+
+function removeArcher() {
+
+    let house = getHouse();
+
+    if (!house) return;
+
+    house = prepareHouse(house);
+
+    if (house.army.archers <= 0)
+        return;
+
+    house.army.archers -= 1;
+
+    house.population.free += 1;
+
+    house.population.soldiers =
+        house.army.scouts +
+        house.army.archers;
+
+    saveHouseData(house);
+
+    updatePopulation();
+    updateArmy();
+    updateResources();
 }
 
 
@@ -6621,6 +7069,7 @@ function updatePopulation() {
 
 
     updateResources();
+    updateArmy();
 }
 
 

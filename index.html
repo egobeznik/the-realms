@@ -4057,25 +4057,24 @@ function demoAdvanceTime() {
 
     house = prepareHouse(house);
 
-    const DEMO_TWO_HOURS =
+    const DEMO_ONE_HOUR =
         1 * 60 * 60 * 1000;
 
     const now = Date.now();
 
     /*
-       Сдвигаем игровые таймеры назад на 2 часа.
-       Поэтому существующие производственные механики
-       воспринимают это так, будто прошло 2 часа.
+       Сдвигаем игровые таймеры назад ровно на 1 час.
+       Это только тестовый ускоритель времени.
     */
 
     if (Array.isArray(house.huntingGrounds)) {
         house.huntingGrounds.forEach(function(ground) {
             if (typeof ground.lastProduction === "number") {
-                ground.lastProduction -= DEMO_TWO_HOURS;
+                ground.lastProduction -= DEMO_ONE_HOUR;
             }
 
             if (typeof ground.recoveryStartedAt === "number") {
-                ground.recoveryStartedAt -= DEMO_TWO_HOURS;
+                ground.recoveryStartedAt -= DEMO_ONE_HOUR;
             }
         });
     }
@@ -4083,11 +4082,11 @@ function demoAdvanceTime() {
     if (Array.isArray(house.forestryGrounds)) {
         house.forestryGrounds.forEach(function(ground) {
             if (typeof ground.lastProduction === "number") {
-                ground.lastProduction -= DEMO_TWO_HOURS;
+                ground.lastProduction -= DEMO_ONE_HOUR;
             }
 
             if (typeof ground.recoveryStartedAt === "number") {
-                ground.recoveryStartedAt -= DEMO_TWO_HOURS;
+                ground.recoveryStartedAt -= DEMO_ONE_HOUR;
             }
         });
     }
@@ -4098,45 +4097,10 @@ function demoAdvanceTime() {
             typeof house.food.lastConsumption === "number"
         ) {
             house.food.lastConsumption -=
-                DEMO_TWO_HOURS;
+                DEMO_ONE_HOUR;
         }
 
     }
-
-    if (
-        Array.isArray(house.huntingGrounds)
-    ) {
-
-        house.huntingGrounds.forEach(function(ground) {
-
-            if (
-                typeof ground.recoveryStartedAt === "number"
-            ) {
-                ground.recoveryStartedAt -=
-                    DEMO_TWO_HOURS;
-            }
-
-        });
-
-    }
-
-    if (
-        Array.isArray(house.forestryGrounds)
-    ) {
-
-        house.forestryGrounds.forEach(function(ground) {
-
-            if (
-                typeof ground.recoveryStartedAt === "number"
-            ) {
-                ground.recoveryStartedAt -=
-                    DEMO_TWO_HOURS;
-            }
-
-        });
-
-    }
-
     /*
        Запускаем существующие производственные процессы.
        Никаких новых правил добычи здесь нет.
@@ -8547,12 +8511,22 @@ function saveHouseData(house) {
 ===================================================== */
 
 const CHRONICLE_HISTORY_LIMIT = 20;
+const CHRONICLE_SCHEMA_VERSION = 2;
 
 function ensureChronicleHistory(house) {
     if (!house) return [];
     if (!Array.isArray(house.chronicleHistory)) house.chronicleHistory = [];
-    // История работает циклами по 20 записей. Если старые данные
-    // каким-либо образом оказались длиннее лимита, полностью очищаем их.
+
+    // Однократная миграция: старая версия летописи могла бесконечно
+    // накапливать одинаковые ресурсные события в одной записи. Такие
+    // записи нельзя корректно восстановить как отдельные события, поэтому
+    // при первом запуске новой схемы старая летопись полностью удаляется.
+    if (house.chronicleSchemaVersion !== CHRONICLE_SCHEMA_VERSION) {
+        house.chronicleHistory = [];
+        house.chronicleSchemaVersion = CHRONICLE_SCHEMA_VERSION;
+    }
+
+    // Жёсткая защита: больше 20 физических записей никогда не сохраняем.
     if (house.chronicleHistory.length > CHRONICLE_HISTORY_LIMIT) {
         house.chronicleHistory = [];
     }
@@ -8590,43 +8564,33 @@ function addChronicleEvent(house, text) {
 
 function addChronicleResourceEvent(house, direction, resources, category) {
     if (!house || !resources) return;
+
     const meat = Math.max(0, Math.floor(Number(resources.meat) || 0));
     const wood = Math.max(0, Math.floor(Number(resources.wood) || 0));
     if (meat <= 0 && wood <= 0) return;
 
+    /*
+       Одна завершённая игровая операция = одна запись.
+       Несколько ресурсов внутри одной операции уже группируются
+       в одном объекте (например, обслуживание дома: лес + мясо).
+       Между разными производственными/потребительскими циклами
+       записи НЕ объединяются — иначе лимит 20 событий никогда
+       не достигался бы.
+    */
     let history = ensureChronicleHistory(house);
 
-    // После 20-й записи всегда начинается новый цикл.
-    // Проверка выполняется ДО попытки объединить ресурсные события.
     if (history.length >= CHRONICLE_HISTORY_LIMIT) {
         house.chronicleHistory = [];
         history = house.chronicleHistory;
     }
 
-    const last = history.length ? history[history.length - 1] : null;
-
-    // Объединяем только события одного и того же типа операции.
-    // Расход еды, обслуживание, строительство, армия и торговля
-    // больше не смешиваются между собой.
-    if (
-        last &&
-        last.type === "resource" &&
-        last.direction === direction &&
-        last.category === category
-    ) {
-        last.resources = last.resources || {};
-        last.resources.meat = Math.max(0, Math.floor(Number(last.resources.meat) || 0)) + meat;
-        last.resources.wood = Math.max(0, Math.floor(Number(last.resources.wood) || 0)) + wood;
-        last.createdAt = new Date().toISOString();
-    } else {
-        history.push({
-            type: "resource",
-            direction: direction,
-            category: category || "general",
-            resources: { meat: meat, wood: wood },
-            createdAt: new Date().toISOString()
-        });
-    }
+    history.push({
+        type: "resource",
+        direction: direction,
+        category: category || "general",
+        resources: { meat: meat, wood: wood },
+        createdAt: new Date().toISOString()
+    });
 
     saveHouseData(house);
     renderChronicleHistory(house);
@@ -8639,7 +8603,22 @@ function formatChronicleResourceEvent(entry) {
     const wood = Math.max(0, Math.floor(Number(resources.wood) || 0));
     if (meat > 0) parts.push("🍖 " + meat + " мяса");
     if (wood > 0) parts.push("🌲 " + wood + " леса");
-    return (entry.direction === "spend" ? "Потрачено ресурсов: " : "Добыто ресурсов: ") + parts.join(" · ");
+
+    if (entry.direction === "gain") {
+        if (entry.category === "hunting") return "Добыто мяса: " + meat;
+        if (entry.category === "forestry") return "Добыто леса: " + wood;
+        return "Добыто ресурсов: " + parts.join(" · ");
+    }
+
+    const spendLabels = {
+        food: "Потрачено на питание: ",
+        upkeep: "Потрачено на обслуживание: ",
+        construction: "Потрачено на строительство: ",
+        military: "Потрачено на армию: ",
+        trade: "Потрачено на торговлю: "
+    };
+
+    return (spendLabels[entry.category] || "Потрачено ресурсов: ") + (parts.length ? parts.join(" · ") : "0 ресурсов");
 }
 
 function getChronicleEventText(entry) {
@@ -10688,8 +10667,6 @@ function openRealm() {
     if (window.theRealmsSupabase && house.serverDynastyId) {
         subscribeTradeUpdates(house);
     }
-
-    saveHouseData(house);
 
 
     document

@@ -2350,6 +2350,106 @@ textarea.input {
 
 
 <body>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+/* =====================================================
+   SUPABASE — ПЕРВЫЙ ЭТАП ПОДКЛЮЧЕНИЯ
+   Только соединение. Игровая механика не изменяется.
+===================================================== */
+
+(function () {
+
+    const SUPABASE_URL =
+        'https://apcenjyyixyorooyoxs.supabase.co';
+
+    const SUPABASE_PUBLISHABLE_KEY =
+        'sb_publishable_CIhDPs6F-wkEi774DYbh8w_HZ2ePwgo';
+
+    if (
+        window.supabase &&
+        typeof window.supabase.createClient === "function"
+    ) {
+
+        window.theRealmsSupabase =
+            window.supabase.createClient(
+                SUPABASE_URL,
+                SUPABASE_PUBLISHABLE_KEY,
+                {
+                    auth: {
+                        persistSession: false,
+                        autoRefreshToken: false,
+                        detectSessionInUrl: false
+                    }
+                }
+            );
+
+        window.theRealmsSupabaseStatus =
+            "initializing";
+
+        /*
+           Первый тест не обращается к игровым таблицам.
+           Проверяем только доступность Supabase API.
+        */
+        fetch(
+            SUPABASE_URL + "/auth/v1/settings",
+            {
+                method: "GET",
+                headers: {
+                    "apikey":
+                        SUPABASE_PUBLISHABLE_KEY
+                }
+            }
+        )
+        .then(function (response) {
+
+            if (!response.ok) {
+                throw new Error(
+                    "Supabase HTTP " +
+                    response.status
+                );
+            }
+
+            return response.json();
+
+        })
+        .then(function () {
+
+            window.theRealmsSupabaseStatus =
+                "connected";
+
+            console.log(
+                "%cThe Realms: Supabase подключён",
+                "color:#b79a61;font-weight:bold;"
+            );
+
+        })
+        .catch(function (error) {
+
+            window.theRealmsSupabaseStatus =
+                "error";
+
+            console.error(
+                "The Realms: ошибка подключения к Supabase",
+                error
+            );
+
+        });
+
+    } else {
+
+        window.theRealmsSupabaseStatus =
+            "library_error";
+
+        console.error(
+            "The Realms: supabase-js не загрузился."
+        );
+
+    }
+
+})();
+</script>
+
 
 
 
@@ -8539,6 +8639,13 @@ setInterval(function() {
 }, 1000);
 
 
+</script>
+
+
+<script>
+function getTheRealmsServerStatus() {
+    return window.theRealmsSupabaseStatus || "not_initialized";
+}
 </script>
 
 </body>

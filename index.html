@@ -4301,6 +4301,46 @@ function getCurrentDynastySlotNumber() {
     return index >= 0 ? index + 1 : 1;
 }
 
+function getHousePopulationTotal(house) {
+    const population = (house && house.population) || {};
+    return (Number(population.free) || 0) +
+        (Number(population.workers) || 0) +
+        (Number(population.soldiers) || 0) +
+        (Number(population.hunters) || 0) +
+        (Number(population.foresters) || 0);
+}
+
+function getHouseWorldBuildings(house) {
+    if (!house) return [];
+    const rows = [];
+    (house.houses || []).forEach(function(b) {
+        rows.push({ x: Number(b.x), y: Number(b.y), building_type: "house", building_data: {} });
+    });
+    (house.warehouses || []).forEach(function(b) {
+        rows.push({ x: Number(b.x), y: Number(b.y), building_type: "warehouse", building_data: {} });
+    });
+    (house.forestryGrounds || []).forEach(function(b) {
+        rows.push({ x: Number(b.x), y: Number(b.y), building_type: "forestry", building_data: { foresters: Number(b.foresters) || 0 } });
+    });
+    (house.huntingGrounds || []).forEach(function(b) {
+        rows.push({ x: Number(b.x), y: Number(b.y), building_type: "hunting", building_data: { hunters: Number(b.hunters) || 0 } });
+    });
+    return rows.filter(function(b) {
+        return Number.isFinite(b.x) && Number.isFinite(b.y);
+    });
+}
+
+function buildServerGameState(house) {
+    return {
+        realmName: house && house.realmName || "",
+        rulerName: house && house.rulerName || "",
+        motto: house && house.motto || "",
+        population: getHousePopulationTotal(house),
+        crest: house && house.crest || "",
+        buildings: getHouseWorldBuildings(house)
+    };
+}
+
 async function ensureCurrentServerDynasty(house) {
     if (!window.theRealmsSupabase || !house) return null;
 
@@ -4326,10 +4366,7 @@ async function ensureCurrentServerDynasty(house) {
                 player_id: playerResult.data.id,
                 slot: slot,
                 name: house.houseName || ("Династия " + slot),
-                game_state: {
-                    realmName: house.realmName || "",
-                    rulerName: house.rulerName || ""
-                }
+                game_state: buildServerGameState(house)
             },
             { onConflict: "player_id,slot" }
         )
@@ -4439,6 +4476,11 @@ async function syncAllLocalBuildings(house) {
                 .upsert(rows, { onConflict: "x,y" });
             if (result.error) throw result.error;
         }
+
+        // Дублируем состояние построек и населения в game_state
+        // династии. Это позволяет другим игрокам видеть постройки
+        // и актуальное население независимо от задержки таблицы зданий.
+        await ensureCurrentServerDynasty(house);
         await loadSharedWorld();
     } catch (error) {
         console.error("The Realms: не удалось синхронизировать существующие постройки", error);
@@ -4470,7 +4512,8 @@ async function loadSharedWorld() {
 
         if (citiesResult.error) throw citiesResult.error;
         if (territoriesResult.error) throw territoriesResult.error;
-        if (buildingsResult.error) throw buildingsResult.error;
+        // world_buildings может быть временно недоступна из Telegram WebView.
+        // В этом случае ниже используем копию построек из game_state династий.
         if (dynastiesResult.error) throw dynastiesResult.error;
 
         const dynastyMap = new Map();
@@ -4488,12 +4531,46 @@ async function loadSharedWorld() {
                 realmName: state.realmName || "Безымянное государство",
                 rulerName: state.rulerName || "Неизвестный правитель",
                 motto: state.motto || "",
-                population: Number(state.population) || 0,
-                crest: state.crest || ""
+                population: Number(state.population) > 0
+                    ? Number(state.population)
+                    : 100,
+                crest: state.crest || "",
+                buildings: Array.isArray(state.buildings) ? state.buildings : []
             });
         });
         sharedWorld.territories = territoriesResult.data || [];
-        sharedWorld.buildings = buildingsResult.data || [];
+
+        // Основной источник — world_buildings. Дополнительно читаем
+        // копию построек из game_state династий, чтобы чужие постройки
+        // оставались видимыми даже если таблица world_buildings ещё не
+        // отдала строки в Telegram WebView.
+        const buildingMap = new Map();
+        if (!buildingsResult.error) {
+            (buildingsResult.data || []).forEach(function(building) {
+                buildingMap.set(sharedCityKey(building.x, building.y), building);
+            });
+        }
+        (dynastiesResult.data || []).forEach(function(dynasty) {
+            const state = dynasty && dynasty.game_state && typeof dynasty.game_state === "object"
+                ? dynasty.game_state
+                : {};
+            (Array.isArray(state.buildings) ? state.buildings : []).forEach(function(building) {
+                const key = sharedCityKey(building.x, building.y);
+                if (!buildingMap.has(key)) {
+                    buildingMap.set(key, {
+                        id: "state-" + String(dynasty.id) + "-" + key,
+                        dynasty_id: dynasty.id,
+                        x: Number(building.x),
+                        y: Number(building.y),
+                        building_type: building.building_type,
+                        building_data: building.building_data || {},
+                        created_at: null,
+                        updated_at: null
+                    });
+                }
+            });
+        });
+        sharedWorld.buildings = Array.from(buildingMap.values());
 
         renderMapCells();
         updateMap();
@@ -4639,15 +4716,7 @@ async function syncCurrentCityToServer(house) {
         p_external_id: externalId,
         p_slot: slot,
         p_name: house.houseName || ("Династия " + slot),
-        p_game_state: {
-            realmName: house.realmName || "",
-            rulerName: house.rulerName || "",
-            motto: house.motto || "",
-            population: (Number(house.population?.free) || 0) +
-                (Number(house.population?.workers) || 0) +
-                (Number(house.population?.soldiers) || 0),
-            crest: house.crest || ""
-        },
+        p_game_state: buildServerGameState(house),
         p_x: x,
         p_y: y,
         p_territory: territory

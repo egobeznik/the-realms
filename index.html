@@ -2690,7 +2690,7 @@ textarea.input {
             onclick="demoAdvanceTime()"
             type="button"
         >
-            УСКОРИТЬ ВРЕМЯ · +2 ЧАСА
+            УСКОРИТЬ ВРЕМЯ · +1 ЧАСА
         </button>
 
 
@@ -2956,7 +2956,7 @@ textarea.input {
 <script>
 
 /* =====================================================
-   ДЕМО — УСКОРИТЬ ВРЕМЯ НА 2 ЧАСА
+   ДЕМО — УСКОРИТЬ ВРЕМЯ НА 1 ЧАС
 ===================================================== */
 
 function demoAdvanceTime() {
@@ -2968,7 +2968,7 @@ function demoAdvanceTime() {
     house = prepareHouse(house);
 
     const DEMO_TWO_HOURS =
-        2 * 60 * 60 * 1000;
+        1 * 60 * 60 * 1000;
 
     const now = Date.now();
 
@@ -3206,6 +3206,69 @@ function formatHuntingGroundRecovery(ms) {
 }
 
 
+function getProductionTimeLeft(
+    ground,
+    interval,
+    now
+) {
+
+    if (
+        !ground ||
+        typeof ground.lastProduction !== "number"
+    ) {
+        return interval;
+    }
+
+    const elapsed =
+        Math.max(
+            0,
+            now - ground.lastProduction
+        );
+
+    const remainder =
+        elapsed % interval;
+
+    return remainder === 0
+        ? 0
+        : interval - remainder;
+}
+
+
+function formatProductionTimeLeft(ms) {
+
+    const totalSeconds =
+        Math.max(
+            0,
+            Math.ceil(ms / 1000)
+        );
+
+    const hours =
+        Math.floor(totalSeconds / 3600);
+
+    const minutes =
+        Math.floor(
+            (totalSeconds % 3600) / 60
+        );
+
+    const seconds =
+        totalSeconds % 60;
+
+    if (hours > 0) {
+        return hours + " ч. " +
+            String(minutes).padStart(2, "0") +
+            " мин.";
+    }
+
+    if (minutes > 0) {
+        return minutes + " мин. " +
+            String(seconds).padStart(2, "0") +
+            " сек.";
+    }
+
+    return seconds + " сек.";
+}
+
+
 /* =====================================================
    НАСТРОЙКИ ОХОТЫ
 ===================================================== */
@@ -3214,9 +3277,9 @@ const HUNTING_MINIMUM = 2;
 
 const HUNTING_GROUND_GAME_MAX = 100;
 const HUNTING_GROUND_GAME_LOSS = 5;
-const HUNTING_GROUND_RECOVERY_MS = 24 * 60 * 60 * 1000;
+const HUNTING_GROUND_RECOVERY_MS = 48 * 60 * 60 * 1000;
 const HUNTING_MAXIMUM = 10;
-const HUNTING_INTERVAL = 2 * 60 * 60 * 1000;
+const HUNTING_INTERVAL = 1 * 60 * 60 * 1000;
 const MEAT_PER_GROUP = 264;
 const HUNTING_GROUP_SIZE = 2;
 const GAME_LOSS_PER_HUNT = 5;
@@ -3236,7 +3299,7 @@ const FOOD_CONSUMPTION_INTERVAL =
 
 const FORESTRY_GROUND_DURABILITY_MAX = 100;
 const FORESTRY_GROUND_DURABILITY_LOSS = 10;
-const FORESTRY_GROUND_RECOVERY_MS = 24 * 60 * 60 * 1000;
+const FORESTRY_GROUND_RECOVERY_MS = 48 * 60 * 60 * 1000;
 
 
 /* =====================================================
@@ -4349,10 +4412,22 @@ function updateForestry() {
 
         } else {
 
+            const forestryTimeLeft =
+                getProductionTimeLeft(
+                    ground,
+                    FORESTRY_INTERVAL,
+                    Date.now()
+                );
+
             statusText =
                 "Активная добыча: +" +
                 production +
-                " 🌲 каждые 2 часа.";
+                " 🌲 каждые 2 часа. " +
+                "До добычи: " +
+                formatProductionTimeLeft(
+                    forestryTimeLeft
+                ) +
+                ".";
         }
 
         const forestryLabel =
@@ -5771,10 +5846,22 @@ function updateHunting() {
 
             } else {
 
+                const huntingTimeLeft =
+                    getProductionTimeLeft(
+                        ground,
+                        HUNTING_INTERVAL,
+                        now
+                    );
+
                 statusText =
                     "Активная охота: +" +
                     production +
-                    " 🍖 каждые 2 часа.";
+                    " 🍖 каждые 2 часа. " +
+                    "До добычи: " +
+                    formatProductionTimeLeft(
+                        huntingTimeLeft
+                    ) +
+                    ".";
             }
 
             const recoveryLabel =

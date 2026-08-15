@@ -5293,7 +5293,7 @@ async function loadSharedWorld(forceRefresh) {
                     .select("id,dynasty_id,x,y,building_type,building_data"),
                 supabase
                     .from("dynasties")
-                    .select("id,name")
+                    .select("id,name,game_state")
             ]);
 
             if (citiesResult.error) throw citiesResult.error;
@@ -5331,33 +5331,31 @@ async function loadSharedWorld(forceRefresh) {
                 });
             }
 
-            if (buildingsResult.error) {
-                const fallback = await supabase
-                    .from("dynasties")
-                    .select("id,game_state");
-                if (!fallback.error) {
-                    (fallback.data || []).forEach(function(dynasty) {
-                        const state = dynasty && dynasty.game_state && typeof dynasty.game_state === "object"
-                            ? dynasty.game_state
-                            : {};
-                        (Array.isArray(state.buildings) ? state.buildings : []).forEach(function(building) {
-                            const key = sharedCityKey(building.x, building.y);
-                            if (!buildingMap.has(key)) {
-                                buildingMap.set(key, {
-                                    id: "state-" + String(dynasty.id) + "-" + key,
-                                    dynasty_id: dynasty.id,
-                                    x: Number(building.x),
-                                    y: Number(building.y),
-                                    building_type: building.building_type,
-                                    building_data: building.building_data || {},
-                                    created_at: null,
-                                    updated_at: null
-                                });
-                            }
+            // world_buildings может быть недоступна по RLS/Telegram WebView
+            // или содержать только постройки текущего Дома. Поэтому всегда
+            // дополняем карту копиями построек из game_state всех династий.
+            // Если одна и та же клетка уже пришла из world_buildings,
+            // отдельная запись имеет приоритет.
+            (dynastiesResult.data || []).forEach(function(dynasty) {
+                const state = dynasty && dynasty.game_state && typeof dynasty.game_state === "object"
+                    ? dynasty.game_state
+                    : {};
+                (Array.isArray(state.buildings) ? state.buildings : []).forEach(function(building) {
+                    const key = sharedCityKey(building.x, building.y);
+                    if (!buildingMap.has(key)) {
+                        buildingMap.set(key, {
+                            id: "state-" + String(dynasty.id) + "-" + key,
+                            dynasty_id: dynasty.id,
+                            x: Number(building.x),
+                            y: Number(building.y),
+                            building_type: building.building_type,
+                            building_data: building.building_data || {},
+                            created_at: null,
+                            updated_at: null
                         });
-                    });
-                }
-            }
+                    }
+                });
+            });
 
             sharedWorld.buildings = Array.from(buildingMap.values());
             sharedWorldLastLoadedAt = Date.now();

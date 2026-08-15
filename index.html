@@ -2358,6 +2358,17 @@ textarea.input {
 
 </style>
 
+<style>
+/* Performance: карта перемещается через compositor без пересоздания DOM. */
+#mapCanvas .mapCell {
+    will-change: transform;
+    contain: layout paint style;
+}
+#mapCanvas {
+    contain: layout paint;
+    touch-action: none;
+}
+</style>
 </head>
 
 
@@ -2373,7 +2384,7 @@ textarea.input {
 (function () {
 
     const SUPABASE_URL =
-        'https://apcenjyyixyoroooyoxs.supabase.co';
+        'https://apcenjyyixyorooyoxs.supabase.co';
 
     const SUPABASE_PUBLISHABLE_KEY =
         'sb_publishable_CIhDPs6F-wkEi774DYbh8w_HZ2ePwgo';
@@ -4227,7 +4238,10 @@ let mapState = {
     dragging: false,
     moved: false,
     lastPointerX: 0,
-    lastPointerY: 0
+    lastPointerY: 0,
+    renderedCenterX: null,
+    renderedCenterY: null,
+    renderFrame: null
 };
 /* =====================================================
    ОБЩИЙ ОНЛАЙН-МИР — ЭТАП 1
@@ -4948,12 +4962,22 @@ function isWaterTerrain(type) {
     return type === "sea" || type === "lake";
 }
 
-function renderMapCells() {
+function renderMapCells(forceRebuild = false) {
     const canvas = document.getElementById("mapCanvas");
-    canvas.innerHTML = "";
+    if (!canvas) return;
 
     const centerX = Math.round(mapState.x);
     const centerY = Math.round(mapState.y);
+
+    // Клетки карты создаём заново только тогда, когда действительно
+    // вышли за текущий набор видимых клеток или изменилось содержимое.
+    if (!forceRebuild && mapState.renderedCenterX === centerX && mapState.renderedCenterY === centerY && canvas.children.length) {
+        updateMapCellTransforms();
+        return;
+    }
+
+    canvas.innerHTML = "";
+
     const house = getHouse();
     const city = house && house.city;
 
@@ -4965,8 +4989,6 @@ function renderMapCells() {
             const type = terrainAt(x, y);
 
             cell.className = "mapCell " + type + " selectable";
-            cell.style.left = (x - mapState.x) * CELL_SIZE + "px";
-            cell.style.top = (y - mapState.y) * CELL_SIZE + "px";
             cell.dataset.x = x;
             cell.dataset.y = y;
             cell.title = terrainName(type);
@@ -4991,60 +5013,25 @@ function renderMapCells() {
                     <span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>
                 `;
             } else if (sharedCity && !isOwnSharedCity(sharedCity, house)) {
-
                 cell.classList.add("foreignCity");
-
                 cell.innerHTML = `
                     <span class="cityMark">♜</span>
                     <span class="cityLabel">${escapeHtml(sharedCity.name || "Чужой город")}<span>ЧУЖАЯ ДИНАСТИЯ</span></span>
                 `;
-
             } else if (hasHouseAt(house, x, y)) {
-
                 cell.classList.add("houseCell");
-
-                cell.innerHTML =
-                    '<span class="terrainMark">' +
-                        terrainIcon(type) +
-                    '</span>' +
-                    '<span class="houseMark" title="Дом">🏠</span>';
-
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="houseMark" title="Дом">🏠</span>';
             } else if (hasWarehouseAt(house, x, y)) {
-
                 cell.classList.add("warehouseCell");
-
-                cell.innerHTML =
-                    '<span class="terrainMark">' +
-                        terrainIcon(type) +
-                    '</span>' +
-                    '<span class="warehouseMark" title="Склад">📦</span>';
-
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="warehouseMark" title="Склад">📦</span>';
             } else if (hasForestryAt(house, x, y)) {
-
                 cell.classList.add("forestryCell");
-
-                cell.innerHTML =
-                    '<span class="terrainMark">' +
-                        terrainIcon(type) +
-                    '</span>' +
-                    '<span class="forestryMark" title="Лесничество">🪵</span>';
-
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="forestryMark" title="Лесничество">🪵</span>';
             } else if (hasHuntingGroundAt(house, x, y)) {
-
                 cell.classList.add("huntingGroundCell");
-
-                cell.innerHTML =
-                    '<span class="terrainMark">' +
-                        terrainIcon(type) +
-                    '</span>' +
-                    '<span class="huntingGroundMark" title="Охотничье угодье">🏹</span>';
-
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="huntingGroundMark" title="Охотничье угодье">🏹</span>';
             } else {
-
-                cell.innerHTML =
-                    '<span class="terrainMark">' +
-                    terrainIcon(type) +
-                    '</span>';
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span>';
             }
 
             if (mapState.selectedX === x && mapState.selectedY === y) {
@@ -5055,13 +5042,7 @@ function renderMapCells() {
                 if (mapState.moved) return;
 
                 const currentHouse = getHouse();
-
-                if (
-                    currentHouse &&
-                    currentHouse.city &&
-                    currentHouse.city.x === x &&
-                    currentHouse.city.y === y
-                ) {
+                if (currentHouse && currentHouse.city && currentHouse.city.x === x && currentHouse.city.y === y) {
                     showCityInfo(currentHouse);
                     return;
                 }
@@ -5072,6 +5053,44 @@ function renderMapCells() {
             canvas.appendChild(cell);
         }
     }
+
+    mapState.renderedCenterX = centerX;
+    mapState.renderedCenterY = centerY;
+    updateMapCellTransforms();
+}
+
+// Дешёвое перемещение уже созданных DOM-элементов.
+// Это выполняется значительно быстрее, чем удалять и создавать карту заново.
+function updateMapCellTransforms() {
+    const canvas = document.getElementById("mapCanvas");
+    if (!canvas) return;
+
+    const cells = canvas.children;
+    const offsetX = mapState.x * CELL_SIZE;
+    const offsetY = mapState.y * CELL_SIZE;
+
+    for (let i = 0; i < cells.length; i++) {
+        const cell = cells[i];
+        const x = Number(cell.dataset.x);
+        const y = Number(cell.dataset.y);
+        cell.style.transform = `translate3d(${x * CELL_SIZE - offsetX}px, ${y * CELL_SIZE - offsetY}px, 0)`;
+        cell.style.left = "0px";
+        cell.style.top = "0px";
+    }
+}
+
+function scheduleMapRender() {
+    if (mapState.renderFrame) return;
+
+    mapState.renderFrame = requestAnimationFrame(function() {
+        mapState.renderFrame = null;
+        renderMapCells(false);
+
+        const coords = document.getElementById("mapCoords");
+        if (coords) {
+            coords.textContent = "X: " + Math.round(mapState.x) + " · Y: " + Math.round(mapState.y);
+        }
+    });
 }
 
 function escapeHtml(value) {
@@ -5383,7 +5402,7 @@ function addDeleteBuildingButton(x, y, label) {
 }
 
 function updateMap() {
-    renderMapCells();
+    renderMapCells(true);
 
     const cx = Math.round(mapState.x);
     const cy = Math.round(mapState.y);
@@ -6377,9 +6396,7 @@ function initMapControls() {
         mapState.x = Math.max(-WORLD_SIZE/2 + 5, Math.min(WORLD_SIZE/2 - 5, mapState.x));
         mapState.y = Math.max(-WORLD_SIZE/2 + 5, Math.min(WORLD_SIZE/2 - 5, mapState.y));
 
-        renderMapCells();
-        document.getElementById("mapCoords").textContent =
-            "X: " + Math.round(mapState.x) + " · Y: " + Math.round(mapState.y);
+        scheduleMapRender();
     });
 
     map.addEventListener("pointerup", function() {
@@ -9056,30 +9073,23 @@ function handleChronicleStart() {
    ПЕРИОДИЧЕСКОЕ ОБНОВЛЕНИЕ
 ===================================================== */
 
-setInterval(
+setInterval(function() {
 
-    function() {
+    const house = getHouse();
+    if (!house) return;
 
-        const house =
-            getHouse();
+    // Один игровой тик вместо двух независимых таймеров.
+    processHunting(house);
+    processBuildingUpkeep(house);
+    processForestry(house);
+    processFoodConsumption(house);
 
+    updatePopulation();
+    updateHunting();
+    updateForestry();
+    updateResources();
 
-        if (!house)
-            return;
-
-
-        processHunting(house);
-
-        updatePopulation();
-
-        updateHunting();
-
-    },
-
-    1000
-
-);
-
+}, 1000);
 
 /* =====================================================
    ЗАПУСК
@@ -9095,24 +9105,6 @@ if (
 
 }
 
-/* =====================================================
-   ДОПОЛНИТЕЛЬНОЕ ОБНОВЛЕНИЕ ДОБЫЧИ ЛЕСА
-===================================================== */
-
-setInterval(function() {
-
-    const house = getHouse();
-
-    if (!house) return;
-
-    processBuildingUpkeep(house);
-    processForestry(house);
-    processFoodConsumption(house);
-    updatePopulation();
-    updateForestry();
-    updateResources();
-
-}, 1000);
 
 
 </script>

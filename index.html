@@ -1539,6 +1539,28 @@ textarea.input {
         inset 0 0 0 1px rgba(174, 141, 82, 0.28);
 }
 
+.foreignBuildingMark {
+    position: absolute;
+    right: 5px;
+    bottom: 5px;
+    z-index: 5;
+    width: 23px;
+    height: 23px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(174, 141, 82, 0.68);
+    border-radius: 50%;
+    background: rgba(17, 13, 9, 0.88);
+    box-shadow: 0 2px 7px rgba(0, 0, 0, 0.55);
+    font-size: 12px;
+    line-height: 1;
+}
+
+.foreignBuildingCell {
+    box-shadow: inset 0 0 0 1px rgba(174, 141, 82, 0.28);
+}
+
 .huntingGroundMark,
 .forestryMark {
     position: absolute;
@@ -4238,7 +4260,8 @@ let mapState = {
 
 let sharedWorld = {
     cities: [],
-    territories: []
+    territories: [],
+    buildings: []
 };
 
 let sharedWorldChannel = null;
@@ -4346,6 +4369,82 @@ function isOwnSharedCity(city, house) {
         city.dynasty_id === house.serverDynastyId);
 }
 
+function getSharedBuildingAt(x, y) {
+    return (sharedWorld.buildings || []).find(function(building) {
+        return Number(building.x) === Number(x) &&
+               Number(building.y) === Number(y);
+    }) || null;
+}
+
+async function syncWorldBuilding(house, x, y, buildingType, buildingData) {
+    if (!window.theRealmsSupabase || !house) return;
+    try {
+        if (!house.serverDynastyId) await ensureCurrentServerDynasty(house);
+        if (!house.serverDynastyId) return;
+        const result = await window.theRealmsSupabase
+            .from("world_buildings")
+            .upsert({
+                dynasty_id: house.serverDynastyId,
+                x: x,
+                y: y,
+                building_type: buildingType,
+                building_data: buildingData || {}
+            }, { onConflict: "x,y" });
+        if (result.error) throw result.error;
+        await loadSharedWorld();
+    } catch (error) {
+        console.error("The Realms: не удалось синхронизировать постройку", error);
+    }
+}
+
+async function removeWorldBuilding(house, x, y) {
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return;
+    try {
+        const result = await window.theRealmsSupabase
+            .from("world_buildings")
+            .delete()
+            .eq("x", x)
+            .eq("y", y)
+            .eq("dynasty_id", house.serverDynastyId);
+        if (result.error) throw result.error;
+        await loadSharedWorld();
+    } catch (error) {
+        console.error("The Realms: не удалось удалить мировую постройку", error);
+    }
+}
+
+async function syncAllLocalBuildings(house) {
+    if (!window.theRealmsSupabase || !house || !house.city) return;
+    try {
+        if (!house.serverDynastyId) await ensureCurrentServerDynasty(house);
+        if (!house.serverDynastyId) return;
+
+        const rows = [];
+        (house.houses || []).forEach(function(b) {
+            rows.push({ dynasty_id: house.serverDynastyId, x: b.x, y: b.y, building_type: "house", building_data: {} });
+        });
+        (house.warehouses || []).forEach(function(b) {
+            rows.push({ dynasty_id: house.serverDynastyId, x: b.x, y: b.y, building_type: "warehouse", building_data: {} });
+        });
+        (house.forestryGrounds || []).forEach(function(b) {
+            rows.push({ dynasty_id: house.serverDynastyId, x: b.x, y: b.y, building_type: "forestry", building_data: { foresters: Number(b.foresters) || 0 } });
+        });
+        (house.huntingGrounds || []).forEach(function(b) {
+            rows.push({ dynasty_id: house.serverDynastyId, x: b.x, y: b.y, building_type: "hunting", building_data: { hunters: Number(b.hunters) || 0 } });
+        });
+
+        if (rows.length) {
+            const result = await window.theRealmsSupabase
+                .from("world_buildings")
+                .upsert(rows, { onConflict: "x,y" });
+            if (result.error) throw result.error;
+        }
+        await loadSharedWorld();
+    } catch (error) {
+        console.error("The Realms: не удалось синхронизировать существующие постройки", error);
+    }
+}
+
 async function loadSharedWorld() {
     if (!window.theRealmsSupabase || sharedWorldLoading) return;
 
@@ -4354,20 +4453,47 @@ async function loadSharedWorld() {
     try {
         const supabase = window.theRealmsSupabase;
 
-        const [citiesResult, territoriesResult] = await Promise.all([
+        const [citiesResult, territoriesResult, buildingsResult, dynastiesResult] = await Promise.all([
             supabase
                 .from("cities")
                 .select("id,dynasty_id,name,x,y,created_at,updated_at"),
             supabase
                 .from("territories")
-                .select("x,y,dynasty_id,city_id,claimed_at")
+                .select("x,y,dynasty_id,city_id,claimed_at"),
+            supabase
+                .from("world_buildings")
+                .select("id,dynasty_id,x,y,building_type,building_data,created_at,updated_at"),
+            supabase
+                .from("dynasties")
+                .select("id,name,game_state")
         ]);
 
         if (citiesResult.error) throw citiesResult.error;
         if (territoriesResult.error) throw territoriesResult.error;
+        if (buildingsResult.error) throw buildingsResult.error;
+        if (dynastiesResult.error) throw dynastiesResult.error;
 
-        sharedWorld.cities = citiesResult.data || [];
+        const dynastyMap = new Map();
+        (dynastiesResult.data || []).forEach(function(dynasty) {
+            dynastyMap.set(String(dynasty.id), dynasty);
+        });
+
+        sharedWorld.cities = (citiesResult.data || []).map(function(city) {
+            const dynasty = dynastyMap.get(String(city.dynasty_id));
+            const state = dynasty && dynasty.game_state && typeof dynasty.game_state === "object"
+                ? dynasty.game_state
+                : {};
+            return Object.assign({}, city, {
+                dynastyName: dynasty ? dynasty.name : city.name,
+                realmName: state.realmName || "Безымянное государство",
+                rulerName: state.rulerName || "Неизвестный правитель",
+                motto: state.motto || "",
+                population: Number(state.population) || 0,
+                crest: state.crest || ""
+            });
+        });
         sharedWorld.territories = territoriesResult.data || [];
+        sharedWorld.buildings = buildingsResult.data || [];
 
         renderMapCells();
         updateMap();
@@ -4398,6 +4524,13 @@ function subscribeSharedWorld() {
             .on(
                 "postgres_changes",
                 { event: "*", schema: "public", table: "territories" },
+                function() {
+                    loadSharedWorld();
+                }
+            )
+            .on(
+                "postgres_changes",
+                { event: "*", schema: "public", table: "world_buildings" },
                 function() {
                     loadSharedWorld();
                 }
@@ -4508,7 +4641,12 @@ async function syncCurrentCityToServer(house) {
         p_name: house.houseName || ("Династия " + slot),
         p_game_state: {
             realmName: house.realmName || "",
-            rulerName: house.rulerName || ""
+            rulerName: house.rulerName || "",
+            motto: house.motto || "",
+            population: (Number(house.population?.free) || 0) +
+                (Number(house.population?.workers) || 0) +
+                (Number(house.population?.soldiers) || 0),
+            crest: house.crest || ""
         },
         p_x: x,
         p_y: y,
@@ -4669,7 +4807,7 @@ function openWorldMap() {
     loadSharedWorld();
     if (window.theRealmsSupabase && house && house.city) {
         ensureCurrentServerDynasty(house)
-            .then(function() { return loadSharedWorld(); })
+            .then(function() { return syncAllLocalBuildings(house); })
             .catch(function(error) {
                 console.error("The Realms: загрузка общего мира", error);
             });
@@ -4973,13 +5111,23 @@ function renderMapCells() {
             if (isTerritoryCell(house, x, y)) cell.classList.add("territory");
             else if (isForeignTerritoryAt(x, y, house)) cell.classList.add("foreignTerritory");
             const sharedCity = getSharedCityAt(x, y);
+            const sharedBuilding = getSharedBuildingAt(x, y);
             if (city && city.x === x && city.y === y) {
                 cell.classList.add("city");
                 const crest = house.crest ? `<img src="${house.crest}" alt="Герб Дома">` : "♜";
                 cell.innerHTML = `<span class="cityMark">${crest}</span><span class="cityLabel">${escapeHtml(house.houseName)}<span>${escapeHtml(house.realmName)}</span></span>`;
-            } else if (sharedCity) {
+            } else if (sharedCity && !isOwnSharedCity(sharedCity, house)) {
                 cell.classList.add("foreignCity");
                 cell.innerHTML = `<span class="cityMark">♜</span><span class="cityLabel">${escapeHtml(sharedCity.name || "Город")}<span>Чужие земли</span></span>`;
+            } else if (sharedBuilding && (!house || sharedBuilding.dynasty_id !== house.serverDynastyId)) {
+                cell.classList.add("foreignBuildingCell");
+                const foreignIcon = {
+                    house: "🏠",
+                    warehouse: "📦",
+                    forestry: "🪵",
+                    hunting: "🏹"
+                }[sharedBuilding.building_type] || "🏗️";
+                cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="foreignBuildingMark" title="Постройка другого государства">' + foreignIcon + '</span>';
             } else if (hasHouseAt(house, x, y)) {
                 cell.classList.add("houseCell");
                 cell.innerHTML = '<span class="terrainMark">' + terrainIcon(type) + '</span><span class="houseMark" title="Дом">🏠</span>';
@@ -4999,7 +5147,19 @@ function renderMapCells() {
             cell.addEventListener("click", function() {
                 if (mapState.moved) return;
                 const currentHouse = getHouse();
-                if (currentHouse && currentHouse.city && currentHouse.city.x === x && currentHouse.city.y === y) { showCityInfo(currentHouse); return; }
+                if (currentHouse && currentHouse.city && currentHouse.city.x === x && currentHouse.city.y === y) {
+                    showCityInfo(currentHouse);
+                    return;
+                }
+                const clickedSharedCity = getSharedCityAt(x, y);
+                if (clickedSharedCity) {
+                    if (currentHouse && clickedSharedCity.dynasty_id === currentHouse.serverDynastyId) {
+                        showCityInfo(currentHouse);
+                    } else {
+                        showSharedCityInfo(clickedSharedCity);
+                    }
+                    return;
+                }
                 selectMapCell(x, y);
             });
             canvas.appendChild(cell);
@@ -5613,6 +5773,7 @@ function buildHuntingGround() {
     });
 
     saveHouseData(house);
+    syncWorldBuilding(house, x, y, "hunting", { hunters: 0 });
     updateMap();
     updateHunting();
 }
@@ -5659,6 +5820,7 @@ function buildWarehouse() {
     });
 
     saveHouseData(house);
+    syncWorldBuilding(house, x, y, "warehouse", {});
     updateMap();
 }
 
@@ -5705,6 +5867,7 @@ function buildHouseBuilding() {
     });
 
     saveHouseData(house);
+    syncWorldBuilding(house, x, y, "house", {});
 
     updateMap();
     updatePopulation();
@@ -5752,6 +5915,7 @@ function buildForestry() {
     });
 
     saveHouseData(house);
+    syncWorldBuilding(house, x, y, "forestry", { foresters: 0 });
     updateMap();
     updateForestry();
 }
@@ -5845,6 +6009,7 @@ function deleteBuildingAt(x, y) {
     if (!deleted) return;
 
     saveHouseData(house);
+    removeWorldBuilding(house, x, y);
 
     removeDeleteBuildingButton();
     updateMap();
@@ -6231,6 +6396,31 @@ async function foundCity() {
 
         alert(message);
     }
+}
+
+function showSharedCityInfo(city) {
+    if (!city) return;
+
+    const crest = document.getElementById("cityInfoCrest");
+    if (city.crest) {
+        crest.innerHTML = `<img src="${escapeHtml(city.crest)}" alt="Герб Дома">`;
+    } else {
+        crest.innerHTML = "♜";
+    }
+
+    document.getElementById("cityInfoRuler").textContent =
+        city.rulerName || "Неизвестный правитель";
+    document.getElementById("cityInfoHouse").textContent =
+        city.dynastyName || city.name || "Безымянный Дом";
+    document.getElementById("cityInfoRealm").textContent =
+        city.realmName || "Безымянное государство";
+    document.getElementById("cityInfoMotto").textContent =
+        city.motto ? "«" + city.motto + "»" : "—";
+    document.getElementById("cityInfoPopulation").textContent =
+        Number(city.population) || 0;
+    document.getElementById("cityInfoCoordinates").textContent =
+        "X: " + city.x + " · Y: " + city.y;
+    document.getElementById("cityInfoOverlay").style.display = "flex";
 }
 
 function showCityInfo(house) {

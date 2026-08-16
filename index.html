@@ -1727,6 +1727,19 @@ textarea.input {
     color:#e2b0a8;
 }
 
+.armyMapMark.enemy {
+    border-color:rgba(190,48,48,.98);
+    background:rgba(48,10,10,.96);
+    color:#f0b2a8;
+    box-shadow:0 0 8px rgba(190,48,48,.55), 0 0 18px rgba(190,48,48,.30);
+    animation:enemyArmyPulse 1.35s ease-in-out infinite;
+}
+
+@keyframes enemyArmyPulse {
+    0%,100% { transform:scale(1); box-shadow:0 0 8px rgba(190,48,48,.48),0 0 16px rgba(190,48,48,.20); }
+    50% { transform:scale(1.08); box-shadow:0 0 12px rgba(220,60,60,.78),0 0 24px rgba(220,60,60,.34); }
+}
+
 .armyCityDefense {
     margin-top:10px;
     padding-top:9px;
@@ -2753,6 +2766,34 @@ textarea.input {
     font-size: 9px;
     letter-spacing: 1px;
 }
+
+#warNotificationOverlay {
+    display:none;
+    position:fixed;
+    inset:0;
+    z-index:710;
+    padding:20px;
+    background:rgba(18,0,0,.84);
+    align-items:center;
+    justify-content:center;
+}
+
+.warNotificationWindow {
+    width:100%;
+    max-width:360px;
+    padding:22px 18px 18px;
+    border:1px solid rgba(178,48,48,.82);
+    background:radial-gradient(circle at top,rgba(116,30,30,.18),transparent 58%),#110a08;
+    box-shadow:0 14px 50px rgba(0,0,0,.82),0 0 28px rgba(178,48,48,.16);
+    text-align:center;
+}
+.warNotificationIcon { font-size:32px; margin-bottom:10px; color:#e3a29a; }
+.warNotificationTitle { color:#e0a29a; font-family:"Cinzel",Georgia,serif; font-size:14px; letter-spacing:1.5px; }
+.warNotificationFrom { margin-top:8px; color:#f0c2b7; font-size:12px; }
+.warNotificationText { margin-top:15px; color:#b79a91; font-size:10px; line-height:1.6; }
+.warNotificationHint { margin-top:12px; padding:10px; border:1px solid rgba(178,48,48,.22); background:rgba(35,10,8,.60); color:#c7aaa0; font-size:9px; line-height:1.55; }
+.warNotificationActions { display:grid; gap:7px; margin-top:16px; }
+.warNotificationButton { width:100%; min-height:40px; border:1px solid rgba(178,48,48,.42); background:rgba(28,10,8,.94); color:#e1b2a8; font-family:inherit; font-size:9px; letter-spacing:1px; }
 
 /* =====================================================
    ИНФОРМАЦИЯ О ГОРОДЕ
@@ -4817,6 +4858,24 @@ textarea.input {
     </div>
 </div>
 
+<div id="warNotificationOverlay">
+    <div class="warNotificationWindow">
+        <div class="warNotificationIcon">⚔</div>
+        <div class="warNotificationTitle">ВАМ ОБЪЯВЛЕНА ВОЙНА</div>
+        <div class="warNotificationFrom" id="warNotificationFrom">Другое государство</div>
+        <div class="warNotificationText">
+            Правитель этого Дома объявил ваше государство своим противником.
+        </div>
+        <div class="warNotificationHint">
+            Теперь армии этого государства могут вступать с вашими войсками в боевые столкновения.
+        </div>
+        <div class="warNotificationActions">
+            <button class="warNotificationButton" type="button" onclick="closeWarNotification()">ПОНЯТНО</button>
+            <button class="warNotificationButton" type="button" onclick="findWarOpponentOnMap()">НАЙТИ НА КАРТЕ</button>
+        </div>
+    </div>
+</div>
+
 <!-- =====================================================
      ИНФОРМАЦИЯ О ГОРОДЕ
 ===================================================== -->
@@ -5678,6 +5737,7 @@ const ARMY_CAMP_LOGISTICS_REDUCTION = 0.90;
 const ARMY_CAMP_FOOD_MULTIPLIER = 1.10;
 const ARMY_GUARD_RADIUS = 2;
 const ARMY_DETECTION_RADIUS = 2;
+const ARMY_BATTLE_COOLDOWN_MS = 60 * 60 * 1000;
 const ARMY_CAMP_SETUP_MS = ARMY_MOVE_HOUR_MS;
 const ARMY_LOGISTICS_ZONES = [
     { max: 3, multiplier: 1.00 },
@@ -6012,16 +6072,33 @@ function getDiplomacyStatusForDynasty(targetDynastyId) {
     return cached ? (cached.status || "neutral") : "neutral";
 }
 
+function getArmyDetectionDistance(ownArmy, foreignArmy) {
+    if (!ownArmy || !foreignArmy) return Infinity;
+    return Math.max(
+        Math.abs(Number(ownArmy.x) - Number(foreignArmy.x)),
+        Math.abs(Number(ownArmy.y) - Number(foreignArmy.y))
+    );
+}
+
+function getNearestDetectingArmy(house, foreignArmy) {
+    const armies = getFieldArmies(house);
+    let nearest = null;
+    let nearestDistance = Infinity;
+    armies.forEach(function(ownArmy) {
+        const distance = getArmyDetectionDistance(ownArmy, foreignArmy);
+        if (distance < nearestDistance) {
+            nearestDistance = distance;
+            nearest = ownArmy;
+        }
+    });
+    return nearest ? { army: nearest, distance: nearestDistance } : null;
+}
+
 function isForeignArmyDetected(house, foreignArmy) {
     if (!house || !foreignArmy || !house.serverDynastyId) return false;
     if (String(foreignArmy.dynasty_id) === String(house.serverDynastyId)) return false;
-    const armies = getFieldArmies(house);
-    return armies.some(function(ownArmy) {
-        return Math.max(
-            Math.abs(Number(ownArmy.x) - Number(foreignArmy.x)),
-            Math.abs(Number(ownArmy.y) - Number(foreignArmy.y))
-        ) <= ARMY_DETECTION_RADIUS;
-    });
+    const nearest = getNearestDetectingArmy(house, foreignArmy);
+    return !!(nearest && nearest.distance <= ARMY_DETECTION_RADIUS);
 }
 
 function getDetectedForeignArmiesAt(house, x, y) {
@@ -6395,6 +6472,17 @@ function subscribeSharedWorld() {
                 { event: "*", schema: "public", table: "world_buildings" },
                 function() {
                     loadSharedWorld();
+                }
+            )
+            .on(
+                "postgres_changes",
+                { event: "UPDATE", schema: "public", table: "dynasties" },
+                function(payload) {
+                    if (payload && payload.new && payload.new.game_state) {
+                        loadSharedWorld(true);
+                    } else {
+                        loadSharedWorld();
+                    }
                 }
             )
             .subscribe();
@@ -7795,8 +7883,10 @@ function renderMapCells(force) {
                     const foreignMark = document.createElement("span");
                     foreignMark.className = "armyMapMark enemy";
                     foreignMark.style.left = (5 + (ownArmies.length + enemyIndex) * 27) + "px";
-                    foreignMark.title = "ОБНАРУЖЕНА ЧУЖАЯ АРМИЯ · " + Math.max(0, Math.floor(Number(foreignArmy.archers) || 0)) + " лучн.";
-                    foreignMark.textContent = "⚔";
+                    const detection = getNearestDetectingArmy(house, foreignArmy);
+                    const detectionDistance = detection ? detection.distance : ARMY_DETECTION_RADIUS;
+                    foreignMark.title = "ОБНАРУЖЕНА ЧУЖАЯ АРМИЯ · " + Math.max(0, Math.floor(Number(foreignArmy.archers) || 0)) + " лучн. · дистанция " + detectionDistance + " кл.";
+                    foreignMark.textContent = "☠";
                     foreignMark.onclick = function(event) {
                         event.stopPropagation();
                         mapState.selectedX = x;
@@ -9345,6 +9435,120 @@ async function checkIncomingDiplomacyNotifications() {
     } finally {
         diplomacyNotificationState.loading = false;
     }
+}
+
+let diplomacyRealtimeChannel = null;
+let warNotificationState = {
+    dynastyId: null,
+    city: null,
+    shownThisSession: false,
+    loading: false
+};
+
+function closeWarNotification() {
+    const overlay = document.getElementById("warNotificationOverlay");
+    if (overlay) overlay.style.display = "none";
+}
+
+function findWarOpponentOnMap() {
+    const city = warNotificationState.city;
+    closeWarNotification();
+    openWorldMap();
+    if (!city || typeof city.x !== "number" || typeof city.y !== "number") return;
+    mapState.x = Number(city.x);
+    mapState.y = Number(city.y);
+    mapState.selectedX = Number(city.x);
+    mapState.selectedY = Number(city.y);
+    mapState.selectedArmyId = null;
+    mapState.selectedForeignArmyId = null;
+    mapState.mode = "view";
+    updateMap();
+    loadSharedWorld(true);
+    window.scrollTo(0,0);
+}
+
+async function showIncomingWarNotification(relation) {
+    const house = getHouse();
+    if (!house || !house.serverDynastyId || !relation || relation.status !== "war") return;
+    const ownId = String(house.serverDynastyId);
+    const proposerId = relation.proposed_by ? String(relation.proposed_by) : null;
+    if (!proposerId || proposerId === ownId) return;
+
+    const opponentId = String(relation.dynasty_a) === ownId
+        ? String(relation.dynasty_b)
+        : String(relation.dynasty_a);
+
+    try {
+        const [dynastyResult, cityResult] = await Promise.all([
+            window.theRealmsSupabase.from("dynasties").select("id,name").eq("id", opponentId).maybeSingle(),
+            window.theRealmsSupabase.from("cities").select("id,dynasty_id,name,x,y").eq("dynasty_id", opponentId).maybeSingle()
+        ]);
+        if (dynastyResult.error) throw dynastyResult.error;
+        if (cityResult.error) throw cityResult.error;
+
+        warNotificationState.dynastyId = opponentId;
+        warNotificationState.city = cityResult.data || null;
+        warNotificationState.shownThisSession = true;
+
+        const from = document.getElementById("warNotificationFrom");
+        if (from) from.textContent = dynastyResult.data?.name
+            ? "Дом «" + dynastyResult.data.name + "»"
+            : "Другое государство";
+
+        const overlay = document.getElementById("warNotificationOverlay");
+        if (overlay) overlay.style.display = "flex";
+    } catch (error) {
+        console.error("The Realms: не удалось подготовить уведомление о войне", error);
+    }
+}
+
+async function checkIncomingWarNotifications() {
+    const house = getHouse();
+    if (warNotificationState.loading || warNotificationState.shownThisSession || !window.theRealmsSupabase || !house || !house.serverDynastyId) return;
+    warNotificationState.loading = true;
+    try {
+        const ownId = String(house.serverDynastyId);
+        const { data, error } = await window.theRealmsSupabase
+            .from("diplomacy_relations")
+            .select("dynasty_a,dynasty_b,status,proposed_by")
+            .eq("status", "war");
+        if (error) throw error;
+        const incoming = (data || []).find(function(relation) {
+            const includesOwn = String(relation.dynasty_a) === ownId || String(relation.dynasty_b) === ownId;
+            return includesOwn && relation.proposed_by && String(relation.proposed_by) !== ownId;
+        });
+        if (incoming) await showIncomingWarNotification(incoming);
+    } catch (error) {
+        console.error("The Realms: не удалось проверить входящую войну", error);
+    } finally {
+        warNotificationState.loading = false;
+    }
+}
+
+function subscribeDiplomacyUpdates() {
+    if (!window.theRealmsSupabase || diplomacyRealtimeChannel) return;
+    diplomacyRealtimeChannel = window.theRealmsSupabase
+        .channel("the-realms-diplomacy")
+        .on("postgres_changes", { event: "*", schema: "public", table: "diplomacy_relations" }, function(payload) {
+            const house = getHouse();
+            if (!house || !house.serverDynastyId) return;
+            const row = payload.new || payload.old || {};
+            const ownId = String(house.serverDynastyId);
+            if (String(row.dynasty_a) !== ownId && String(row.dynasty_b) !== ownId) return;
+            if (payload.eventType === "DELETE") return;
+            if (row.status === "war") {
+                loadDiplomacyForTarget(String(row.dynasty_a) === ownId ? row.dynasty_b : row.dynasty_a);
+                if (row.proposed_by && String(row.proposed_by) !== ownId) {
+                    warNotificationState.shownThisSession = false;
+                    showIncomingWarNotification(row);
+                }
+            } else {
+                loadDiplomacyForTarget(String(row.dynasty_a) === ownId ? row.dynasty_b : row.dynasty_a);
+                checkIncomingDiplomacyNotifications();
+            }
+            loadDiplomacyOverview();
+        })
+        .subscribe();
 }
 
 function diplomacyStatusLabel(status, proposedBy, ownId) {
@@ -11404,11 +11608,10 @@ const HUNGER_MORTALITY_STAGE_THREE = 15;
 const HUNGER_MORTALITY_INTERVAL = 60 * 60 * 1000;
 
 function isHouseHungry(house) {
-    return !!(
-        house &&
-        house.food &&
-        typeof house.food.hungerStartedAt === "number"
-    );
+    if (!house || !house.food) return false;
+    if (typeof house.food.hungerStartedAt === "number") return true;
+    const meat = Math.max(0, Math.floor(Number(house.resources?.meat) || 0));
+    return meat <= 0 && getHourlyFoodConsumption(house) > 0;
 }
 
 function getHungerElapsedMs(house, now) {
@@ -11785,11 +11988,11 @@ function processFoodConsumption(house, nowOverride) {
         return;
     }
 
-    const freePopulation = Math.max(0, Math.floor(Number(house.population.free) || 0));
-    const workingPopulation = Math.max(0, Math.floor(Number(house.population.workers) || 0));
-    const soldiers = Math.max(0, Math.floor(Number(house.population.soldiers) || 0));
-    const meatPerCycle = freePopulation + workingPopulation * 2 + soldiers * 4;
-    const totalConsumption = meatPerCycle * completedCycles;
+    // Единый расчёт питания для UI и реального списания.
+    // Теперь полевая армия действительно учитывает логистику и лагерь,
+    // а не только формальный soldier count.
+    const hourlyFoodConsumption = getHourlyFoodConsumption(house);
+    const totalConsumption = Math.ceil(hourlyFoodConsumption * completedCycles);
     const availableMeat = Math.max(0, Math.floor(Number(house.resources.meat) || 0));
 
     if (availableMeat >= totalConsumption) {
@@ -13543,6 +13746,28 @@ function getArmyDefenseValue(army) {
     return count * 10;
 }
 
+function getArmyCombatCooldownRemaining(army) {
+    if (!army) return 0;
+    return Math.max(0, Number(army.combatCooldownUntil) - Date.now());
+}
+
+function formatCombatCooldown(ms) {
+    const totalMinutes = Math.max(0, Math.ceil(ms / 60000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    return hours > 0
+        ? hours + " ч. " + String(minutes).padStart(2, "0") + " мин."
+        : minutes + " мин.";
+}
+
+function getArmyFoodBlockReason(house) {
+    if (!house) return null;
+    const meat = Math.max(0, Math.floor(Number(house.resources?.meat) || 0));
+    if (meat <= 0) return "Армия обездвижена: в запасах нет продовольствия. Пополните склад, чтобы продолжить движение и сражения.";
+    if (isHouseHungry(house)) return "Армия ограничена голодом: Дом не может обеспечить текущее потребление. Пополните запас продовольствия.";
+    return null;
+}
+
 async function attackDetectedArmy(targetArmyId) {
     const house = getHouse();
     if (!house || !house.serverDynastyId || !window.theRealmsSupabase) return;
@@ -13557,6 +13782,24 @@ async function attackDetectedArmy(targetArmyId) {
 
     if (attacker.move) {
         alert("Нельзя атаковать армию во время похода.");
+        return;
+    }
+
+    const foodBlockReason = getArmyFoodBlockReason(house);
+    if (foodBlockReason) {
+        alert(foodBlockReason);
+        return;
+    }
+
+    const attackerCooldown = getArmyCombatCooldownRemaining(attacker);
+    if (attackerCooldown > 0) {
+        alert("Армия ещё отдыхает после предыдущего сражения. До готовности: " + formatCombatCooldown(attackerCooldown) + ".");
+        return;
+    }
+
+    const targetCooldown = getArmyCombatCooldownRemaining(target);
+    if (targetCooldown > 0) {
+        alert("Эта армия ещё восстанавливается после предыдущего сражения. До готовности противника: " + formatCombatCooldown(targetCooldown) + ".");
         return;
     }
 
@@ -13620,7 +13863,14 @@ async function attackDetectedArmy(targetArmyId) {
         );
     } catch (error) {
         console.error("The Realms: ошибка боевого столкновения", error);
-        alert("Не удалось провести сражение.\n\n" + (error.message || "Военный сервер временно недоступен."));
+        const message = String(error.message || "");
+        if (message.includes("ещё не готова") || message.includes("ещё не готов")) {
+            await loadSharedWorld(true);
+            updateMap();
+            alert("Сражение пока невозможно. Армия ещё отдыхает после предыдущего боя. Обновите карту — там будет показано оставшееся время.");
+        } else {
+            alert("Не удалось провести сражение.\n\n" + (error.message || "Военный сервер временно недоступен."));
+        }
     }
 }
 
@@ -14018,6 +14268,12 @@ function createArmyMove(house, army, targetX, targetY) {
         return false;
     }
 
+    const foodBlockReason = getArmyFoodBlockReason(house);
+    if (foodBlockReason) {
+        alert(foodBlockReason);
+        return false;
+    }
+
     const wasGuarding = army.mode === "guard";
 
     const blockedPathCell = path.find(function(cell) {
@@ -14204,16 +14460,25 @@ function renderArmyMapPanel(house, x, y) {
 
         const ownerStatus = getDiplomacyStatusForDynasty(selectedForeignArmy.dynasty_id);
         const ownStationaryArmies = armiesAtCell.filter(function(item) { return !item.move; });
-        if (ownerStatus === "war" && ownStationaryArmies.length === 1) {
+        const ownReadyStationaryArmies = ownStationaryArmies.filter(function(item) {
+            return getArmyCombatCooldownRemaining(item) <= 0;
+        });
+        const selectedEnemyCooldown = getArmyCombatCooldownRemaining(selectedForeignArmy);
+        const foodBlockReason = getArmyFoodBlockReason(house);
+        if (selectedEnemyCooldown > 0) {
+            hint.textContent = "ВОЙНА · Чужая армия отдыхает после боя. До готовности: " + formatCombatCooldown(selectedEnemyCooldown) + ".";
+        } else if (foodBlockReason) {
+            hint.textContent = foodBlockReason;
+        } else if (ownerStatus === "war" && ownReadyStationaryArmies.length === 1) {
             const attackButton = document.createElement("button");
             attackButton.className = "mapArmyButton mapArmyWarButton";
             attackButton.textContent = "АТАКОВАТЬ";
             attackButton.onclick = function() { attackDetectedArmy(selectedForeignArmy.id); };
             actions.appendChild(attackButton);
             hint.textContent = "ВОЙНА · Войска находятся на одной клетке. Можно начать сражение.";
-        } else if (ownerStatus === "war" && ownStationaryArmies.length > 1) {
-            hint.textContent = "ВОЙНА · Выберите армию для атаки:";
-            ownStationaryArmies.forEach(function(ownArmy) {
+        } else if (ownerStatus === "war" && ownReadyStationaryArmies.length > 1) {
+            hint.textContent = "ВОЙНА · Выберите готовую армию для атаки:";
+            ownReadyStationaryArmies.forEach(function(ownArmy) {
                 const chooseAttack = document.createElement("button");
                 chooseAttack.className = "mapArmyButton mapArmyWarButton";
                 chooseAttack.textContent = "АТАКОВАТЬ " + ownArmy.name + " · " + ownArmy.archers + " лучн.";
@@ -14224,7 +14489,7 @@ function renderArmyMapPanel(house, x, y) {
                 actions.appendChild(chooseAttack);
             });
         } else if (ownerStatus === "war") {
-            hint.textContent = "ВОЙНА · Для атаки нужна остановившаяся полевая армия на этой клетке.";
+            hint.textContent = "ВОЙНА · На этой клетке нет готовой полевой армии для атаки.";
         } else {
             hint.textContent = "Чужая армия обнаружена. Для нападения необходимо объявить войну.";
         }
@@ -15021,11 +15286,15 @@ function openRealm() {
 
     // Проверяем входящие предложения союза только при входе в государство.
     checkIncomingDiplomacyNotifications();
+    checkIncomingWarNotifications();
+    subscribeDiplomacyUpdates();
     checkIncomingTradeOffers();
 
     // Обновляем два дипломатических блока на главном экране.
     if (window.theRealmsSupabase && house) {
         const refreshDiplomacy = function() {
+            subscribeDiplomacyUpdates();
+            checkIncomingWarNotifications();
             return loadDiplomacyOverview();
         };
         if (!house.serverDynastyId) {

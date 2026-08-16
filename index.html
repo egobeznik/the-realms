@@ -6568,6 +6568,17 @@ function isTerritoryCell(house, x, y) {
     });
 }
 
+function getScoutingReadyKey(item) {
+    if (!item) return "";
+    if (item.readyKey) return String(item.readyKey);
+    return [
+        Number(item.completedAt) || 0,
+        Number(item.x) || 0,
+        Number(item.y) || 0,
+        Number(item.scouts) || 0
+    ].join(":");
+}
+
 function ensureScoutingState(house) {
     if (!house) return null;
     if (!house.scouting || typeof house.scouting !== "object") {
@@ -6586,14 +6597,23 @@ function ensureScoutingState(house) {
         house.scouting.dismissedReadyIds = [];
     }
 
-    // Старые готовые экспедиции без id получают стабильный id один раз.
-    house.scouting.ready.forEach(function(item, index) {
-        if (item && !item.id) {
-            item.id = "scout_ready_legacy_" + String(item.completedAt || 0) + "_" + String(item.x) + "_" + String(item.y) + "_" + index;
+    // У каждой завершённой экспедиции есть стабильный ключ.
+    // Он не зависит от случайного id и переживает повторную загрузку
+    // состояния из Supabase/localStorage.
+    house.scouting.ready.forEach(function(item) {
+        if (!item) return;
+        if (!item.id) {
+            item.id = "scout_ready_" + String(item.completedAt || Date.now()) + "_" + Math.random().toString(36).slice(2, 7);
         }
+        if (!item.readyKey) item.readyKey = getScoutingReadyKey(item);
     });
 
-    // Держим список отклонённых карточек компактным.
+    // Миграция старого списка dismissedReadyIds:
+    // считаем его также списком стабильных ключей.
+    house.scouting.dismissedReadyIds = house.scouting.dismissedReadyIds
+        .map(function(value) { return String(value); })
+        .filter(Boolean);
+
     if (house.scouting.dismissedReadyIds.length > 100) {
         house.scouting.dismissedReadyIds = house.scouting.dismissedReadyIds.slice(-100);
     }
@@ -6863,13 +6883,16 @@ function processScouting(house, nowOverride) {
         operations.splice(i, 1);
 
         const readyId = "scout_ready_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+        const completedAt = Date.now();
+        const completedScouts = Math.max(1, Math.floor(Number(active.scouts) || 1));
         scouting.ready.push({
             id: readyId,
-            scouts: Math.max(1, Math.floor(Number(active.scouts) || 1)),
+            readyKey: [completedAt, completedX, completedY, completedScouts].join(":"),
+            scouts: completedScouts,
             x: completedX,
             y: completedY,
             progress: newProgress,
-            completedAt: Date.now()
+            completedAt: completedAt
         });
 
         if (newProgress >= 100) {
@@ -6922,10 +6945,11 @@ function showScoutingCompletion(house) {
 
     const scouting = ensureScoutingState(house);
     const ready = scouting.ready.find(function(item) {
+        const key = getScoutingReadyKey(item);
         return item &&
-            item.id &&
-            !handledScoutingReadyIds.has(item.id) &&
-            !scouting.dismissedReadyIds.includes(item.id);
+            key &&
+            !handledScoutingReadyIds.has(key) &&
+            !scouting.dismissedReadyIds.includes(key);
     });
     const overlay = document.getElementById("scoutingCompletionOverlay");
     const title = document.getElementById("scoutingCompletionTitle");
@@ -6953,22 +6977,23 @@ function resolveScoutingCompletion(action) {
     if (!house) return;
     const scouting = ensureScoutingState(house);
     const ready = scouting.ready.find(function(item) {
+        const key = getScoutingReadyKey(item);
         return item &&
-            item.id &&
-            !handledScoutingReadyIds.has(item.id) &&
-            !scouting.dismissedReadyIds.includes(item.id);
+            key &&
+            !handledScoutingReadyIds.has(key) &&
+            !scouting.dismissedReadyIds.includes(key);
     });
     if (!ready) { closeScoutingCompletion(); return; }
 
-    // Помечаем именно выбранную экспедицию как обработанную ДО изменения массива.
-    // Это защищает от повторного показа старой карточки при параллельных тиках/таймерах.
-    handledScoutingReadyIds.add(ready.id);
+    // Используем стабильный ключ, а не случайный id.
+    // Именно здесь была причина повторов: при повторной загрузке состояния
+    // одна и та же экспедиция могла получить другой id.
+    const readyKey = getScoutingReadyKey(ready);
+    handledScoutingReadyIds.add(readyKey);
 
-    // Критический фикс: решение игрока сохраняется в самом состоянии Дома.
-    // Поэтому даже если renderRealm()/сервер снова вернёт старую ready-запись,
-    // эта карточка больше никогда не будет показана повторно.
-    if (!scouting.dismissedReadyIds.includes(ready.id)) {
-        scouting.dismissedReadyIds.push(ready.id);
+    // Решение игрока сохраняется в состоянии Дома.
+    if (!scouting.dismissedReadyIds.includes(readyKey)) {
+        scouting.dismissedReadyIds.push(readyKey);
         if (scouting.dismissedReadyIds.length > 100) {
             scouting.dismissedReadyIds = scouting.dismissedReadyIds.slice(-100);
         }

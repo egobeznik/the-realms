@@ -4684,11 +4684,11 @@ function demoAdvanceTime() {
     // Движок разведки использует lastTickAt как точку отсчёта,
     // поэтому сдвигаем её на час назад и оставляем всю остальную
     // механику без изменений.
-    if (house.scouting && house.scouting.active) {
-        const scoutingActive = house.scouting.active;
-        if (typeof scoutingActive.lastTickAt === "number") {
-            scoutingActive.lastTickAt -= DEMO_ONE_HOUR;
-        }
+    if (house.scouting) {
+        const scoutingOperations = getScoutingOperations(house);
+        scoutingOperations.forEach(function(scoutingActive) {
+            if (typeof scoutingActive.lastTickAt === "number") scoutingActive.lastTickAt -= DEMO_ONE_HOUR;
+        });
     }
 
     if (house.army && Array.isArray(house.army.armies)) {
@@ -6530,15 +6530,29 @@ function isTerritoryCell(house, x, y) {
 function ensureScoutingState(house) {
     if (!house) return null;
     if (!house.scouting || typeof house.scouting !== "object") {
-        house.scouting = { cells: {}, active: null };
+        house.scouting = { cells: {}, active: null, operations: [] };
     }
     if (!house.scouting.cells || typeof house.scouting.cells !== "object") {
         house.scouting.cells = {};
     }
-    if (!Object.prototype.hasOwnProperty.call(house.scouting, "active")) {
-        house.scouting.active = null;
+    if (!Array.isArray(house.scouting.operations)) {
+        house.scouting.operations = house.scouting.active ? [house.scouting.active] : [];
     }
+    house.scouting.operations = house.scouting.operations.filter(function(op) { return op && typeof op === "object"; });
+    // active сохраняем для совместимости со старыми сохранениями и существующим UI.
+    house.scouting.active = house.scouting.operations[0] || null;
     return house.scouting;
+}
+
+function getScoutingOperations(house) {
+    const scouting = ensureScoutingState(house);
+    return scouting ? scouting.operations : [];
+}
+
+function getActiveScoutingForCell(house, x, y) {
+    return getScoutingOperations(house).find(function(op) {
+        return Number(op.x) === Number(x) && Number(op.y) === Number(y);
+    }) || null;
 }
 
 function scoutingCellKey(x, y) {
@@ -6573,9 +6587,10 @@ function isAdjacentToOwnTerritory(house, x, y) {
 }
 
 function getAvailableScoutsForScouting(house) {
-    const scouting = ensureScoutingState(house);
     const total = Math.max(0, Math.floor(Number(house?.army?.scouts) || 0));
-    const reserved = scouting && scouting.active ? Math.max(0, Math.floor(Number(scouting.active.scouts) || 0)) : 0;
+    const reserved = getScoutingOperations(house).reduce(function(sum, op) {
+        return sum + Math.max(0, Math.floor(Number(op.scouts) || 0));
+    }, 0);
     return Math.max(0, total - reserved);
 }
 
@@ -6702,13 +6717,16 @@ function getWildAnimalsEvent() {
     };
 }
 
+let activeScoutingEventIndex = null;
+
 function resolveScoutingEvent(choice) {
     const house = getHouse();
     if (!house) return;
     const scouting = ensureScoutingState(house);
-    if (!scouting.active || !scouting.active.eventPending) return;
+    const index = Number.isInteger(activeScoutingEventIndex) ? activeScoutingEventIndex : scouting.operations.findIndex(function(op) { return op.eventPending; });
+    const active = index >= 0 ? scouting.operations[index] : null;
+    if (!active || !active.eventPending) return;
 
-    const active = scouting.active;
     const scoutCount = Math.max(1, Math.floor(Number(active.scouts) || 1));
     const morale = Math.max(0, Math.min(100, Number(house.army?.morale) || 100));
     let penalty = 0;
@@ -6720,11 +6738,10 @@ function resolveScoutingEvent(choice) {
             lost = Math.max(1, Math.min(scoutCount, Math.ceil(scoutCount * (0.1 + Math.random() * 0.15))));
             house.army.scouts = Math.max(0, house.army.scouts - lost);
             active.scouts = Math.max(0, scoutCount - lost);
-            house.population.soldiers = house.army.scouts + house.army.archers;
+            house.population.soldiers = house.army.scouts + house.army.archers + house.army.armies.reduce(function(total, item) { return total + Math.max(0, Math.floor(Number(item.archers) || 0)); }, 0);
             penalty = 8;
             addChronicleEvent(house, "Разведчики столкнулись с дикими зверями: потеряно " + lost + " разведчиков.");
         } else {
-            penalty = 0;
             addChronicleEvent(house, "Разведчики столкнулись с дикими зверями и продолжили разведку.");
         }
     } else {
@@ -6737,11 +6754,14 @@ function resolveScoutingEvent(choice) {
     active.eventPenalty = Math.max(0, Math.floor(Number(active.eventPenalty) || 0) + penalty);
     active.lastTickAt = Date.now();
     if (active.scouts <= 0) {
-        scouting.active = null;
+        scouting.operations.splice(index, 1);
         addChronicleEvent(house, "Разведывательная экспедиция прервана: все разведчики потеряны.");
     }
+    scouting.active = scouting.operations[0] || null;
+    activeScoutingEventIndex = null;
     saveHouseData(house);
-    document.getElementById("scoutingEventOverlay").style.display = "none";
+    const overlay = document.getElementById("scoutingEventOverlay");
+    if (overlay) overlay.style.display = "none";
     updateArmy();
     updateMap();
     syncScoutingStateToServer(house);
@@ -6750,64 +6770,61 @@ function resolveScoutingEvent(choice) {
 function processScouting(house, nowOverride) {
     if (!house) return false;
     const scouting = ensureScoutingState(house);
-    const active = scouting.active;
-    if (!active) return false;
+    const operations = scouting.operations;
+    if (!operations.length) return false;
 
     const now = typeof nowOverride === "number" ? nowOverride : Date.now();
-    if (active.eventPending) return false;
+    let changed = false;
 
-    if (typeof active.lastTickAt !== "number") active.lastTickAt = now;
-    const delta = Math.max(0, now - active.lastTickAt);
-    active.elapsedMs = Math.min(SCOUTING_DURATION_MS, Math.max(0, Number(active.elapsedMs) || 0) + delta);
-    active.lastTickAt = now;
+    for (let i = operations.length - 1; i >= 0; i--) {
+        const active = operations[i];
+        if (!active) { operations.splice(i, 1); continue; }
+        if (active.eventPending) continue;
+        if (typeof active.lastTickAt !== "number") active.lastTickAt = now;
+        const delta = Math.max(0, now - active.lastTickAt);
+        active.elapsedMs = Math.min(SCOUTING_DURATION_MS, Math.max(0, Number(active.elapsedMs) || 0) + delta);
+        active.lastTickAt = now;
+        changed = changed || delta > 0;
 
-    if (active.hasEvent && !active.eventTriggered && active.elapsedMs >= active.eventAtMs) {
-        active.eventTriggered = true;
-        active.eventPending = true;
-        active.eventType = "wild_animals";
-        saveHouseData(house);
-        if (document.visibilityState === "visible") showScoutingEvent(getWildAnimalsEvent());
-        return true;
-    }
-
-    if (active.elapsedMs < SCOUTING_DURATION_MS) return true;
-
-    const gain = Math.max(1, calculateScoutingGain(house, active.x, active.y, Math.max(1, Math.floor(active.scouts || 1))) - (active.eventPenalty || 0));
-    const oldProgress = getScoutingProgress(house, active.x, active.y);
-    const newProgress = Math.min(100, oldProgress + gain);
-    setScoutingProgress(house, active.x, active.y, newProgress);
-
-    const completedX = active.x;
-    const completedY = active.y;
-    scouting.active = null;
-
-    if (newProgress >= 100) {
-        if (!isTerritoryCell(house, completedX, completedY)) {
-            house.territory.cells.push({ x: completedX, y: completedY });
-            house.territory.forest = house.territory.cells.some(function(cell) {
-                return terrainAt(cell.x, cell.y) === "forest";
-            });
-        }
-        addChronicleEvent(house, "Разведана новая территория: X:" + completedX + " Y:" + completedY + ". Клетка присоединена к владениям Дома.");
-        saveHouseData(house);
-        syncExpandedTerritoryCell(house, completedX, completedY).catch(function(error) {
-            // Если сервер отклонил присоединение, локальная клетка не должна
-            // оставаться захваченной до следующего обновления мира.
-            house.territory.cells = house.territory.cells.filter(function(cell) {
-                return !(Number(cell.x) === completedX && Number(cell.y) === completedY);
-            });
+        if (active.hasEvent && !active.eventTriggered && active.elapsedMs >= active.eventAtMs) {
+            active.eventTriggered = true;
+            active.eventPending = true;
+            active.eventType = "wild_animals";
+            activeScoutingEventIndex = i;
             saveHouseData(house);
-            updateMap();
-            alert("Клетку не удалось присоединить к владениям.\n\n" + (error.message || "Она могла быть занята другим государством."));
-        });
-    } else {
-        addChronicleEvent(house, "Разведка территории X:" + completedX + " Y:" + completedY + " завершена: " + newProgress + "%.");
-        saveHouseData(house);
-        syncScoutingStateToServer(house);
+            if (document.visibilityState === "visible") showScoutingEvent(getWildAnimalsEvent());
+            continue;
+        }
+
+        if (active.elapsedMs < SCOUTING_DURATION_MS) continue;
+
+        const gain = Math.max(1, calculateScoutingGain(house, active.x, active.y, Math.max(1, Math.floor(active.scouts || 1))) - (active.eventPenalty || 0));
+        const oldProgress = getScoutingProgress(house, active.x, active.y);
+        const newProgress = Math.min(100, oldProgress + gain);
+        setScoutingProgress(house, active.x, active.y, newProgress);
+        const completedX = active.x;
+        const completedY = active.y;
+        operations.splice(i, 1);
+
+        if (newProgress >= 100) {
+            if (!isTerritoryCell(house, completedX, completedY)) {
+                house.territory.cells.push({ x: completedX, y: completedY });
+                house.territory.forest = house.territory.cells.some(function(cell) { return terrainAt(cell.x, cell.y) === "forest"; });
+            }
+            addChronicleEvent(house, "Разведана новая территория: X:" + completedX + " Y:" + completedY + ". Клетка присоединена к владениям Дома.");
+            syncExpandedTerritoryCell(house, completedX, completedY).catch(function(error) {
+                house.territory.cells = house.territory.cells.filter(function(cell) { return !(Number(cell.x) === completedX && Number(cell.y) === completedY); });
+                saveHouseData(house); updateMap();
+                alert("Клетку не удалось присоединить к владениям.\n\n" + (error.message || "Она могла быть занята другим государством."));
+            });
+        } else {
+            addChronicleEvent(house, "Разведка территории X:" + completedX + " Y:" + completedY + " завершена: " + newProgress + "%.");
+        }
     }
 
-    updateMap();
-    return true;
+    scouting.active = operations[0] || null;
+    if (changed) saveHouseData(house);
+    return changed || operations.length > 0;
 }
 
 function startCellScouting() {
@@ -6818,52 +6835,33 @@ function startCellScouting() {
     const y = mapState.selectedY;
     if (x === null || y === null) return;
     if (isTerritoryCell(house, x, y)) return;
-    if (isForeignTerritoryAt(x, y, house)) {
-        alert("Нельзя разведать чужую территорию.");
-        return;
-    }
-    if (!isAdjacentToOwnTerritory(house, x, y)) {
-        alert("Разведывать можно только клетку, прилегающую к вашей территории.");
-        return;
-    }
+    if (isForeignTerritoryAt(x, y, house)) { alert("Нельзя разведать чужую территорию."); return; }
+    if (!isAdjacentToOwnTerritory(house, x, y)) { alert("Разведывать можно только клетку, прилегающую к вашей территории."); return; }
+
+    const scouting = ensureScoutingState(house);
+    if (getActiveScoutingForCell(house, x, y)) { alert("Эта клетка уже разведывается."); return; }
     const available = getAvailableScoutsForScouting(house);
     const input = document.getElementById("mapScoutCountInput");
     const count = Math.max(SCOUTING_MIN_SCOUTS, Math.min(available, Math.floor(Number(input?.value) || 1)));
-    if (available < 1) {
-        alert("Для разведки нужен хотя бы один свободный разведчик.");
-        return;
-    }
-    if (scoutingStateActive(house)) {
-        alert("Сейчас уже проводится другая разведывательная операция.");
-        return;
-    }
+    if (available < 1) { alert("Для разведки нужен хотя бы один свободный разведчик."); return; }
 
-    const scouting = ensureScoutingState(house);
     const currentProgress = getScoutingProgress(house, x, y);
     if (currentProgress >= 100) return;
-
-    scouting.active = {
-        x: x,
-        y: y,
-        scouts: count,
-        startedAt: Date.now(),
-        lastTickAt: Date.now(),
-        elapsedMs: 0,
+    scouting.operations.push({
+        x: x, y: y, scouts: count, startedAt: Date.now(), lastTickAt: Date.now(), elapsedMs: 0,
         hasEvent: Math.random() < SCOUTING_EVENT_CHANCE,
         eventAtMs: Math.floor((SCOUTING_DURATION_MS * 0.25) + Math.random() * (SCOUTING_DURATION_MS * 0.55)),
-        eventTriggered: false,
-        eventPending: false,
-        eventType: null,
-        eventPenalty: 0
-    };
-
+        eventTriggered: false, eventPending: false, eventType: null, eventPenalty: 0
+    });
+    scouting.active = scouting.operations[0] || null;
     saveHouseData(house);
     syncScoutingStateToServer(house);
+    updateArmy();
     updateMap();
 }
 
 function scoutingStateActive(house) {
-    return !!(house && ensureScoutingState(house).active);
+    return getScoutingOperations(house).length > 0;
 }
 
 function renderScoutingUI(house, x, y) {
@@ -6878,7 +6876,7 @@ function renderScoutingUI(house, x, y) {
     const progress = getScoutingProgress(house, x, y);
     const adjacent = isAdjacentToOwnTerritory(house, x, y);
     const foreign = isForeignTerritoryAt(x, y, house);
-    const active = scouting.active;
+    const active = getActiveScoutingForCell(house, x, y);
 
     if (isTerritoryCell(house, x, y) || foreign || !adjacent) return;
 
@@ -7059,10 +7057,8 @@ function renderMapCells(force) {
             // Активная разведка всегда получает отдельную иконку прямо
             // на клетке, чтобы игрок сразу видел, где сейчас работает
             // разведывательный отряд.
-            const activeScouting = house && house.scouting && house.scouting.active;
-            if (activeScouting &&
-                Number(activeScouting.x) === x &&
-                Number(activeScouting.y) === y) {
+            const activeScouting = house ? getActiveScoutingForCell(house, x, y) : null;
+            if (activeScouting) {
                 const scoutingMark = document.createElement("span");
                 scoutingMark.className = "scoutingMark";
                 scoutingMark.title = "Идёт разведка";
@@ -11796,7 +11792,7 @@ function updateArmy() {
 
     const logisticsMultiplier = getArmyLogisticsMultiplier(house);
     const totalUpkeep =
-        total * 4 * logisticsMultiplier;
+        (reserveArchers * 4) + (fieldArchers * 4 * logisticsMultiplier);
 
     const readiness = 100;
 
@@ -11848,7 +11844,7 @@ function updateArmy() {
 
     const scoutingReservedValue = document.getElementById("armyScoutingReserved");
     if (scoutingReservedValue) {
-        const reserved = house.scouting && house.scouting.active ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0)) : 0;
+        const reserved = getScoutingOperations(house).reduce(function(sum, op) { return sum + Math.max(0, Math.floor(Number(op.scouts) || 0)); }, 0);
         scoutingReservedValue.textContent = reserved;
     }
 
@@ -11952,7 +11948,7 @@ function removeScout() {
 
     house = prepareHouse(house);
 
-    const activeScouts = house.scouting && house.scouting.active ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0)) : 0;
+    const activeScouts = getScoutingOperations(house).reduce(function(sum, op) { return sum + Math.max(0, Math.floor(Number(op.scouts) || 0)); }, 0);
     if (house.army.scouts <= activeScouts)
         return;
 
@@ -12600,8 +12596,27 @@ function startArmyMoveToSelectedCell() {
 
 function beginArmyMoveMode() {
     const house = getHouse();
-    const army = getFieldArmy(house);
-    if (!army || army.move) return;
+    if (!house) return;
+    prepareHouse(house);
+    let army = getFieldArmy(house);
+    if (!army) {
+        const reserve = Math.max(0, Math.floor(Number(house.army.archers) || 0));
+        if (reserve < 1) { alert("В столице нет лучников для формирования армии."); return; }
+        army = {
+            id: "army_" + Date.now(),
+            name: "Армия I",
+            x: Number(house.city?.x || 0),
+            y: Number(house.city?.y || 0),
+            archers: 0,
+            mode: "garrison",
+            guardX: null,
+            guardY: null,
+            move: null
+        };
+        house.army.armies.push(army);
+        saveHouseData(house);
+    }
+    if (army.move) return;
     if (!isArmyAtCapital(house, army)) {
         if (getAssignedCombatPersonnel(house) < 1) { alert("В армии нет воинов."); return; }
         // Для уже сформированной полевой армии состав похода фиксирован.
@@ -12676,7 +12691,27 @@ function renderArmyMapPanel(house, x, y) {
     actions.innerHTML = "";
 
     const army = getFieldArmy(house);
-    if (!army || x === null || y === null) return;
+    if (x === null || y === null) return;
+
+    const reserveArchers = Math.max(0, Math.floor(Number(house.army.archers) || 0));
+
+    // Если полевая армия ещё не создана, показываем точечную точку входа
+    // в формирование армии только на клетке столицы. Остальной интерфейс карты
+    // и существующая логика выбора клеток не изменяются.
+    if (!army) {
+        if (house.city && Number(house.city.x) === Number(x) && Number(house.city.y) === Number(y) && reserveArchers > 0) {
+            panel.style.display = "block";
+            title.textContent = "АРМИЯ · СТОЛИЦА";
+            stats.textContent = "В столице: " + reserveArchers + " лучн. · Разведчики — отдельная структура.";
+            hint.textContent = "Сформируйте полевую армию, выбрав количество лучников. Разведчики в армию не входят.";
+            const button = document.createElement("button");
+            button.className = "mapArmyButton";
+            button.textContent = "СФОРМИРОВАТЬ АРМИЮ";
+            button.onclick = beginArmyMoveMode;
+            actions.appendChild(button);
+        }
+        return;
+    }
 
     const isArmyCell = Number(army.x) === Number(x) && Number(army.y) === Number(y);
     const isMoveTarget = mapState.mode === "army_move";
@@ -12687,10 +12722,7 @@ function renderArmyMapPanel(house, x, y) {
     const distance = getArmyDistanceFromCapital(house, army);
     const multiplier = getArmyLogisticsMultiplier(house);
     const combatPersonnel = getAssignedCombatPersonnel(house);
-    const reserveArchers = Math.max(0, Math.floor(Number(house.army.archers) || 0));
-    const scoutsReserved = house.scouting && house.scouting.active
-        ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0))
-        : 0;
+    const scoutsReserved = getScoutingOperations(house).reduce(function(sum, op) { return sum + Math.max(0, Math.floor(Number(op.scouts) || 0)); }, 0);
     stats.textContent = "В армии: " + combatPersonnel + " лучн. · В столице: " + reserveArchers + " лучн. · В разведке: " + scoutsReserved +
         " · Расстояние до столицы: " + distance + " кл. · Содержание: ×" + multiplier.toFixed(2);
     hint.textContent = army.move
@@ -13196,8 +13228,12 @@ function openRealm() {
     }
 
     processOfflineEconomy(house);
-    if (house.scouting && house.scouting.active && house.scouting.active.eventPending) {
-        showScoutingEvent(getWildAnimalsEvent());
+    if (house.scouting) {
+        const pendingIndex = getScoutingOperations(house).findIndex(function(op) { return op.eventPending; });
+        if (pendingIndex >= 0) {
+            activeScoutingEventIndex = pendingIndex;
+            showScoutingEvent(getWildAnimalsEvent());
+        }
     }
     processHunting(house);
     processBuildingUpkeep(house);
@@ -13557,7 +13593,7 @@ function processOfflineEconomy(house) {
         processFoodConsumption(house, cursor);
         processScouting(house, cursor);
         processArmyMovement(house, cursor);
-        if (house.scouting && house.scouting.active && house.scouting.active.eventPending) break;
+        if (getScoutingOperations(house).some(function(op) { return op.eventPending; })) break;
     }
 
     house.economyLastOnlineAt = now;

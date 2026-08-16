@@ -6987,6 +6987,12 @@ async function startCellScouting() {
     mapState.pendingScoutCount = 0;
     mapState.pendingScoutReadyId = null;
 
+    // Экспедиция уже запущена. Закрываем только меню действий,
+    // но не меняем состояние самой разведки. Теперь можно выбрать
+    // другую клетку и независимо отправить туда армию или новую
+    // экспедицию, если есть свободные разведчики.
+    closeMapActions();
+
     saveHouseData(house);
     updateArmy();
     updateMap();
@@ -7440,11 +7446,16 @@ function renderMapCells(force) {
                 if (ownArmy) {
                     armyMark.onclick = function(event) {
                         event.stopPropagation();
+
                         mapState.selectedX = x;
                         mapState.selectedY = y;
                         mapState.x = x;
                         mapState.y = y;
+                        mapState.mode = "view";
+                        mapState.actionsOpen = true;
+
                         updateMap();
+                        openMapActions();
                     };
                 }
                 cell.appendChild(armyMark);
@@ -12838,9 +12849,19 @@ function cancelArmyMove() {
     addChronicleEvent(house, "Поход армии отменён. Армия остановилась на X:" + stoppedX + " Y:" + stoppedY + ".");
     saveHouseData(house);
     syncArmyStateToServer(house, true);
-    setMapMode("view");
+
+    // Армия не исчезает и не возвращается в резерв автоматически.
+    // Выбираем её фактическую клетку и сразу открываем управление.
+    mapState.selectedX = stoppedX;
+    mapState.selectedY = stoppedY;
+    mapState.x = stoppedX;
+    mapState.y = stoppedY;
+    mapState.mode = "view";
+    mapState.actionsOpen = true;
+
     updateArmy();
     updateMap();
+    openMapActions();
 }
 
 function getFieldArmy(house) {
@@ -13100,7 +13121,8 @@ function startArmyMoveToSelectedCell() {
         }, 0);
 
     mapState.pendingArmyCount = 0;
-    setMapMode("view");
+    mapState.mode = "view";
+    closeMapActions();
     addChronicleEvent(
         house,
         army.name + " отправлена в поход к X:" + x + " Y:" + y +
@@ -13189,11 +13211,17 @@ function renderArmyMapPanel(house, x, y) {
         if (scoutControls) scoutControls.style.display = "none";
     }
 
-    // Армия отправляется только из выбранной клетки карты.
-    // Из экрана Дома входа в режим армии больше нет.
-    if (house.city &&
+    const isCapitalCell = !!(
+        house.city &&
         Number(house.city.x) === Number(x) &&
-        Number(house.city.y) === Number(y)) {
+        Number(house.city.y) === Number(y)
+    );
+
+    // В столице нельзя сформировать НОВУЮ полевую армию,
+    // но уже существующая армия, вернувшаяся/остановившаяся
+    // в столице, должна оставаться доступной для управления.
+    if (isCapitalCell && !army) {
+        panel.style.display = "none";
         return;
     }
 
@@ -13212,7 +13240,11 @@ function renderArmyMapPanel(house, x, y) {
 
         hint.textContent = army.move
             ? "Армия уже находится в походе. Новая отправка с этой клетки недоступна."
-            : "Армия уже сформирована. Чтобы отправить её в другое место, выберите саму армию на карте.";
+            : (
+                isCapitalCell
+                    ? "Армия находится в столице. Выберите клетку назначения на карте, чтобы продолжить поход."
+                    : "Армия уже сформирована. Чтобы отправить её в другое место, выберите клетку назначения на карте."
+            );
 
         if (army.move) {
             const cancel = document.createElement("button");

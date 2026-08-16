@@ -961,58 +961,7 @@ textarea.input {
 }
 
 
-function processPopulationGrowth(house, nowOverride) {
-    if (!house || dynastyDeathInProgress) return false;
 
-    house = prepareHouse(house);
-    const now = typeof nowOverride === "number" ? nowOverride : Date.now();
-    if (!house.populationGrowth || typeof house.populationGrowth.lastGrowthAt !== "number") {
-        house.populationGrowth = { lastGrowthAt: now };
-        return false;
-    }
-
-    const elapsed = Math.max(0, now - house.populationGrowth.lastGrowthAt);
-    const completedCycles = Math.floor(elapsed / POPULATION_GROWTH_INTERVAL);
-    if (completedCycles <= 0) return false;
-
-    const activeHouseCount = Array.isArray(house.houses)
-        ? house.houses.filter(function(item) {
-            return item && item.active !== false;
-        }).length
-        : 0;
-
-    const capacity =
-        100 + activeHouseCount * HOUSE_POPULATION_BONUS;
-
-    let total =
-        Math.max(0, Math.floor(Number(house.population.free) || 0)) +
-        Math.max(0, Math.floor(Number(house.population.workers) || 0)) +
-        Math.max(0, Math.floor(Number(house.population.soldiers) || 0));
-
-    let grown = 0;
-    for (let i = 0; i < completedCycles; i++) {
-        if (total >= capacity || isHouseHungry(house)) break;
-        const room = Math.max(0, capacity - total);
-        const amount = Math.min(POPULATION_GROWTH_PER_INTERVAL, room);
-        if (amount <= 0) break;
-        house.population.free += amount;
-        total += amount;
-        grown += amount;
-    }
-
-    house.populationGrowth.lastGrowthAt += POPULATION_GROWTH_INTERVAL * completedCycles;
-
-    if (grown > 0) {
-        addChronicleEvent(
-            house,
-            "Население выросло на " + grown + " жител" + (grown === 1 ? "я" : "ей") + "."
-        );
-        saveHouseData(house);
-        return true;
-    }
-
-    return false;
-}
 
 /* =====================================================
    ПРОИЗВОДСТВО
@@ -14960,6 +14909,59 @@ function updateProductionCountdowns() {
             status.textContent = "Активная охота: +" + production + " 🍖 каждые 2 часа." + extra + " До добычи: " + formatProductionTimeLeft(remaining) + ".";
         });
     }
+}
+
+function processPopulationGrowth(house, nowOverride) {
+    if (!house || dynastyDeathInProgress) return false;
+
+    house = prepareHouse(house);
+    const now = typeof nowOverride === "number" ? nowOverride : Date.now();
+    if (!house.populationGrowth || typeof house.populationGrowth.lastGrowthAt !== "number") {
+        house.populationGrowth = { lastGrowthAt: now };
+        return false;
+    }
+
+    const elapsed = Math.max(0, now - house.populationGrowth.lastGrowthAt);
+    const completedCycles = Math.floor(elapsed / POPULATION_GROWTH_INTERVAL);
+    if (completedCycles <= 0) return false;
+
+    const activeHouseCount = Array.isArray(house.houses)
+        ? house.houses.filter(function(item) {
+            return item && item.active !== false;
+        }).length
+        : 0;
+
+    const capacity =
+        100 + activeHouseCount * HOUSE_POPULATION_BONUS;
+
+    let total =
+        Math.max(0, Math.floor(Number(house.population.free) || 0)) +
+        Math.max(0, Math.floor(Number(house.population.workers) || 0)) +
+        Math.max(0, Math.floor(Number(house.population.soldiers) || 0));
+
+    let grown = 0;
+    for (let i = 0; i < completedCycles; i++) {
+        if (total >= capacity || isHouseHungry(house)) break;
+        const room = Math.max(0, capacity - total);
+        const amount = Math.min(POPULATION_GROWTH_PER_INTERVAL, room);
+        if (amount <= 0) break;
+        house.population.free += amount;
+        total += amount;
+        grown += amount;
+    }
+
+    house.populationGrowth.lastGrowthAt += POPULATION_GROWTH_INTERVAL * completedCycles;
+
+    if (grown > 0) {
+        addChronicleEvent(
+            house,
+            "Население выросло на " + grown + " жител" + (grown === 1 ? "я" : "ей") + "."
+        );
+        saveHouseData(house);
+        return true;
+    }
+
+    return false;
 }
 
 /* =====================================================

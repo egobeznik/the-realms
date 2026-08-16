@@ -4684,6 +4684,37 @@ textarea.input {
                 <div id="mapArmyPanel" class="mapArmyPanel">
                     <div class="mapArmyTitle" id="mapArmyTitle">АРМИЯ</div>
                     <div class="mapArmyStats" id="mapArmyStats"></div>
+
+                    <div class="mapArmyFormation" id="mapArmyFormationControl" style="display:none;">
+                        <input
+                            id="mapArmyFormationCount"
+                            type="number"
+                            min="1"
+                            max="1"
+                            value="1"
+                            inputmode="numeric"
+                            aria-label="Количество лучников для новой армии"
+                        >
+                        <button class="mapArmyButton" id="mapArmyFormationButton" type="button">
+                            СФОРМИРОВАТЬ И ОТПРАВИТЬ
+                        </button>
+                    </div>
+
+                    <div class="mapArmyFormation" id="mapArmySplitControl" style="display:none;">
+                        <input
+                            id="mapArmySplitCount"
+                            type="number"
+                            min="1"
+                            max="1"
+                            value="1"
+                            inputmode="numeric"
+                            aria-label="Количество лучников для новой армии при разделении"
+                        >
+                        <button class="mapArmyButton" id="mapArmySplitButton" type="button">
+                            РАЗДЕЛИТЬ АРМИЮ
+                        </button>
+                    </div>
+
                     <div class="mapArmyActions" id="mapArmyActions"></div>
                     <div class="mapArmyHint" id="mapArmyHint"></div>
                 </div>
@@ -13717,10 +13748,20 @@ function renderArmyMapPanel(house, x, y) {
     const stats = document.getElementById("mapArmyStats");
     const actions = document.getElementById("mapArmyActions");
     const hint = document.getElementById("mapArmyHint");
+    const formationControl = document.getElementById("mapArmyFormationControl");
+    const formationInput = document.getElementById("mapArmyFormationCount");
+    const formationButton = document.getElementById("mapArmyFormationButton");
+    const splitControl = document.getElementById("mapArmySplitControl");
+    const splitInput = document.getElementById("mapArmySplitCount");
+    const splitButton = document.getElementById("mapArmySplitButton");
 
-    if (!panel || !title || !stats || !actions || !hint) return;
+    if (!panel || !title || !stats || !actions || !hint ||
+        !formationControl || !formationInput || !formationButton ||
+        !splitControl || !splitInput || !splitButton) return;
 
     panel.style.display = "none";
+    formationControl.style.display = "none";
+    splitControl.style.display = "none";
     actions.innerHTML = "";
 
     if (!house || x === null || y === null) return;
@@ -13793,17 +13834,26 @@ function renderArmyMapPanel(house, x, y) {
             readiness.textContent = "БОЕГОТОВНОСТЬ: " + getArmyReadiness(house, selectedArmy) + "%";
             actions.appendChild(readiness);
 
-            const split = document.createElement("button");
-            split.className = "mapArmyButton";
-            split.textContent = "РАЗДЕЛИТЬ АРМИЮ";
-            split.disabled = Math.max(0, Math.floor(Number(selectedArmy.archers) || 0)) < 2;
-            split.onclick = function() {
-                const max = Math.max(1, Math.floor(Number(selectedArmy.archers) || 0) - 1);
-                const raw = window.prompt("Сколько лучников передать в новую армию? (1–" + max + ")", String(Math.max(1, Math.floor(max / 2))));
-                if (raw === null) return;
-                splitArmy(selectedArmy.id, raw);
+            const splitTotal = Math.max(0, Math.floor(Number(selectedArmy.archers) || 0));
+            const splitMax = Math.max(1, splitTotal - 1);
+            splitControl.style.display = splitTotal >= 2 ? "flex" : "none";
+            splitInput.max = String(splitMax);
+            if (document.activeElement !== splitInput) {
+                const currentSplitValue = Math.max(1, Math.floor(Number(splitInput.value) || 1));
+                splitInput.value = String(Math.min(splitMax, currentSplitValue));
+            }
+            splitButton.disabled = splitTotal < 2;
+            splitButton.onclick = function() {
+                const count = Math.max(0, Math.min(
+                    splitMax,
+                    Math.floor(Number(splitInput.value) || 0)
+                ));
+                if (count < 1 || count >= splitTotal) {
+                    alert("В новую армию можно передать от 1 до " + (splitTotal - 1) + " лучников.");
+                    return;
+                }
+                splitArmy(selectedArmy.id, count);
             };
-            actions.appendChild(split);
 
             const sameCellOthers = armiesAtCell.filter(function(item) {
                 return String(item.id) !== String(selectedArmy.id) && !item.move;
@@ -13867,26 +13917,23 @@ function renderArmyMapPanel(house, x, y) {
     }
 
     // Любая другая клетка: можно отправить существующую армию
-    // или сформировать ещё одну из резерва.
+    // или сформировать ещё одну из военного резерва.
     if (!isCapitalCell && reserveArchers > 0) {
-        const formation = document.createElement("div");
-        formation.className = "mapArmyFormation";
+        formationControl.style.display = "flex";
+        formationInput.max = String(reserveArchers);
 
-        const input = document.createElement("input");
-        input.type = "number";
-        input.min = "1";
-        input.max = String(reserveArchers);
-        input.value = "1";
-        input.id = "mapArmyFormationCount";
-        input.setAttribute("aria-label", "Количество лучников для новой армии");
+        // Поле живёт постоянно в DOM, как поле разведки. Поэтому
+        // перерисовка карты не выбивает focus и не закрывает клавиатуру.
+        if (document.activeElement !== formationInput) {
+            const currentFormationValue = Math.max(1, Math.floor(Number(formationInput.value) || 1));
+            formationInput.value = String(Math.min(reserveArchers, currentFormationValue));
+        }
 
-        const send = document.createElement("button");
-        send.className = "mapArmyButton";
-        send.textContent = "СФОРМИРОВАТЬ И ОТПРАВИТЬ";
-        send.onclick = function() {
+        formationButton.disabled = reserveArchers < 1;
+        formationButton.onclick = function() {
             const count = Math.max(
                 0,
-                Math.min(reserveArchers, Math.floor(Number(input.value) || 0))
+                Math.min(reserveArchers, Math.floor(Number(formationInput.value) || 0))
             );
 
             if (count < 1) {
@@ -13898,10 +13945,6 @@ function renderArmyMapPanel(house, x, y) {
             mapState.pendingArmyCount = count;
             startArmyMoveToSelectedCell();
         };
-
-        formation.appendChild(input);
-        formation.appendChild(send);
-        actions.appendChild(formation);
     }
 
     const stationaryArmies = getFieldArmies(house).filter(function(army) {

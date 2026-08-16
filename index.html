@@ -9027,6 +9027,13 @@ let runtimeHouseCacheKey = null;
 let runtimeHouseSaveTimer = null;
 let runtimeHouseSavePending = false;
 
+// Экономика продолжает жить между открытиями игры.
+// В фоне браузер/Telegram может остановить JS, поэтому при возвращении
+// мы воспроизводим пропущенные экономические тики по сохранённым таймерам.
+let offlineEconomyReplayRunning = false;
+let offlineEconomyReplayStats = null;
+
+
 function getHouse() {
     const activeId = getActiveDynastyId();
     const cacheKey = activeId || "__legacy_house__";
@@ -9086,6 +9093,7 @@ function saveHouseData(house) {
     if (house) ensureChronicleHistory(house);
     runtimeHouseCache = house;
     runtimeHouseCacheKey = getActiveDynastyId() || "__legacy_house__";
+    if (offlineEconomyReplayRunning) return;
     scheduleHouseSave();
 }
 
@@ -9133,6 +9141,10 @@ function renderChronicleHistory(house) {
 
 function addChronicleEvent(house, text) {
     if (!house || !text) return;
+    if (offlineEconomyReplayRunning && offlineEconomyReplayStats) {
+        offlineEconomyReplayStats.events.push(String(text));
+        return;
+    }
     let history = ensureChronicleHistory(house);
     // После 20-й записи начинается новый цикл: старая летопись
     // полностью удаляется, а новая запись становится первой.
@@ -9151,6 +9163,21 @@ function addChronicleResourceEvent(house, direction, resources, category, produc
     const meat = Math.max(0, Math.floor(Number(resources.meat) || 0));
     const wood = Math.max(0, Math.floor(Number(resources.wood) || 0));
     if (meat <= 0 && wood <= 0) return;
+
+    if (offlineEconomyReplayRunning && offlineEconomyReplayStats) {
+        const key = String(direction || "general") + ":" + String(category || "general");
+        if (!offlineEconomyReplayStats.resources[key]) {
+            offlineEconomyReplayStats.resources[key] = {
+                direction: direction || "general",
+                category: category || "general",
+                meat: 0,
+                wood: 0
+            };
+        }
+        offlineEconomyReplayStats.resources[key].meat += meat;
+        offlineEconomyReplayStats.resources[key].wood += wood;
+        return;
+    }
 
     /*
        Одна завершённая игровая операция = одна запись.
@@ -9232,9 +9259,31 @@ function getChronicleTargetName(targetDynastyId, fallbackName) {
     return "Неизвестный Дом";
 }
 
-window.addEventListener("pagehide", flushHouseData);
+function markEconomyOfflineStart() {
+    const house = getHouse();
+    if (!house) {
+        flushHouseData();
+        return;
+    }
+    house.economyLastOnlineAt = Date.now();
+    saveHouseData(house);
+    flushHouseData();
+}
+
+window.addEventListener("pagehide", markEconomyOfflineStart);
 document.addEventListener("visibilitychange", function() {
-    if (document.visibilityState === "hidden") flushHouseData();
+    if (document.visibilityState === "hidden") {
+        markEconomyOfflineStart();
+    } else if (document.visibilityState === "visible") {
+        const house = getHouse();
+        if (house) {
+            processOfflineEconomy(house);
+            updateResources();
+            updatePopulation();
+            updateHunting();
+            updateForestry();
+        }
+    }
 });
 
 
@@ -10009,12 +10058,12 @@ function updateHungerUI(house) {
    ПОТРЕБЛЕНИЕ ПИЩИ
 ===================================================== */
 
-function processFoodConsumption(house) {
+function processFoodConsumption(house, nowOverride) {
 
     if (!house || dynastyDeathInProgress) return;
 
     house = prepareHouse(house);
-    const now = Date.now();
+    const now = typeof nowOverride === "number" ? nowOverride : Date.now();
 
     if (!house.food) {
         house.food = { lastConsumption: now, hungerStartedAt: null, hungerProcessedHours: 0 };
@@ -10072,11 +10121,11 @@ function processFoodConsumption(house) {
    ПРОИЗВОДСТВО
 ===================================================== */
 
-function processBuildingUpkeep(house) {
+function processBuildingUpkeep(house, nowOverride) {
 
     if (!house) return;
 
-    const now = Date.now();
+    const now = typeof nowOverride === "number" ? nowOverride : Date.now();
     let upkeepWoodSpent = 0;
     let upkeepMeatSpent = 0;
 
@@ -10215,7 +10264,7 @@ function processBuildingUpkeep(house) {
 }
 
 
-function processHunting(house) {
+function processHunting(house, nowOverride) {
 
     if (!hasHuntingGroundForHouse(house)) {
         house.hunting.lastProduction = Date.now();
@@ -10223,7 +10272,7 @@ function processHunting(house) {
         return;
     }
 
-    const now = Date.now();
+    const now = typeof nowOverride === "number" ? nowOverride : Date.now();
     let totalProduction = 0;
     const storageFullAtStart = isStorageFull(house);
 
@@ -10441,7 +10490,7 @@ function formatForestryGroundRecovery(ms) {
    ДОБЫЧА ЛЕСА
 ===================================================== */
 
-function processForestry(house) {
+function processForestry(house, nowOverride) {
 
     if (
         !house ||
@@ -10451,7 +10500,7 @@ function processForestry(house) {
         return;
     }
 
-    const now = Date.now();
+    const now = typeof nowOverride === "number" ? nowOverride : Date.now();
     let totalProduction = 0;
     const storageFullAtStart = isStorageFull(house);
 
@@ -11721,7 +11770,10 @@ function openRealm() {
         }
     }
 
+    processOfflineEconomy(house);
     processHunting(house);
+    processBuildingUpkeep(house);
+    processForestry(house);
     processFoodConsumption(house);
 
     if (window.theRealmsSupabase && house.serverDynastyId) {
@@ -11958,6 +12010,131 @@ function handleChronicleStart() {
 }
 
 /* =====================================================
+   ОФЛАЙН-ЭКОНОМИКА
+===================================================== */
+
+function getEconomyTimerValues(house) {
+    const values = [];
+    if (!house) return values;
+
+    if (house.food && typeof house.food.lastConsumption === "number") {
+        values.push(house.food.lastConsumption);
+    }
+
+    (house.huntingGrounds || []).forEach(function(ground) {
+        if (ground && typeof ground.lastProduction === "number") values.push(ground.lastProduction);
+    });
+    (house.forestryGrounds || []).forEach(function(ground) {
+        if (ground && typeof ground.lastProduction === "number") values.push(ground.lastProduction);
+    });
+    (house.houses || []).forEach(function(building) {
+        if (building && typeof building.lastUpkeep === "number") values.push(building.lastUpkeep);
+    });
+    (house.warehouses || []).forEach(function(building) {
+        if (building && typeof building.lastUpkeep === "number") values.push(building.lastUpkeep);
+    });
+
+    return values.filter(function(value) {
+        return Number.isFinite(value) && value > 0;
+    });
+}
+
+function formatOfflineDuration(ms) {
+    const totalMinutes = Math.max(1, Math.floor(ms / 60000));
+    const days = Math.floor(totalMinutes / 1440);
+    const hours = Math.floor((totalMinutes % 1440) / 60);
+    const minutes = totalMinutes % 60;
+    const parts = [];
+    if (days > 0) parts.push(days + " д.");
+    if (hours > 0) parts.push(hours + " ч.");
+    if (days === 0 && minutes > 0) parts.push(minutes + " мин.");
+    return parts.join(" ") || "1 мин.";
+}
+
+function finishOfflineEconomyReplay(house, startAt, now) {
+    const stats = offlineEconomyReplayStats;
+    offlineEconomyReplayStats = null;
+    offlineEconomyReplayRunning = false;
+
+    if (!house || !stats) return;
+
+    const parts = [];
+    const gains = [];
+    const spends = [];
+
+    Object.keys(stats.resources).forEach(function(key) {
+        const row = stats.resources[key];
+        const resources = [];
+        if (row.meat > 0) resources.push("🍖 " + row.meat);
+        if (row.wood > 0) resources.push("🌲 " + row.wood);
+        if (!resources.length) return;
+        const text = resources.join(" · ");
+        if (row.direction === "gain") gains.push(text);
+        else if (row.direction === "spend") spends.push(text);
+    });
+
+    if (gains.length) parts.push("Добыто: " + gains.join("; "));
+    if (spends.length) parts.push("Потрачено: " + spends.join("; "));
+
+    const uniqueEvents = [];
+    stats.events.forEach(function(text) {
+        if (uniqueEvents.indexOf(text) === -1 && uniqueEvents.length < 3) uniqueEvents.push(text);
+    });
+    uniqueEvents.forEach(function(text) { parts.push(text); });
+
+    if (!parts.length) return;
+
+    const duration = formatOfflineDuration(Math.max(0, now - startAt));
+    addChronicleEvent(
+        house,
+        "За время отсутствия (" + duration + "): " + parts.join(". ") + "."
+    );
+}
+
+function processOfflineEconomy(house) {
+    if (!house || dynastyDeathInProgress || offlineEconomyReplayRunning) return;
+
+    const now = Date.now();
+    let startAt = Number(house.economyLastOnlineAt);
+
+    if (!Number.isFinite(startAt) || startAt <= 0) {
+        // Старые сохранения уже умеют догонять таймеры при входе.
+        // Не запускаем второй расчёт поверх них — просто создаём маркер
+        // для корректного офлайн-расчёта со следующего ухода из игры.
+        house.economyLastOnlineAt = now;
+        saveHouseData(house);
+        return;
+    }
+
+    if (now <= startAt + 30000) {
+        house.economyLastOnlineAt = now;
+        return;
+    }
+
+    const step = 60 * 1000;
+    const maxReplayMs = 31 * 24 * 60 * 60 * 1000;
+    if (now - startAt > maxReplayMs) {
+        startAt = now - maxReplayMs;
+    }
+
+    offlineEconomyReplayRunning = true;
+    offlineEconomyReplayStats = { resources: {}, events: [] };
+
+    let cursor = startAt;
+    while (cursor < now && !dynastyDeathInProgress) {
+        cursor = Math.min(now, cursor + step);
+        processHunting(house, cursor);
+        processBuildingUpkeep(house, cursor);
+        processForestry(house, cursor);
+        processFoodConsumption(house, cursor);
+    }
+
+    house.economyLastOnlineAt = now;
+    finishOfflineEconomyReplay(house, startAt, now);
+    saveHouseData(house);
+}
+
+/* =====================================================
    ПЕРИОДИЧЕСКОЕ ОБНОВЛЕНИЕ
 ===================================================== */
 
@@ -11972,6 +12149,8 @@ setInterval(function() {
     processBuildingUpkeep(house);
     processForestry(house);
     processFoodConsumption(house);
+    house.economyLastOnlineAt = Date.now();
+    saveHouseData(house);
 
     const realmScreen = document.getElementById("realmScreen");
     if (realmScreen && realmScreen.style.display !== "none") {

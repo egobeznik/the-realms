@@ -6582,6 +6582,22 @@ function ensureScoutingState(house) {
     if (!Array.isArray(house.scouting.ready)) {
         house.scouting.ready = [];
     }
+    if (!Array.isArray(house.scouting.dismissedReadyIds)) {
+        house.scouting.dismissedReadyIds = [];
+    }
+
+    // Старые готовые экспедиции без id получают стабильный id один раз.
+    house.scouting.ready.forEach(function(item, index) {
+        if (item && !item.id) {
+            item.id = "scout_ready_legacy_" + String(item.completedAt || 0) + "_" + String(item.x) + "_" + String(item.y) + "_" + index;
+        }
+    });
+
+    // Держим список отклонённых карточек компактным.
+    if (house.scouting.dismissedReadyIds.length > 100) {
+        house.scouting.dismissedReadyIds = house.scouting.dismissedReadyIds.slice(-100);
+    }
+
     house.scouting.operations = house.scouting.operations.filter(function(op) { return op && typeof op === "object"; });
     // active сохраняем для совместимости со старыми сохранениями и существующим UI.
     house.scouting.active = house.scouting.operations[0] || null;
@@ -6906,7 +6922,10 @@ function showScoutingCompletion(house) {
 
     const scouting = ensureScoutingState(house);
     const ready = scouting.ready.find(function(item) {
-        return item && item.id && !handledScoutingReadyIds.has(item.id);
+        return item &&
+            item.id &&
+            !handledScoutingReadyIds.has(item.id) &&
+            !scouting.dismissedReadyIds.includes(item.id);
     });
     const overlay = document.getElementById("scoutingCompletionOverlay");
     const title = document.getElementById("scoutingCompletionTitle");
@@ -6934,13 +6953,27 @@ function resolveScoutingCompletion(action) {
     if (!house) return;
     const scouting = ensureScoutingState(house);
     const ready = scouting.ready.find(function(item) {
-        return item && item.id && !handledScoutingReadyIds.has(item.id);
+        return item &&
+            item.id &&
+            !handledScoutingReadyIds.has(item.id) &&
+            !scouting.dismissedReadyIds.includes(item.id);
     });
     if (!ready) { closeScoutingCompletion(); return; }
 
     // Помечаем именно выбранную экспедицию как обработанную ДО изменения массива.
     // Это защищает от повторного показа старой карточки при параллельных тиках/таймерах.
     handledScoutingReadyIds.add(ready.id);
+
+    // Критический фикс: решение игрока сохраняется в самом состоянии Дома.
+    // Поэтому даже если renderRealm()/сервер снова вернёт старую ready-запись,
+    // эта карточка больше никогда не будет показана повторно.
+    if (!scouting.dismissedReadyIds.includes(ready.id)) {
+        scouting.dismissedReadyIds.push(ready.id);
+        if (scouting.dismissedReadyIds.length > 100) {
+            scouting.dismissedReadyIds = scouting.dismissedReadyIds.slice(-100);
+        }
+    }
+
     const readyIndex = scouting.ready.findIndex(function(item) {
         return item && item.id === ready.id;
     });

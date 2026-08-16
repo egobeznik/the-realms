@@ -4471,7 +4471,7 @@ textarea.input {
         <div class="scoutingEventTitle" id="scoutingCompletionTitle">РАЗВЕДКА ЗАВЕРШЕНА</div>
         <div class="scoutingEventText" id="scoutingCompletionText"></div>
         <div class="scoutingEventButtons">
-            <button class="scoutingEventButton" type="button" onclick="resolveScoutingCompletion('garrison')">ВЕРНУТЬ В ГАРНИЗОН</button>
+            <button class="scoutingEventButton" type="button" onclick="resolveScoutingCompletion('garrison', document.getElementById('scoutingCompletionOverlay').dataset.completionId)">ВЕРНУТЬ В ГАРНИЗОН</button>
         </div>
     </div>
 </div>
@@ -6568,15 +6568,6 @@ function isTerritoryCell(house, x, y) {
     });
 }
 
-function getScoutingCompletionKey(item) {
-    if (!item) return "";
-    return [
-        Number(item.completedAt) || 0,
-        Number(item.x) || 0,
-        Number(item.y) || 0,
-        Number(item.scouts) || 0
-    ].join(":");
-}
 
 function ensureScoutingState(house) {
     if (!house) return null;
@@ -6592,24 +6583,13 @@ function ensureScoutingState(house) {
     if (!Array.isArray(house.scouting.ready)) {
         house.scouting.ready = [];
     }
-    if (!Array.isArray(house.scouting.dismissedReadyIds)) {
-        house.scouting.dismissedReadyIds = [];
-    }
-    if (!Array.isArray(house.scouting.returnedCompletionKeys)) {
-        house.scouting.returnedCompletionKeys = [];
-    }
-
     // Старые готовые экспедиции без id получают стабильный id один раз.
     house.scouting.ready.forEach(function(item, index) {
         if (item && !item.id) {
             item.id = "scout_ready_legacy_" + String(item.completedAt || 0) + "_" + String(item.x) + "_" + String(item.y) + "_" + index;
         }
+        if (item && !item.status) item.status = "pending";
     });
-
-    // Держим список отклонённых карточек компактным.
-    if (house.scouting.dismissedReadyIds.length > 100) {
-        house.scouting.dismissedReadyIds = house.scouting.dismissedReadyIds.slice(-100);
-    }
 
     house.scouting.operations = house.scouting.operations.filter(function(op) { return op && typeof op === "object"; });
     // active сохраняем для совместимости со старыми сохранениями и существующим UI.
@@ -6890,15 +6870,25 @@ function processScouting(house, nowOverride) {
         const completionOverlay = document.getElementById("scoutingCompletionOverlay");
         if (completionOverlay) completionOverlay.dataset.dismissed = "0";
 
-        scouting.ready.push({
+        const completion = {
             id: readyId,
             scouts: Math.max(1, Math.floor(Number(active.scouts) || 1)),
             x: completedX,
             y: completedY,
             progress: newProgress,
             completedAt: Date.now(),
-            returnedToGarrison: false
-        });
+            status: "pending"
+        };
+        scouting.ready.push(completion);
+
+        // Окно принадлежит конкретно этой завершённой экспедиции.
+        // Оно открывается только здесь — в момент её завершения.
+        if (
+            document.visibilityState === "visible" &&
+            document.getElementById("realmScreen")?.style.display !== "none"
+        ) {
+            showScoutingCompletion(house, completion.id);
+        }
 
         if (newProgress >= 100) {
             if (!isTerritoryCell(house, completedX, completedY)) {
@@ -6912,13 +6902,6 @@ function processScouting(house, nowOverride) {
             });
         }
 
-        if (
-            document.visibilityState === "visible" &&
-            document.getElementById("realmScreen")?.style.display !== "none" &&
-            document.getElementById("scoutingCompletionOverlay")?.style.display !== "flex"
-        ) {
-            showScoutingCompletion(house);
-        }
     }
 
     scouting.active = operations[0] || null;
@@ -6926,188 +6909,92 @@ function processScouting(house, nowOverride) {
     return changed || operations.length > 0;
 }
 
-const handledScoutingReadyIds = new Set();
-
-function showScoutingCompletion(house) {
-    const completionOverlay = document.getElementById("scoutingCompletionOverlay");
-    if (completionOverlay && completionOverlay.dataset.dismissed === "1") {
-        return;
-    }
-
-    /*
-       ХИРУРГИЧЕСКАЯ ЗАЩИТА:
-       окно завершённой разведки показываем только после выбора
-       конкретной Династии и только когда открыт экран Дома.
-       Ранее оно могло появляться прямо поверх выбора Династии,
-       потому что фоновый таймер уже видел сохранённую экспедицию.
-    */
+function showScoutingCompletion(house, completionId) {
     const realmScreen = document.getElementById("realmScreen");
     const activeDynastyId = getActiveDynastyId();
 
-    if (
-        !house ||
-        !activeDynastyId ||
-        !realmScreen ||
-        realmScreen.style.display === "none"
-    ) {
+    if (!house || !activeDynastyId || !realmScreen || realmScreen.style.display === "none") {
         return;
     }
 
     const scouting = ensureScoutingState(house);
-    const ready = scouting.ready.find(function(item) {
+    const completion = scouting.ready.find(function(item) {
         return item &&
-            item.id &&
-            item.returnedToGarrison !== true &&
-            !handledScoutingReadyIds.has(item.id) &&
-            !scouting.dismissedReadyIds.includes(item.id) &&
-            !scouting.returnedCompletionKeys.includes(getScoutingCompletionKey(item));
+            String(item.id) === String(completionId) &&
+            item.status === "pending";
     });
+
     const overlay = document.getElementById("scoutingCompletionOverlay");
     const title = document.getElementById("scoutingCompletionTitle");
-    const text = document.getElementById("scoutingCompletionText");
+    const body = document.getElementById("scoutingCompletionText");
 
-    if (!ready || !overlay || !title || !text) return;
+    if (!completion || !overlay || !title || !body) return;
+
+    // Запоминаем именно ту экспедицию, которую сейчас показывает окно.
+    overlay.dataset.completionId = String(completion.id);
 
     title.textContent = "РАЗВЕДКА ЗАВЕРШЕНА";
-    text.textContent =
-        "Отряд из " + ready.scouts +
-        " разведчиков завершил разведку X:" + ready.x +
-        " Y:" + ready.y +
-        ".\n\nЧто сделать дальше?";
+    body.textContent =
+        "Отряд из " + completion.scouts +
+        " разведчиков завершил разведку X:" + completion.x +
+        " Y:" + completion.y +
+        ".\n\nРазведчики возвращаются в гарнизон.";
 
     overlay.style.display = "flex";
 }
-
 function closeScoutingCompletion() {
     const overlay = document.getElementById("scoutingCompletionOverlay");
     if (overlay) overlay.style.display = "none";
 }
 
-function resolveScoutingCompletion(action) {
+function resolveScoutingCompletion(action, completionId) {
     const house = getHouse();
     if (!house) return;
 
     const scouting = ensureScoutingState(house);
+    const overlay = document.getElementById("scoutingCompletionOverlay");
+    const currentId = completionId || (overlay ? overlay.dataset.completionId : null);
 
-    // Берём только незавершённую обработку. После возврата запись
-    // становится terminal и больше никогда не попадёт в очередь.
-    const ready = scouting.ready.find(function(item) {
-        return item &&
-            item.id &&
-            item.returnedToGarrison !== true &&
-            !handledScoutingReadyIds.has(item.id) &&
-            !scouting.dismissedReadyIds.includes(item.id) &&
-            !scouting.returnedCompletionKeys.includes(getScoutingCompletionKey(item));
-    });
-
-    if (!ready) {
-        const completionOverlay = document.getElementById("scoutingCompletionOverlay");
-        if (completionOverlay) completionOverlay.dataset.dismissed = "1";
+    if (!currentId) {
         closeScoutingCompletion();
         return;
     }
 
-    // Сразу фиксируем окончательное решение игрока.
-    handledScoutingReadyIds.add(ready.id);
-    ready.returnedToGarrison = true;
-
-    const completionKey = getScoutingCompletionKey(ready);
-    if (completionKey && !scouting.returnedCompletionKeys.includes(completionKey)) {
-        scouting.returnedCompletionKeys.push(completionKey);
-        if (scouting.returnedCompletionKeys.length > 100) {
-            scouting.returnedCompletionKeys = scouting.returnedCompletionKeys.slice(-100);
-        }
-    }
-
-    if (!scouting.dismissedReadyIds.includes(ready.id)) {
-        scouting.dismissedReadyIds.push(ready.id);
-        if (scouting.dismissedReadyIds.length > 100) {
-            scouting.dismissedReadyIds = scouting.dismissedReadyIds.slice(-100);
-        }
-    }
-
-    // Для возврата в гарнизон никаких новых операций не создаём.
-    // Отряд уже снят с operations в момент завершения разведки,
-    // поэтому разведчики снова считаются свободными в army.scouts.
+    // Обрабатываем только ту экспедицию, чьё окно сейчас открыто.
     const readyIndex = scouting.ready.findIndex(function(item) {
-        return item && item.id === ready.id;
+        return item &&
+            String(item.id) === String(currentId) &&
+            item.status === "pending";
     });
-    if (readyIndex >= 0) {
-        scouting.ready.splice(readyIndex, 1);
+
+    if (readyIndex < 0) {
+        closeScoutingCompletion();
+        return;
     }
 
-    mapState.pendingScoutCount = 0;
-    mapState.pendingScoutReadyId = null;
+    const completion = scouting.ready[readyIndex];
 
-    // Жёстко блокируем повторное открытие этого окна ДО любых перерисовок,
-    // сохранений и синхронизаций. Это закрывает конкретный баг, когда
-    // уже поставленный setTimeout/showScoutingCompletion открывал его снова.
-    const completionOverlay = document.getElementById("scoutingCompletionOverlay");
-    if (completionOverlay) completionOverlay.dataset.dismissed = "1";
+    // Единственное действие текущего UI — возврат в гарнизон.
+    completion.status = "returned";
 
-    saveHouseData(house);
-    closeScoutingCompletion();
-
-    updateArmy();
-    updateMap();
-
-    // В текущем UI единственное действие — возврат в гарнизон.
-    // Ветка continue оставлена только для совместимости со старыми
-    // сохранениями/вызовами и не используется кнопкой.
-    if (action === "continue") {
-        mapState.pendingScoutCount = Math.max(1, Math.floor(Number(ready.scouts) || 1));
-        openWorldMap();
-        mapState.mode = "scouting_continue";
-        const title = document.querySelector(".mapInstructionTitle");
-        const text = document.querySelector(".mapInstructionText");
-        if (title) title.textContent = "ПРОДОЛЖЕНИЕ РАЗВЕДКИ";
-        if (text) text.textContent = "Выберите соседнюю с вашей территорией клетку. " + mapState.pendingScoutCount + " разведчиков готовы продолжить разведку.";
-        const instruction = document.getElementById("mapInstruction");
-        if (instruction) instruction.classList.remove("viewMode");
-        updateMap();
-    }
-
-    // Важно: синхронизация выполняется и при возврате в гарнизон.
-    syncScoutingStateToServer(house);
-}
-function startCellScouting() {
-    const house = getHouse();
-    if (!house) return;
-    prepareHouse(house);
-    const x = mapState.selectedX;
-    const y = mapState.selectedY;
-    if (x === null || y === null) return;
-    if (isTerritoryCell(house, x, y)) return;
-    if (isForeignTerritoryAt(x, y, house)) { alert("Нельзя разведать чужую территорию."); return; }
-    if (!isAdjacentToOwnTerritory(house, x, y)) { alert("Разведывать можно только клетку, прилегающую к вашей территории."); return; }
-
-    const scouting = ensureScoutingState(house);
-    if (getActiveScoutingForCell(house, x, y)) { alert("Эта клетка уже разведывается."); return; }
-    const available = getAvailableScoutsForScouting(house);
-    const input = document.getElementById("mapScoutCountInput");
-    const preferredCount = mapState.mode === "scouting_continue" && mapState.pendingScoutCount > 0
-        ? mapState.pendingScoutCount
-        : Math.floor(Number(input?.value) || 1);
-    const count = Math.max(SCOUTING_MIN_SCOUTS, Math.min(available, preferredCount));
-    if (available < 1) { alert("Для разведки нужен хотя бы один свободный разведчик."); return; }
-
-    const currentProgress = getScoutingProgress(house, x, y);
-    if (currentProgress >= 100) return;
-    scouting.operations.push({
-        x: x, y: y, scouts: count, startedAt: Date.now(), lastTickAt: Date.now(), elapsedMs: 0,
-        hasEvent: Math.random() < SCOUTING_EVENT_CHANCE,
-        eventAtMs: Math.floor((SCOUTING_DURATION_MS * 0.25) + Math.random() * (SCOUTING_DURATION_MS * 0.55)),
-        eventTriggered: false, eventPending: false, eventType: null, eventPenalty: 0
-    });
+    // Отряд уже удалён из operations в момент завершения разведки.
+    // Поэтому после завершения он снова является свободным составом гарнизона.
+    scouting.ready.splice(readyIndex, 1);
     scouting.active = scouting.operations[0] || null;
+
     mapState.pendingScoutCount = 0;
     mapState.pendingScoutReadyId = null;
+
+    if (overlay) delete overlay.dataset.completionId;
+
+    closeScoutingCompletion();
     saveHouseData(house);
-    syncScoutingStateToServer(house);
     updateArmy();
     updateMap();
-}
 
+    // Сохраняем уже окончательное состояние разведки на сервере.
+    syncScoutingStateToServer(house);
+}
 function scoutingStateActive(house) {
     return getScoutingOperations(house).length > 0;
 }
@@ -13568,7 +13455,7 @@ function openRealm() {
 
 
     renderChronicleHistory(house);
-    if (document.visibilityState === "visible" && document.getElementById("realmScreen")?.style.display !== "none") setTimeout(function() { showScoutingCompletion(house); }, 0);
+    if (document.visibilityState === "visible" && document.getElementById("realmScreen")?.style.display !== "none") setTimeout(function() { /* завершённые разведки открываются только в processScouting */ }, 0);
 
 
     const crest =

@@ -6869,7 +6869,11 @@ function processScouting(house, nowOverride) {
             });
         }
 
-        if (document.visibilityState === "visible") {
+        if (
+            document.visibilityState === "visible" &&
+            document.getElementById("realmScreen")?.style.display !== "none" &&
+            document.getElementById("scoutingCompletionOverlay")?.style.display !== "flex"
+        ) {
             showScoutingCompletion(house);
         }
     }
@@ -6878,6 +6882,8 @@ function processScouting(house, nowOverride) {
     if (changed) saveHouseData(house);
     return changed || operations.length > 0;
 }
+
+const handledScoutingReadyIds = new Set();
 
 function showScoutingCompletion(house) {
     /*
@@ -6900,7 +6906,9 @@ function showScoutingCompletion(house) {
     }
 
     const scouting = ensureScoutingState(house);
-    const ready = scouting.ready[0];
+    const ready = scouting.ready.find(function(item) {
+        return item && item.id && !handledScoutingReadyIds.has(item.id);
+    });
     const overlay = document.getElementById("scoutingCompletionOverlay");
     const title = document.getElementById("scoutingCompletionTitle");
     const text = document.getElementById("scoutingCompletionText");
@@ -6926,10 +6934,19 @@ function resolveScoutingCompletion(action) {
     const house = getHouse();
     if (!house) return;
     const scouting = ensureScoutingState(house);
-    const ready = scouting.ready[0];
+    const ready = scouting.ready.find(function(item) {
+        return item && item.id && !handledScoutingReadyIds.has(item.id);
+    });
     if (!ready) { closeScoutingCompletion(); return; }
 
-    scouting.ready.shift();
+    // Помечаем именно выбранную экспедицию как обработанную ДО изменения массива.
+    // Это защищает от повторного показа старой карточки при параллельных тиках/таймерах.
+    handledScoutingReadyIds.add(ready.id);
+    const readyIndex = scouting.ready.findIndex(function(item) {
+        return item && item.id === ready.id;
+    });
+    if (readyIndex >= 0) scouting.ready.splice(readyIndex, 1);
+
     mapState.pendingScoutCount = 0;
     mapState.pendingScoutReadyId = null;
     saveHouseData(house);

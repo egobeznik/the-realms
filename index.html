@@ -5645,6 +5645,12 @@ const ARMY_READINESS_REINFORCEMENT = 60;
 const ARMY_READINESS_MOVE_LOSS_PER_HOUR = 4;
 const ARMY_READINESS_REST_PER_HOUR = 3;
 const ARMY_READINESS_CAPITAL_REST_BONUS = 2;
+const ARMY_GUARD_REST_MULTIPLIER = 1.5;
+const ARMY_CAMP_REST_MULTIPLIER = 2.0;
+const ARMY_CAMP_LOGISTICS_REDUCTION = 0.90;
+const ARMY_CAMP_FOOD_MULTIPLIER = 1.10;
+const ARMY_GUARD_RADIUS = 2;
+const ARMY_CAMP_SETUP_MS = ARMY_MOVE_HOUR_MS;
 const ARMY_LOGISTICS_ZONES = [
     { max: 3, multiplier: 1.00 },
     { max: 6, multiplier: 1.15 },
@@ -10912,6 +10918,7 @@ function prepareHouse(house) {
         army.archers = Math.max(0, Math.floor(Number(army.archers) || 0));
         if (!Object.prototype.hasOwnProperty.call(army, "guardX")) army.guardX = null;
         if (!Object.prototype.hasOwnProperty.call(army, "guardY")) army.guardY = null;
+        if (!Object.prototype.hasOwnProperty.call(army, "camp")) army.camp = null;
         if (!Object.prototype.hasOwnProperty.call(army, "move")) army.move = null;
 
         // v95: боеготовность становится реальным состоянием армии.
@@ -13191,14 +13198,21 @@ function processArmyReadiness(house, nowOverride) {
             // Поход истощает войска; чем дальше снабжение, тем быстрее падает готовность.
             delta = -ARMY_READINESS_MOVE_LOSS_PER_HOUR * logistics * hungerMultiplier * hours;
         } else {
-            // Стоящая армия восстанавливается. В столице восстановление быстрее.
+            // Стоящая армия восстанавливается. Лагерь и охрана дают разные
+            // бонусы к восстановлению, но не отменяют влияние логистики и голода.
             const capitalBonus = isArmyAtCapital(house, army)
                 ? ARMY_READINESS_CAPITAL_REST_BONUS
                 : 0;
             const morale = Math.max(0, Math.min(100, Number(house.army?.morale) || 100));
             const moraleFactor = 0.5 + morale / 200;
+            let restMultiplier = 1;
+            if (army.mode === "guard") restMultiplier = ARMY_GUARD_REST_MULTIPLIER;
+            if (army.mode === "camp" || army.mode === "camp_build") restMultiplier = ARMY_CAMP_REST_MULTIPLIER;
+            const effectiveLogistics = (army.mode === "camp")
+                ? logistics * ARMY_CAMP_LOGISTICS_REDUCTION
+                : logistics;
             delta = (ARMY_READINESS_REST_PER_HOUR + capitalBonus) *
-                moraleFactor / logistics * hours;
+                restMultiplier * moraleFactor / effectiveLogistics * hours;
             if (hungerMultiplier > 1) {
                 delta /= hungerMultiplier;
             }
@@ -13245,6 +13259,159 @@ function updatePopulationSoldiersCount(house) {
         getFieldArmies(house).reduce(function(total, army) {
             return total + Math.max(0, Math.floor(Number(army.archers) || 0));
         }, 0);
+}
+
+function setArmyGuard(armyId) {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+
+    const army = getArmyById(house, armyId || mapState.selectedArmyId);
+    if (!army) return;
+    if (army.move) {
+        alert("Нельзя назначить охрану армии во время похода.");
+        return;
+    }
+    if (army.mode === "camp" || army.mode === "camp_build") {
+        alert("Сначала сверните лагерь.");
+        return;
+    }
+
+    const x = Number(army.x);
+    const y = Number(army.y);
+    if (!isTerritoryCell(house, x, y)) {
+        alert("Охранять можно только территорию вашего Дома.");
+        return;
+    }
+
+    army.mode = "guard";
+    army.guardX = x;
+    army.guardY = y;
+    army.camp = null;
+
+    addChronicleEvent(
+        house,
+        army.name + " получила приказ охранять территорию X:" + x + " Y:" + y + "."
+    );
+
+    mapState.selectedArmyId = army.id;
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateArmy();
+    updateMap();
+    openMapActions();
+}
+
+function cancelArmyGuard(armyId) {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+
+    const army = getArmyById(house, armyId || mapState.selectedArmyId);
+    if (!army || army.move || army.mode !== "guard") return;
+
+    army.mode = "field";
+    army.guardX = null;
+    army.guardY = null;
+
+    addChronicleEvent(house, army.name + " снята с охраны территории.");
+    mapState.selectedArmyId = army.id;
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateArmy();
+    updateMap();
+    openMapActions();
+}
+
+function startArmyCamp(armyId) {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+
+    const army = getArmyById(house, armyId || mapState.selectedArmyId);
+    if (!army) return;
+    if (army.move) {
+        alert("Нельзя разбить лагерь во время похода.");
+        return;
+    }
+    if (army.mode === "camp") {
+        alert("Лагерь уже разбит.");
+        return;
+    }
+    if (army.mode === "camp_build") return;
+
+    const terrain = terrainAt(Number(army.x), Number(army.y));
+    if (isWaterTerrain(terrain)) {
+        alert("Нельзя разбить лагерь на воде.");
+        return;
+    }
+
+    const now = Date.now();
+    army.mode = "camp_build";
+    army.camp = {
+        startedAt: now,
+        readyAt: now + ARMY_CAMP_SETUP_MS
+    };
+    army.guardX = null;
+    army.guardY = null;
+
+    addChronicleEvent(house, army.name + " начала разбивать лагерь. Время устройства: 1 час.");
+    mapState.selectedArmyId = army.id;
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateArmy();
+    updateMap();
+    openMapActions();
+}
+
+function cancelArmyCampSetup(armyId) {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+
+    const army = getArmyById(house, armyId || mapState.selectedArmyId);
+    if (!army || army.mode !== "camp_build" || army.move) return;
+
+    army.mode = "field";
+    army.camp = null;
+    addChronicleEvent(house, army.name + " отменила устройство лагеря.");
+    mapState.selectedArmyId = army.id;
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateArmy();
+    updateMap();
+    openMapActions();
+}
+
+function cancelArmyCamp(armyId) {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+
+    const army = getArmyById(house, armyId || mapState.selectedArmyId);
+    if (!army || army.mode !== "camp" || army.move) return;
+
+    army.mode = "field";
+    army.camp = null;
+    addChronicleEvent(house, army.name + " свернула лагерь.");
+    mapState.selectedArmyId = army.id;
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateArmy();
+    updateMap();
+    openMapActions();
+}
+
+function getArmyGuardRadius(army) {
+    return army && army.mode === "guard" ? ARMY_GUARD_RADIUS : 0;
+}
+
+function isCellUnderArmyGuard(army, x, y) {
+    if (!army || army.mode !== "guard" || army.guardX === null || army.guardY === null) return false;
+    return Math.max(
+        Math.abs(Number(x) - Number(army.guardX)),
+        Math.abs(Number(y) - Number(army.guardY))
+    ) <= ARMY_GUARD_RADIUS;
 }
 
 function splitArmy(armyId, count) {
@@ -13454,6 +13621,9 @@ function getArmyLogisticsMultiplier(house) {
 function formatArmyMode(army) {
     if (!army) return "—";
     if (army.move) return "В ПУТИ";
+    if (army.mode === "camp_build") return "ЛАГЕРЬ · ОБУСТРОЙСТВО";
+    if (army.mode === "camp") return "ЛАГЕРЬ";
+    if (army.mode === "guard") return "ОХРАНА";
     return "ПОЛЕВАЯ АРМИЯ";
 }
 
@@ -13535,6 +13705,14 @@ function processArmyMovement(house, nowOverride) {
     if (readinessResult && readinessResult.syncNeeded) readinessSyncNeeded = true;
 
     armies.forEach(function(army) {
+        if (army.mode === "camp_build" && army.camp && Number(army.camp.readyAt) <= now) {
+            army.mode = "camp";
+            army.camp = null;
+            changed = true;
+            readinessSyncNeeded = true;
+            addChronicleEvent(house, army.name + " завершила устройство лагеря на X:" + army.x + " Y:" + army.y + ".");
+        }
+
         if (!army.move) return;
 
         const move = army.move;
@@ -13621,6 +13799,13 @@ function createArmyMove(house, army, targetX, targetY) {
         return false;
     }
 
+    if (army.mode === "camp" || army.mode === "camp_build") {
+        alert("Сначала сверните лагерь.");
+        return false;
+    }
+
+    const wasGuarding = army.mode === "guard";
+
     const blockedPathCell = path.find(function(cell) {
         return !isArmyTargetAllowed(house, cell.x, cell.y).ok;
     });
@@ -13629,6 +13814,12 @@ function createArmyMove(house, army, targetX, targetY) {
         const blocked = isArmyTargetAllowed(house, blockedPathCell.x, blockedPathCell.y);
         alert("Маршрут недоступен. " + (blocked.reason || "Выберите другой путь."));
         return false;
+    }
+
+    if (wasGuarding) {
+        army.mode = "field";
+        army.guardX = null;
+        army.guardY = null;
     }
 
     army.move = {
@@ -13834,9 +14025,52 @@ function renderArmyMapPanel(house, x, y) {
             readiness.textContent = "БОЕГОТОВНОСТЬ: " + getArmyReadiness(house, selectedArmy) + "%";
             actions.appendChild(readiness);
 
+            if (selectedArmy.mode === "camp_build") {
+                hint.innerHTML = selectedArmy.camp
+                    ? "ЛАГЕРЬ ОБУСТРАИВАЕТСЯ · ОСТАЛОСЬ: <b class=\"mapArmyCampTimer\">" +
+                      formatArmyMoveRemaining(Math.max(0, Number(selectedArmy.camp.readyAt) - Date.now())) +
+                      "</b>"
+                    : "ЛАГЕРЬ ОБУСТРАИВАЕТСЯ";
+
+                const cancelCampSetup = document.createElement("button");
+                cancelCampSetup.className = "mapArmyButton cancel";
+                cancelCampSetup.textContent = "ОТМЕНИТЬ УСТРОЙСТВО ЛАГЕРЯ";
+                cancelCampSetup.onclick = function() { cancelArmyCampSetup(selectedArmy.id); };
+                actions.appendChild(cancelCampSetup);
+            } else if (selectedArmy.mode === "camp") {
+                hint.textContent = "ЛАГЕРЬ РАЗБИТ · ВОССТАНОВЛЕНИЕ БОЕГОТОВНОСТИ УСКОРЕНО · РАСХОД МЯСА +10%";
+                const leaveCamp = document.createElement("button");
+                leaveCamp.className = "mapArmyButton";
+                leaveCamp.textContent = "СВЕРНУТЬ ЛАГЕРЬ";
+                leaveCamp.onclick = function() { cancelArmyCamp(selectedArmy.id); };
+                actions.appendChild(leaveCamp);
+            } else if (selectedArmy.mode === "guard") {
+                hint.textContent = "ОХРАНА · РАДИУС: " + ARMY_GUARD_RADIUS + " КЛЕТКИ · ВОССТАНОВЛЕНИЕ УСКОРЕНО";
+                const stopGuard = document.createElement("button");
+                stopGuard.className = "mapArmyButton";
+                stopGuard.textContent = "СНЯТЬ С ОХРАНЫ";
+                stopGuard.onclick = function() { cancelArmyGuard(selectedArmy.id); };
+                actions.appendChild(stopGuard);
+            } else {
+                const guardAllowed = isTerritoryCell(house, Number(selectedArmy.x), Number(selectedArmy.y));
+                const guardButton = document.createElement("button");
+                guardButton.className = "mapArmyButton";
+                guardButton.textContent = "ОХРАНЯТЬ ТЕРРИТОРИЮ";
+                guardButton.disabled = !guardAllowed;
+                guardButton.title = guardAllowed ? "Охранять территорию в радиусе " + ARMY_GUARD_RADIUS + " клеток" : "Армия должна находиться на вашей территории";
+                guardButton.onclick = function() { setArmyGuard(selectedArmy.id); };
+                actions.appendChild(guardButton);
+
+                const campButton = document.createElement("button");
+                campButton.className = "mapArmyButton";
+                campButton.textContent = "РАЗБИТЬ ЛАГЕРЬ";
+                campButton.onclick = function() { startArmyCamp(selectedArmy.id); };
+                actions.appendChild(campButton);
+            }
+
             const splitTotal = Math.max(0, Math.floor(Number(selectedArmy.archers) || 0));
             const splitMax = Math.max(1, splitTotal - 1);
-            splitControl.style.display = splitTotal >= 2 ? "flex" : "none";
+            splitControl.style.display = splitTotal >= 2 && selectedArmy.mode === "field" ? "flex" : "none";
             splitInput.max = String(splitMax);
             if (document.activeElement !== splitInput) {
                 const currentSplitValue = Math.max(1, Math.floor(Number(splitInput.value) || 1));
@@ -13986,7 +14220,8 @@ function getHourlyFoodConsumption(house) {
 
     const fieldArmyFood = getFieldArmies(house).reduce(function(total, army) {
         const archers = Math.max(0, Math.floor(Number(army.archers) || 0));
-        return total + archers * 4 * getArmyLogisticsMultiplierForArmy(house, army);
+        const campFoodMultiplier = army.mode === "camp" ? ARMY_CAMP_FOOD_MULTIPLIER : 1;
+        return total + archers * 4 * getArmyLogisticsMultiplierForArmy(house, army) * campFoodMultiplier;
     }, 0);
 
     return free + workers * 2 + scouts * 4 + reserveArchers * 4 + fieldArmyFood;
@@ -14836,6 +15071,13 @@ setInterval(function() {
     const mapArmyTimer = document.querySelector(".mapArmyMoveTimer");
     if (mapArmyTimer && selectedArmy && selectedArmy.move) {
         mapArmyTimer.textContent = formatArmyMoveRemaining(getArmyMoveRemaining(selectedArmy));
+    }
+
+    const mapArmyCampTimer = document.querySelector(".mapArmyCampTimer");
+    if (mapArmyCampTimer && selectedArmy && selectedArmy.mode === "camp_build" && selectedArmy.camp) {
+        mapArmyCampTimer.textContent = formatArmyMoveRemaining(
+            Math.max(0, Number(selectedArmy.camp.readyAt) - Date.now())
+        );
     }
 
     const activeArmies = getFieldArmies(house);

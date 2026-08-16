@@ -1731,6 +1731,45 @@ textarea.input {
 
 .mapArmyButton.cancel { border-color:rgba(126,78,64,.72); }
 
+.mapArmyDispatch {
+    margin-top:8px;
+    padding:8px 9px;
+    border:1px solid rgba(174,141,82,.38);
+    background:rgba(14,11,8,.72);
+}
+
+.mapArmyDispatchLabel {
+    color:#9b8b72;
+    font-size:9px;
+    letter-spacing:1px;
+    text-align:center;
+}
+
+.mapArmyDispatchRow {
+    display:flex;
+    align-items:center;
+    gap:7px;
+    margin-top:7px;
+}
+
+.mapArmyDispatchInput {
+    width:70px;
+    min-height:36px;
+    box-sizing:border-box;
+    border:1px solid rgba(174,141,82,.68);
+    background:rgba(30,25,19,.95);
+    color:#d5c4a5;
+    text-align:center;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:12px;
+}
+
+.mapArmyDispatchMax {
+    color:#766b5c;
+    font-size:9px;
+    line-height:1.35;
+}
+
 .mapArmyHint {
     margin-top:6px;
     color:#766b5c;
@@ -3921,8 +3960,8 @@ textarea.input {
 
                         <div class="armyUnitInfo">
                             <div class="armyUnitName">РАЗВЕДЧИКИ</div>
-                            <div class="armyUnitRequirement">
-                                Назначение из свободного населения
+                            <div class="armyUnitRequirement" id="scoutReserveLabel">
+                                В столице: 0 · В разведке: 0
                             </div>
 
                             <div class="armyUnitStats">
@@ -3963,8 +4002,8 @@ textarea.input {
 
                         <div class="armyUnitInfo">
                             <div class="armyUnitName">ЛУЧНИКИ</div>
-                            <div class="armyUnitRequirement">
-                                Стоимость назначения: 1 🌲 на 1 лучника
+                            <div class="armyUnitRequirement" id="archerReserveLabel">
+                                В столице: 0 · В армии: 0 · Назначение: 1 🌲
                             </div>
 
                             <div class="armyUnitStats">
@@ -4001,7 +4040,7 @@ textarea.input {
             </div>
 
             <div class="armyHint">
-                Для назначения войск используется свободное население.
+                Лучники сначала находятся в столице. При походе вы выбираете, сколько войск сформировать в полевую армию — остальные остаются в столице. Разведчики в армию не входят и отправляются на разведку отдельно.
             </div>
 
         </section>
@@ -6886,8 +6925,8 @@ function renderScoutingUI(house, x, y) {
     button.disabled = available < 1 || progress >= 100;
     button.textContent = progress > 0 ? "ПРОДОЛЖИТЬ РАЗВЕДКУ" : "РАЗВЕДАТЬ КЛЕТКУ";
     progressEl.textContent = available < 1
-        ? "РАЗВЕДАННОСТЬ: " + progress + "% · НУЖЕН ХОТЯ БЫ 1 РАЗВЕДЧИК"
-        : "РАЗВЕДАННОСТЬ: " + progress + "% · ЗА ОПЕРАЦИЮ: до " + SCOUTING_MAX_GAIN + "% · ДЛИТЕЛЬНОСТЬ: 2 ЧАСА";
+        ? "РАЗВЕДАННОСТЬ: " + progress + "% · СВОБОДНЫХ РАЗВЕДЧИКОВ: 0"
+        : "РАЗВЕДАННОСТЬ: " + progress + "% · В СТОЛИЦЕ ДОСТУПНО: " + available + " · ЗА ОПЕРАЦИЮ: до " + SCOUTING_MAX_GAIN + "% · 2 ЧАСА";
 }
 
 function getCellDescription(type) {
@@ -7057,7 +7096,10 @@ function renderMapCells(force) {
             const armyToRender = ownArmy || foreignArmy;
             const armyHasCombatPersonnel = armyToRender &&
                 Math.max(0, Math.floor(Number(armyToRender.archers) || 0)) > 0;
-            if (armyToRender && armyHasCombatPersonnel) {
+            const showOwnEmptyGarrison = ownArmy &&
+                Number(ownArmy.x) === Number(house?.city?.x) &&
+                Number(ownArmy.y) === Number(house?.city?.y);
+            if (armyToRender && (armyHasCombatPersonnel || showOwnEmptyGarrison)) {
                 const armyMark = document.createElement("span");
                 armyMark.className = "armyMapMark" +
                     (armyToRender.move ? " moving" : "") +
@@ -10156,6 +10198,23 @@ document.addEventListener("visibilitychange", function() {
    ПОДГОТОВКА ДАННЫХ
 ===================================================== */
 
+function isArmyAtCapitalSafe(house, army) {
+    if (!house || !house.city || !army) return false;
+    return Number(army.x) === Number(house.city.x) && Number(army.y) === Number(house.city.y);
+}
+
+function getDeployedArchers(house) {
+    if (!house || !house.army || !Array.isArray(house.army.armies)) return 0;
+    return house.army.armies.reduce(function(total, army) {
+        return total + Math.max(0, Math.floor(Number(army.archers) || 0));
+    }, 0);
+}
+
+function getCapitalArcherReserve(house) {
+    if (!house || !house.army) return 0;
+    return Math.max(0, Math.floor(Number(house.army.archers) || 0) - getDeployedArchers(house));
+}
+
 function prepareHouse(house) {
 
     ensureChronicleHistory(house);
@@ -10246,7 +10305,23 @@ function prepareHouse(house) {
         if (!Object.prototype.hasOwnProperty.call(army, "guardX")) army.guardX = null;
         if (!Object.prototype.hasOwnProperty.call(army, "guardY")) army.guardY = null;
         if (!Object.prototype.hasOwnProperty.call(army, "move")) army.move = null;
+
+        // v86 хранил общее число лучников только в house.army.archers.
+        // При первой загрузке переносим существующий состав в полевую армию,
+        // если она уже находилась вне столицы. В столице старые лучники
+        // остаются резервом, пока игрок не сформирует новый поход.
+        if (!Object.prototype.hasOwnProperty.call(army, "archers")) {
+            const legacyArchers = Math.max(0, Math.floor(Number(house.army.archers) || 0));
+            const atCapital = isArmyAtCapitalSafe(house, army);
+            army.archers = (!atCapital || army.move || army.mode === "guard") ? legacyArchers : 0;
+        }
+        army.archers = Math.max(0, Math.floor(Number(army.archers) || 0));
     });
+
+    const deployedArchers = house.army.armies.reduce(function(total, army) {
+        return total + Math.max(0, Math.floor(Number(army.archers) || 0));
+    }, 0);
+    house.army.archers = Math.max(deployedArchers, Math.max(0, Math.floor(Number(house.army.archers) || 0)));
 
     house.population.soldiers =
         house.army.scouts +
@@ -11693,14 +11768,18 @@ function moveSoldierToFree() {
         return;
 
 
-    if (house.army.archers > 0) {
+    const reserveArchers = getCapitalArcherReserve(house);
+    const activeScouts = house.scouting && house.scouting.active
+        ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0))
+        : 0;
 
+    if (reserveArchers > 0) {
         house.army.archers -= 1;
-
-    } else if (house.army.scouts > 0) {
-
+    } else if (Math.max(0, house.army.scouts - activeScouts) > 0) {
         house.army.scouts -= 1;
-
+    } else {
+        alert("Все военнослужащие сейчас находятся в походе или разведке.");
+        return;
     }
 
     house.population.soldiers =
@@ -11724,72 +11803,31 @@ function moveSoldierToFree() {
 function updateArmy() {
 
     let house = getHouse();
-
     if (!house) return;
-
     house = prepareHouse(house);
 
-    const scouts =
-        house.army.scouts;
+    const scouts = Math.max(0, Math.floor(Number(house.army.scouts) || 0));
+    const archersTotal = Math.max(0, Math.floor(Number(house.army.archers) || 0));
+    const archersInField = getDeployedArchers(house);
+    const archersReserve = Math.max(0, archersTotal - archersInField);
 
-    const archers =
-        house.army.archers;
-
-    // Разведчики — отдельная структура и не входят в численность армии.
-    const total = archers;
-
-    // Разведчики не являются боевым подразделением:
-    // 0 атаки / 0 защиты / +5% разведки за одного.
-    const totalAttack =
-        archers * 10;
-
-    const totalDefense =
-        archers * 10;
-
-    const totalRecon =
-        scouts * 5;
-
+    const totalAttack = archersInField * 10;
+    const totalDefense = archersInField * 10;
+    const totalRecon = scouts * 5;
     const logisticsMultiplier = getArmyLogisticsMultiplier(house);
-    const totalUpkeep =
-        total * 4 * logisticsMultiplier;
+    const totalUpkeep = archersInField * 4 * logisticsMultiplier;
 
-    const readiness = 100;
+    const setText = function(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = value;
+    };
 
-    const attackValue =
-        document.getElementById("armyAttack");
-
-    const defenseValue =
-        document.getElementById("armyDefense");
-
-    const reconValue =
-        document.getElementById("armyRecon");
-
-    const upkeepValue =
-        document.getElementById("armyUpkeep");
-
-    const readinessValue =
-        document.getElementById("armyReadiness");
-
-    const personnelValue =
-        document.getElementById("armyPersonnel");
-
-    if (attackValue)
-        attackValue.textContent = totalAttack;
-
-    if (defenseValue)
-        defenseValue.textContent = totalDefense;
-
-    if (reconValue)
-        reconValue.textContent = totalRecon + "%";
-
-    if (upkeepValue)
-        upkeepValue.textContent = totalUpkeep;
-
-    if (readinessValue)
-        readinessValue.textContent = readiness + "%";
-
-    if (personnelValue)
-        personnelValue.textContent = total;
+    setText("armyAttack", totalAttack);
+    setText("armyDefense", totalDefense);
+    setText("armyRecon", totalRecon + "%");
+    setText("armyUpkeep", Math.round(totalUpkeep * 10) / 10);
+    setText("armyReadiness", "100%");
+    setText("armyPersonnel", archersInField);
 
     const armyLogisticsValue = document.getElementById("armyLogistics");
     if (armyLogisticsValue) {
@@ -11800,61 +11838,35 @@ function updateArmy() {
 
     const scoutingReservedValue = document.getElementById("armyScoutingReserved");
     if (scoutingReservedValue) {
-        const reserved = house.scouting && house.scouting.active ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0)) : 0;
+        const reserved = house.scouting && house.scouting.active
+            ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0))
+            : 0;
         scoutingReservedValue.textContent = reserved;
     }
 
-    const scoutCount =
-        document.getElementById("scoutCount");
+    setText("scoutCount", scouts);
+    setText("archerCount", archersTotal);
+    setText("armyTotalLabel", "В АРМИИ: " + archersInField);
 
-    const archerCount =
-        document.getElementById("archerCount");
+    const scoutMinus = document.getElementById("scoutMinusButton");
+    const scoutPlus = document.getElementById("scoutPlusButton");
+    const archerMinus = document.getElementById("archerMinusButton");
+    const archerPlus = document.getElementById("archerPlusButton");
 
-    const totalLabel =
-        document.getElementById("armyTotalLabel");
+    const free = Math.max(0, Math.floor(Number(house.population.free) || 0));
+    const activeScouts = house.scouting && house.scouting.active
+        ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0))
+        : 0;
 
-    if (scoutCount)
-        scoutCount.textContent = scouts;
+    if (scoutMinus) scoutMinus.disabled = scouts - activeScouts <= 0;
+    if (scoutPlus) scoutPlus.disabled = free <= 0 || isHouseHungry(house);
+    if (archerMinus) archerMinus.disabled = archerReserve <= 0;
+    if (archerPlus) archerPlus.disabled = free <= 0 || house.resources.wood < 1 || isHouseHungry(house);
 
-    if (archerCount)
-        archerCount.textContent = archers;
-
-    if (totalLabel)
-        totalLabel.textContent =
-            "БОЕВАЯ АРМИЯ: " + total;
-
-    const free =
-        house.population.free;
-
-    const scoutMinus =
-        document.getElementById("scoutMinusButton");
-
-    const scoutPlus =
-        document.getElementById("scoutPlusButton");
-
-    const archerMinus =
-        document.getElementById("archerMinusButton");
-
-    const archerPlus =
-        document.getElementById("archerPlusButton");
-
-    if (scoutMinus)
-        scoutMinus.disabled =
-            scouts <= 0;
-
-    if (scoutPlus)
-        scoutPlus.disabled =
-            free <= 0 || isHouseHungry(house);
-
-    if (archerMinus)
-        archerMinus.disabled =
-            archers <= 0;
-
-    if (archerPlus)
-        archerPlus.disabled =
-            free <= 0 ||
-            house.resources.wood < 1 ||
-            isHouseHungry(house);
+    const scoutUnit = document.getElementById("scoutReserveLabel");
+    const archerUnit = document.getElementById("archerReserveLabel");
+    if (scoutUnit) scoutUnit.textContent = "В столице: " + Math.max(0, scouts - activeScouts) + " · В разведке: " + activeScouts;
+    if (archerUnit) archerUnit.textContent = "В столице: " + archerReserve + " · В армии: " + archersInField;
 
     saveHouseData(house);
 }
@@ -11987,8 +11999,11 @@ function removeArcher() {
         return;
     }
 
-    if (house.army.archers <= 0)
+    const reserveArchers = getCapitalArcherReserve(house);
+    if (reserveArchers <= 0) {
+        alert("Все лучники уже находятся в полевой армии. Верните армию в столицу или измените её состав там.");
         return;
+    }
 
     house.army.archers -= 1;
 
@@ -12328,10 +12343,8 @@ function updateHunting() {
 ===================================================== */
 
 function getAssignedCombatPersonnel(house) {
-    // Сейчас существует одна полевая армия, а боевым подразделением
-    // является только лучники. Разведчики никогда не входят в армию.
-    if (!house || !house.army) return 0;
-    return Math.max(0, Math.floor(Number(house.army.archers) || 0));
+    // Только лучники, реально включённые в полевую армию.
+    return getDeployedArchers(house);
 }
 
 function isArmyAtCapital(house, army) {
@@ -12341,14 +12354,8 @@ function isArmyAtCapital(house, army) {
 }
 
 function canChangeCombatPersonnel(house) {
-    const army = getFieldArmy(house);
-    if (!army) return { ok: true };
-    if (army.move) {
-        return { ok: false, reason: "Армия находится в походе. Сначала отмените поход или дождитесь прибытия." };
-    }
-    if (!isArmyAtCapital(house, army)) {
-        return { ok: false, reason: "Армия находится вне столицы. Верните армию в столицу, чтобы изменить состав войск." };
-    }
+    // Найм и увольнение из общего военного резерва не зависят
+    // от положения уже сформированной полевой армии.
     return { ok: true };
 }
 
@@ -12511,8 +12518,25 @@ function startArmyMoveToSelectedCell() {
     const y = mapState.selectedY;
     if (!army || x === null || y === null) return;
     if (army.move) return;
-    if (getAssignedCombatPersonnel(house) < 1) {
-        alert("В армии нет боевых подразделений. Назначьте хотя бы одного лучника.");
+
+    const atCapital = isArmyAtCapital(house, army);
+    const totalArchers = Math.max(0, Math.floor(Number(house.army.archers) || 0));
+    const currentField = Math.max(0, Math.floor(Number(army.archers) || 0));
+    const input = document.getElementById("mapArmySendCountInput");
+
+    if (atCapital) {
+        const selectedCount = Math.floor(Number(input?.value) || 0);
+        if (selectedCount < 1) {
+            alert("Выберите хотя бы одного лучника для похода.");
+            return;
+        }
+        if (selectedCount > totalArchers) {
+            alert("Нельзя отправить больше лучников, чем находится в столице.");
+            return;
+        }
+        army.archers = selectedCount;
+    } else if (currentField < 1) {
+        alert("В армии нет боевых подразделений. Сначала сформируйте армию в столице.");
         return;
     }
 
@@ -12545,11 +12569,13 @@ function startArmyMoveToSelectedCell() {
     army.guardX = null;
     army.guardY = null;
     setMapMode("view");
-    addChronicleEvent(house, "Армия отправлена в поход к X:" + x + " Y:" + y + ". Время в пути: " + path.length + " ч.");
+    addChronicleEvent(house, "Армия отправлена в поход к X:" + x + " Y:" + y + ". В составе: " + army.archers + " лучников. Время в пути: " + path.length + " ч.");
     saveHouseData(house);
     syncArmyStateToServer(house, true);
+    updateArmy();
     updateMap();
 }
+
 
 function beginArmyMoveMode() {
     const house = getHouse();
@@ -12628,15 +12654,15 @@ function renderArmyMapPanel(house, x, y) {
     title.textContent = army.name + " · " + formatArmyMode(army);
     const distance = getArmyDistanceFromCapital(house, army);
     const multiplier = getArmyLogisticsMultiplier(house);
-    const combatPersonnel = getAssignedCombatPersonnel(house);
+    const combatPersonnel = Math.max(0, Math.floor(Number(army.archers) || 0));
+    const reserveArchers = getCapitalArcherReserve(house);
     const scoutsReserved = house.scouting && house.scouting.active
         ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0))
         : 0;
-    stats.textContent = "Лучников: " + combatPersonnel + " · Разведчиков в армии нет · В разведке: " + scoutsReserved +
-        " · Расстояние до столицы: " + distance + " кл. · Содержание: ×" + multiplier.toFixed(2);
+    stats.textContent = "В армии: " + combatPersonnel + " лучников · В столице: " + reserveArchers + " · В разведке: " + scoutsReserved + " · Расстояние: " + distance + " кл. · Содержание: ×" + multiplier.toFixed(2);
     hint.textContent = army.move
         ? "Армия в пути. Осталось: " + formatArmyMoveRemaining(getArmyMoveRemaining(army)) + ". Поход можно отменить."
-        : "Лучники входят в армию. Разведчики — отдельная структура и в армию не входят. Состав армии можно менять только в столице.";
+        : "Разведчики не входят в армию. При отправке из столицы выберите количество лучников — остальные останутся в столице.";
 
     if (army.move) {
         const cancel = document.createElement("button");
@@ -12648,11 +12674,29 @@ function renderArmyMapPanel(house, x, y) {
     }
 
     if (isArmyCell) {
+        const atCapital = isArmyAtCapital(house, army);
         const move = document.createElement("button");
         move.className = "mapArmyButton";
         move.textContent = "ПЕРЕМЕСТИТЬ";
         move.onclick = beginArmyMoveMode;
         actions.appendChild(move);
+
+        if (atCapital && Math.max(0, Math.floor(Number(house.army.archers) || 0)) > 0) {
+            const dispatch = document.createElement("div");
+            dispatch.className = "mapArmyDispatch";
+            dispatch.innerHTML =
+                '<div class="mapArmyDispatchLabel">СОСТАВ ПОЛЕВОЙ АРМИИ</div>' +
+                '<div class="mapArmyDispatchRow">' +
+                '<input id="mapArmySendCountInput" class="mapArmyDispatchInput" type="number" min="1" max="' + Math.max(0, Math.floor(Number(house.army.archers) || 0)) + '" value="' + Math.max(1, Math.min(Math.max(0, Math.floor(Number(house.army.archers) || 0)), combatPersonnel || 1)) + '">' +
+                '<div class="mapArmyDispatchMax">Доступно всего: ' + Math.max(0, Math.floor(Number(house.army.archers) || 0)) + '.<br>Остальные останутся в столице.</div>' +
+                '</div>';
+            actions.appendChild(dispatch);
+        } else if (atCapital) {
+            const dispatch = document.createElement("div");
+            dispatch.className = "mapArmyDispatch";
+            dispatch.innerHTML = '<div class="mapArmyDispatchLabel">НЕТ ЛУЧНИКОВ ДЛЯ ПОХОДА</div><div class="mapArmyDispatchMax" style="margin-top:5px;text-align:center;">Сначала назначьте лучников из свободного населения.</div>';
+            actions.appendChild(dispatch);
+        }
 
         if (army.mode === "guard") {
             const release = document.createElement("button");
@@ -12660,7 +12704,7 @@ function renderArmyMapPanel(house, x, y) {
             release.textContent = "СНЯТЬ С ОХРАНЫ";
             release.onclick = cancelArmyGuard;
             actions.appendChild(release);
-        } else if (isTerritoryCell(house, x, y)) {
+        } else if (isTerritoryCell(house, x, y) && combatPersonnel > 0) {
             const guard = document.createElement("button");
             guard.className = "mapArmyButton";
             guard.textContent = "ОХРАНЯТЬ КЛЕТКУ";
@@ -12669,14 +12713,33 @@ function renderArmyMapPanel(house, x, y) {
         }
     } else if (isMoveTarget) {
         const allowed = isArmyTargetAllowed(house, x, y);
+        const atCapital = isArmyAtCapital(house, army);
+        const maxSend = atCapital
+            ? Math.max(0, Math.floor(Number(house.army.archers) || 0))
+            : Math.max(0, Math.floor(Number(army.archers) || 0));
+        const selectedInput = document.getElementById("mapArmySendCountInput");
+        if (!selectedInput) {
+            const dispatch = document.createElement("div");
+            dispatch.className = "mapArmyDispatch";
+            dispatch.innerHTML =
+                '<div class="mapArmyDispatchLabel">СКОЛЬКО ЛУЧНИКОВ ОТПРАВИТЬ</div>' +
+                '<div class="mapArmyDispatchRow">' +
+                '<input id="mapArmySendCountInput" class="mapArmyDispatchInput" type="number" min="1" max="' + maxSend + '" value="' + Math.max(1, Math.min(maxSend, atCapital ? Math.max(1, combatPersonnel) : maxSend)) + '">' +
+                '<div class="mapArmyDispatchMax">Доступно: ' + maxSend + '<br>1 клетка = 1 час</div>' +
+                '</div>';
+            actions.appendChild(dispatch);
+        }
         const move = document.createElement("button");
         move.className = "mapArmyButton";
-        move.textContent = "ОТПРАВИТЬ · " + Math.max(Math.abs(army.x - x), Math.abs(army.y - y)) + " Ч";
-        move.disabled = !allowed.ok;
+        move.textContent = maxSend > 0
+            ? "ОТПРАВИТЬ · " + Math.max(Math.abs(army.x - x), Math.abs(army.y - y)) + " Ч"
+            : "НЕТ ВОЙСК ДЛЯ ПОХОДА";
+        move.disabled = !allowed.ok || maxSend < 1;
         move.onclick = startArmyMoveToSelectedCell;
         actions.appendChild(move);
     }
 }
+
 
 /* =====================================================
    РЕСУРСЫ
@@ -12687,11 +12750,18 @@ function getHourlyFoodConsumption(house) {
 
     const free = Math.max(0, Math.floor(Number(house.population.free) || 0));
     const workers = Math.max(0, Math.floor(Number(house.population.workers) || 0));
-    const soldiers = Math.max(0, Math.floor(Number(house.population.soldiers) || 0));
+    const scouts = Math.max(0, Math.floor(Number(house.army?.scouts) || 0));
+    const archersTotal = Math.max(0, Math.floor(Number(house.army?.archers) || 0));
+    const archersInField = getDeployedArchers(house);
+    const archersReserve = Math.max(0, archersTotal - archersInField);
     const soldierLogistics = getArmyLogisticsMultiplier(house);
 
-    return free + workers * 2 + soldiers * 4 * soldierLogistics;
+    // Разведчики и резервные лучники находятся в столице и получают
+    // обычное содержание. Только сформированная полевая армия получает
+    // логистическую надбавку за расстояние.
+    return free + workers * 2 + scouts * 4 + archersReserve * 4 + archersInField * 4 * soldierLogistics;
 }
+
 
 function getHourlyWoodUpkeep(house) {
     if (!house) return 0;

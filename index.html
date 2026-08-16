@@ -725,6 +725,54 @@ textarea.input {
     font-size: 12px;
 }
 
+.armyPrimaryStats {
+    gap: 18px;
+}
+
+.armySecondaryStats {
+    margin-top: 7px;
+    padding-top: 7px;
+    border-top: 1px solid rgba(117, 94, 56, 0.16);
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.armySecondaryStats b {
+    font-size: 11px;
+}
+
+.armyReadiness {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid rgba(117, 94, 56, 0.16);
+    color: #786f63;
+    font-size: 8px;
+    letter-spacing: 1px;
+}
+
+.armyReadiness b {
+    color: #b9aa91;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 11px;
+}
+
+.armyPersonnel {
+    margin-top: 7px;
+    color: #665f54;
+    font-size: 8px;
+    letter-spacing: 1px;
+    text-align: center;
+}
+
+.armyPersonnel b {
+    color: #b9aa91;
+    font-family: "Cinzel", Georgia, serif;
+    font-size: 10px;
+}
+
 .armyUnitStats {
     margin-top: 4px;
     color: #786f63;
@@ -3632,11 +3680,20 @@ textarea.input {
             <div class="armyList">
 
                 <div class="armyTotalStats">
-                    <div class="armyTotalStatsTitle">СИЛА ВОЙСК</div>
-                    <div class="armyTotalStatsValues">
+                    <div class="armyTotalStatsTitle">ВОЕННЫЕ ПОКАЗАТЕЛИ</div>
+                    <div class="armyTotalStatsValues armyPrimaryStats">
                         <span>⚔ АТАКА: <b id="armyAttack">0</b></span>
                         <span>🛡 ЗАЩИТА: <b id="armyDefense">0</b></span>
                     </div>
+                    <div class="armyTotalStatsValues armySecondaryStats">
+                        <span>👁 РАЗВЕДКА: <b id="armyRecon">0%</b></span>
+                        <span>🍖 СОДЕРЖАНИЕ: <b id="armyUpkeep">0</b>/час</span>
+                    </div>
+                    <div class="armyReadiness">
+                        <span>БОЕГОТОВНОСТЬ</span>
+                        <b id="armyReadiness">100%</b>
+                    </div>
+                    <div class="armyPersonnel">ВОЕННОСЛУЖАЩИЕ: <b id="armyPersonnel">0</b></div>
                 </div>
 
                 <div class="armyUnit">
@@ -3650,7 +3707,7 @@ textarea.input {
                             </div>
 
                             <div class="armyUnitStats">
-                                ⚔ Атака: <span>0</span> · 🛡 Защита: <span>10</span> / 1 воин
+                                ⚔ Атака: <span>0</span> · 🛡 Защита: <span>0</span> · 👁 Разведка: <span>+5%</span> / 1 воин
                             </div>
                         </div>
 
@@ -10850,13 +10907,21 @@ function updateArmy() {
         scouts +
         archers;
 
+    // Разведчики не являются боевым подразделением:
+    // 0 атаки / 0 защиты / +5% разведки за одного.
     const totalAttack =
-        (scouts * 0) +
-        (archers * 10);
+        archers * 10;
 
     const totalDefense =
-        (scouts * 10) +
-        (archers * 10);
+        archers * 10;
+
+    const totalRecon =
+        scouts * 5;
+
+    const totalUpkeep =
+        total * 4;
+
+    const readiness = 100;
 
     const attackValue =
         document.getElementById("armyAttack");
@@ -10864,11 +10929,35 @@ function updateArmy() {
     const defenseValue =
         document.getElementById("armyDefense");
 
+    const reconValue =
+        document.getElementById("armyRecon");
+
+    const upkeepValue =
+        document.getElementById("armyUpkeep");
+
+    const readinessValue =
+        document.getElementById("armyReadiness");
+
+    const personnelValue =
+        document.getElementById("armyPersonnel");
+
     if (attackValue)
         attackValue.textContent = totalAttack;
 
     if (defenseValue)
         defenseValue.textContent = totalDefense;
+
+    if (reconValue)
+        reconValue.textContent = totalRecon + "%";
+
+    if (upkeepValue)
+        upkeepValue.textContent = totalUpkeep;
+
+    if (readinessValue)
+        readinessValue.textContent = readiness + "%";
+
+    if (personnelValue)
+        personnelValue.textContent = total;
 
     const scoutCount =
         document.getElementById("scoutCount");

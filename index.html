@@ -500,6 +500,16 @@ textarea.input {
 
 
 /* =====================================================
+   СВОРАЧИВАЕМЫЕ СЕКЦИИ ГЛАВНОГО ЭКРАНА
+===================================================== */
+.realmSectionToggle { width:28px; height:28px; flex:0 0 28px; padding:0; border:1px solid rgba(142,116,70,.45); background:rgba(36,29,21,.55); color:#94784c; font-family:Georgia,serif; font-size:12px; line-height:1; cursor:pointer; transition:transform .2s ease,background .2s ease; }
+.realmSectionToggle:active { background:rgba(91,68,38,.55); transform:scale(.94); }
+.realmSection.collapsed .realmSectionToggle { transform:rotate(-90deg); }
+.realmSectionBody { display:block; }
+.realmSection.collapsed > .realmSectionBody { display:none; }
+.sectionHeaderRight { display:flex; align-items:center; gap:7px; min-width:0; }
+
+/* =====================================================
    НАСЕЛЕНИЕ
 ===================================================== */
 
@@ -1026,7 +1036,7 @@ function processPopulationGrowth(house, nowOverride) {
 }
 
 .productionHeader {
-    cursor: default;
+    cursor: pointer;
 }
 
 .productionHeader:active {
@@ -1053,14 +1063,13 @@ function processPopulationGrowth(house, nowOverride) {
     transform: rotate(180deg);
 }
 
+.productionSection.collapsed .productionMenu { display:none; }
+
 .productionMenu {
     display: block;
     border-top: 1px solid rgba(117, 94, 56, 0.32);
 }
 
-.productionArrow {
-    display: none;
-}
 
 .productionCard {
     margin: 10px;
@@ -4046,23 +4055,19 @@ function processPopulationGrowth(house, nowOverride) {
              НАСЕЛЕНИЕ
         ================================================== -->
 
-        <section class="realmSection">
+        <section class="realmSection" id="populationSection">
 
             <div class="sectionHeader">
-
                 <div class="sectionTitle">
-                    НАСЕЛЕНИЕ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Население','Жители вашего государства. Свободных жителей можно назначать на производство или в армию. Их назначение влияет на производство ресурсов и военную силу.')">?</button>
+                    НАСЕЛЕНИЕ <button class="infoTipButton" type="button" onclick="event.stopPropagation(); showRealmTooltip('Население','Жители вашего государства. Свободных жителей можно назначать на производство или в армию. Их назначение влияет на производство ресурсов и военную силу.')">?</button>
                 </div>
-
-                <div
-                    class="sectionTotal"
-                    id="populationTotal"
-                >
-                    Всего: 100
+                <div class="sectionHeaderRight">
+                    <div class="sectionTotal" id="populationTotal">Всего: 100</div>
+                    <button class="realmSectionToggle" type="button" aria-label="Свернуть население" onclick="toggleRealmSection('populationSection')">▼</button>
                 </div>
-
             </div>
 
+            <div class="realmSectionBody">
 
             <!-- СВОБОДНОЕ -->
 
@@ -4221,6 +4226,7 @@ function processPopulationGrowth(house, nowOverride) {
 
             </div>
 
+            </div>
         </section>
 
 
@@ -4231,12 +4237,14 @@ function processPopulationGrowth(house, nowOverride) {
         <section class="realmSection armySection" id="armySection">
 
             <div class="sectionHeader">
-                <div class="sectionTitle">АРМИЯ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Армия','Лучники формируют полевую армию. Разведчики — отдельная структура и не входят в армию. Армию можно перемещать: 1 клетка занимает 1 час. Чем дальше она от столицы, тем выше содержание. Государство может иметь несколько самостоятельных полевых армий. Состав каждой армии определяется при формировании.')">?</button></div>
-                <div class="sectionTotal" id="armyTotalLabel">
-                    ВСЕГО: 0
+                <div class="sectionTitle">АРМИЯ <button class="infoTipButton" type="button" onclick="event.stopPropagation(); showRealmTooltip('Армия','Лучники формируют полевую армию. Разведчики — отдельная структура и не входят в армию. Армию можно перемещать: 1 клетка занимает 1 час. Чем дальше она от столицы, тем выше содержание. Государство может иметь несколько самостоятельных полевых армий. Состав каждой армии определяется при формировании.')">?</button></div>
+                <div class="sectionHeaderRight">
+                    <div class="sectionTotal" id="armyTotalLabel">ВСЕГО: 0</div>
+                    <button class="realmSectionToggle" type="button" aria-label="Свернуть армию" onclick="toggleRealmSection('armySection')">▼</button>
                 </div>
             </div>
 
+            <div class="realmSectionBody">
             <div class="armyList">
 
                 <div class="armyTotalStats">
@@ -4354,6 +4362,7 @@ function processPopulationGrowth(house, nowOverride) {
                 Для назначения войск используется свободное население. Разведчики и лучники формируют отдельные структуры.
             </div>
 
+            </div>
         </section>
 
 
@@ -4361,15 +4370,17 @@ function processPopulationGrowth(house, nowOverride) {
              СКЛАД
         ================================================== -->
 
-        <section class="realmSection resourcesSection">
+        <section class="realmSection resourcesSection" id="resourcesSection">
 
             <div class="sectionHeader">
-                <div class="sectionTitle">СКЛАД <button class="infoTipButton" type="button" onclick="showRealmTooltip('Ресурсы','Ресурсы используются для строительства, содержания и торговли. Добыча увеличивает запасы, а расходы уменьшают их.')">?</button></div>
-                <div class="sectionTotal" id="storageCapacityLabel">
-                    ВМЕСТИМОСТЬ: 5000
+                <div class="sectionTitle">СКЛАД <button class="infoTipButton" type="button" onclick="event.stopPropagation(); showRealmTooltip('Ресурсы','Ресурсы используются для строительства, содержания и торговли. Добыча увеличивает запасы, а расходы уменьшают их.')">?</button></div>
+                <div class="sectionHeaderRight">
+                    <div class="sectionTotal" id="storageCapacityLabel">ВМЕСТИМОСТЬ: 5000</div>
+                    <button class="realmSectionToggle" type="button" aria-label="Свернуть ресурсы" onclick="toggleRealmSection('resourcesSection')">▼</button>
                 </div>
             </div>
 
+            <div class="realmSectionBody">
             <div class="storageList">
 
                 <div class="storageRow">
@@ -4396,6 +4407,7 @@ function processPopulationGrowth(house, nowOverride) {
 
             </div>
 
+            </div>
         </section>
 
         <!-- =================================================
@@ -4410,6 +4422,7 @@ function processPopulationGrowth(house, nowOverride) {
             <button
                 class="productionHeader"
                 type="button"
+                onclick="toggleRealmSection('productionSection')"
             >
 
                 <div class="productionHeaderLeft">
@@ -12199,14 +12212,42 @@ function processForestry(house, nowOverride) {
    ПРОИЗВОДСТВО — ОТКРЫТЬ
 ===================================================== */
 
-function toggleProduction() {
+function toggleRealmSection(id) {
+    const section = document.getElementById(id);
+    if (!section) return;
 
-    document
-        .getElementById("productionSection")
-        .classList.toggle("open");
+    const collapsed = !section.classList.contains("collapsed");
+    section.classList.toggle("collapsed", collapsed);
+    section.classList.toggle("open", !collapsed);
 
+    const button = section.querySelector(".realmSectionToggle");
+    if (button) button.setAttribute("aria-label", collapsed ? "Раскрыть раздел" : "Свернуть раздел");
+
+    try {
+        const saved = JSON.parse(localStorage.getItem("theRealmsSectionState") || "{}");
+        saved[id] = !collapsed;
+        localStorage.setItem("theRealmsSectionState", JSON.stringify(saved));
+    } catch (error) {}
 }
 
+function toggleProduction() {
+    toggleRealmSection("productionSection");
+}
+
+function restoreRealmSectionState() {
+    const ids = ["populationSection", "armySection", "resourcesSection", "productionSection"];
+    let saved = {};
+    try { saved = JSON.parse(localStorage.getItem("theRealmsSectionState") || "{}"); } catch (error) {}
+    ids.forEach(function(id) {
+        const section = document.getElementById(id);
+        if (!section) return;
+        const isOpen = saved[id] !== false;
+        section.classList.toggle("collapsed", !isOpen);
+        section.classList.toggle("open", isOpen);
+        const button = section.querySelector(".realmSectionToggle");
+        if (button) button.setAttribute("aria-label", isOpen ? "Свернуть раздел" : "Раскрыть раздел");
+    });
+}
 
 /* =====================================================
    РЕСУРСЫ — ОТКРЫТЬ
@@ -14879,6 +14920,8 @@ function closeRealmTooltip(){const o=document.getElementById("realmTooltipOverla
 function getTheRealmsServerStatus() {
     return window.theRealmsSupabaseStatus || "not_initialized";
 }
+
+if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", restoreRealmSectionState); } else { restoreRealmSectionState(); }
 </script>
 
 </body>

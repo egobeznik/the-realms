@@ -1737,6 +1737,52 @@ textarea.input {
     color:#b7a17a;
     margin-top:2px;
 }
+.armyDestinationFlag {
+    position:absolute;
+    right:4px;
+    top:4px;
+    z-index:12;
+    width:20px;
+    height:20px;
+    border:1px solid rgba(210,191,157,.9);
+    border-radius:50%;
+    background:rgba(18,15,10,.94);
+    color:#d2bf9d;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:11px;
+    line-height:1;
+    box-sizing:border-box;
+    box-shadow:0 0 0 1px rgba(70,55,35,.35);
+}
+.armyDestinationFlag.incoming {
+    animation: armyDestinationPulse 1.8s ease-in-out infinite;
+}
+@keyframes armyDestinationPulse {
+    0%,100% { opacity:.72; transform:scale(.96); }
+    50% { opacity:1; transform:scale(1.05); }
+}
+.armyDestinationInfo {
+    position:absolute;
+    left:3px;
+    right:3px;
+    bottom:3px;
+    z-index:13;
+    padding:3px 4px;
+    border:1px solid rgba(157,126,72,.65);
+    background:rgba(10,8,5,.94);
+    color:#cdb88c;
+    font-size:7px;
+    line-height:1.2;
+    text-align:center;
+    pointer-events:none;
+    box-sizing:border-box;
+}
+.armyDestinationInfo b {
+    color:#e0ccaa;
+    font-weight:normal;
+}
 .mapArmyMoveTimer {
     margin-top:5px;
     color:#cdb88c;
@@ -7541,6 +7587,71 @@ function renderMapCells(force) {
                 };
                 cell.appendChild(armyMark);
             });
+
+            // Армия физически остаётся на текущей клетке до прибытия.
+            // На целевой клетке заранее показываем отдельный флажок,
+            // чтобы игрок видел направление похода и оставшееся время.
+            const incomingArmies = house && house.army && Array.isArray(house.army.armies)
+                ? house.army.armies.filter(function(army) {
+                    return army &&
+                        army.move &&
+                        Number(army.move.targetX) === x &&
+                        Number(army.move.targetY) === y &&
+                        Math.max(0, Math.floor(Number(army.archers) || 0)) > 0;
+                })
+                : [];
+
+            if (incomingArmies.length) {
+                const flag = document.createElement("span");
+                flag.className = "armyDestinationFlag incoming";
+                flag.textContent = "⚑";
+                flag.title = "Сюда идут ваши войска";
+
+                flag.onclick = function(event) {
+                    event.stopPropagation();
+
+                    const firstArmy = incomingArmies[0];
+                    mapState.selectedX = x;
+                    mapState.selectedY = y;
+                    mapState.x = x;
+                    mapState.y = y;
+                    mapState.selectedArmyId = firstArmy.id;
+                    mapState.mode = "view";
+                    mapState.actionsOpen = true;
+
+                    updateMap();
+                    openMapActions();
+                };
+
+                cell.appendChild(flag);
+
+                const info = document.createElement("div");
+                info.className = "armyDestinationInfo";
+
+                if (incomingArmies.length === 1) {
+                    const army = incomingArmies[0];
+                    info.innerHTML =
+                        "ВАШИ ВОЙСКА ИДУТ СЮДА<br>" +
+                        "<b>" + army.name + " · " +
+                        formatArmyMoveRemaining(getArmyMoveRemaining(army)) +
+                        "</b>";
+                } else {
+                    const totalRemaining = incomingArmies.reduce(function(sum, army) {
+                        return sum + getArmyMoveRemaining(army);
+                    }, 0);
+                    const averageRemaining = Math.round(
+                        totalRemaining / incomingArmies.length
+                    );
+
+                    info.innerHTML =
+                        "ВАШИ ВОЙСКА ИДУТ СЮДА<br>" +
+                        "<b>" + incomingArmies.length + " армии · " +
+                        formatArmyMoveRemaining(averageRemaining) +
+                        "</b>";
+                }
+
+                cell.appendChild(info);
+            }
 
             const foreignArmy = getSharedArmyAt(x, y);
             const foreignArmyHasCombatPersonnel = foreignArmy &&
@@ -14322,6 +14433,7 @@ setInterval(function() {
     house.economyLastOnlineAt = Date.now();
     if (mapState.selectedX !== null && mapState.selectedY !== null && document.getElementById("mapScreen")?.style.display !== "none") {
         renderScoutingUI(house, mapState.selectedX, mapState.selectedY);
+        updateMap();
     }
 
     const selectedArmy = getSelectedArmy(house);

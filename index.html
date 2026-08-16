@@ -5647,6 +5647,7 @@ let mapState = {
     mode: "view",
     actionsOpen: false,
     selectedArmyId: null,
+    selectedForeignArmyId: null,
     pendingArmyCount: 0,
     pendingScoutCount: 0,
     pendingScoutReadyId: null,
@@ -5676,6 +5677,7 @@ const ARMY_CAMP_REST_MULTIPLIER = 2.0;
 const ARMY_CAMP_LOGISTICS_REDUCTION = 0.90;
 const ARMY_CAMP_FOOD_MULTIPLIER = 1.10;
 const ARMY_GUARD_RADIUS = 2;
+const ARMY_DETECTION_RADIUS = 2;
 const ARMY_CAMP_SETUP_MS = ARMY_MOVE_HOUR_MS;
 const ARMY_LOGISTICS_ZONES = [
     { max: 3, multiplier: 1.00 },
@@ -5984,9 +5986,54 @@ function isOwnSharedCity(city, house) {
         city.dynasty_id === house.serverDynastyId);
 }
 
-function getSharedArmyAt(x, y) {
-    return (sharedWorld.armies || []).find(function(army) {
+function getSharedArmiesAt(x, y) {
+    return (sharedWorld.armies || []).filter(function(army) {
         return Number(army.x) === Number(x) && Number(army.y) === Number(y);
+    });
+}
+
+function getSharedArmyAt(x, y) {
+    return getSharedArmiesAt(x, y)[0] || null;
+}
+
+function getForeignTerritoryDynastyIdAt(x, y, house) {
+    if (!house || !house.serverDynastyId) return null;
+    const territory = (sharedWorld.territories || []).find(function(item) {
+        return Number(item.x) === Number(x) &&
+               Number(item.y) === Number(y) &&
+               String(item.dynasty_id) !== String(house.serverDynastyId);
+    });
+    return territory ? territory.dynasty_id : null;
+}
+
+function getDiplomacyStatusForDynasty(targetDynastyId) {
+    if (!targetDynastyId) return "neutral";
+    const cached = diplomacyRelationCache.get(String(targetDynastyId));
+    return cached ? (cached.status || "neutral") : "neutral";
+}
+
+function isForeignArmyDetected(house, foreignArmy) {
+    if (!house || !foreignArmy || !house.serverDynastyId) return false;
+    if (String(foreignArmy.dynasty_id) === String(house.serverDynastyId)) return false;
+    const armies = getFieldArmies(house);
+    return armies.some(function(ownArmy) {
+        return Math.max(
+            Math.abs(Number(ownArmy.x) - Number(foreignArmy.x)),
+            Math.abs(Number(ownArmy.y) - Number(foreignArmy.y))
+        ) <= ARMY_DETECTION_RADIUS;
+    });
+}
+
+function getDetectedForeignArmiesAt(house, x, y) {
+    return getSharedArmiesAt(x, y).filter(function(army) {
+        return isForeignArmyDetected(house, army);
+    });
+}
+
+function getDetectedForeignArmyById(house, armyId) {
+    if (!armyId) return null;
+    return (sharedWorld.armies || []).find(function(army) {
+        return String(army.id) === String(armyId) && isForeignArmyDetected(house, army);
     }) || null;
 }
 
@@ -6210,7 +6257,12 @@ async function loadSharedWorld(forceRefresh) {
                         y: Number(army.y),
                         mode: army.mode || "field",
                         scouts: Math.max(0, Math.floor(Number(army.scouts) || 0)),
-                        archers: Math.max(0, Math.floor(Number(army.archers) || 0))
+                        archers: Math.max(0, Math.floor(Number(army.archers) || 0)),
+                        readiness: Number.isFinite(Number(army.readiness)) ? Number(army.readiness) : 75,
+                        guardX: Number.isFinite(Number(army.guardX)) ? Number(army.guardX) : null,
+                        guardY: Number.isFinite(Number(army.guardY)) ? Number(army.guardY) : null,
+                        camp: army.camp || null,
+                        combatCooldownUntil: Number.isFinite(Number(army.combatCooldownUntil)) ? Number(army.combatCooldownUntil) : 0
                     });
                 });
             });
@@ -7737,15 +7789,30 @@ function renderMapCells(force) {
                 cell.appendChild(info);
             }
 
-            const foreignArmy = getSharedArmyAt(x, y);
-            const foreignArmyHasCombatPersonnel = foreignArmy &&
-                Math.max(0, Math.floor(Number(foreignArmy.archers) || 0)) > 0;
-            if (!ownArmies.length && foreignArmyHasCombatPersonnel) {
-                const foreignMark = document.createElement("span");
-                foreignMark.className = "armyMapMark";
-                foreignMark.title = "Армия другого государства";
-                foreignMark.textContent = "⚔";
-                cell.appendChild(foreignMark);
+            const detectedForeignArmies = getDetectedForeignArmiesAt(house, x, y);
+            if (detectedForeignArmies.length) {
+                detectedForeignArmies.forEach(function(foreignArmy, enemyIndex) {
+                    const foreignMark = document.createElement("span");
+                    foreignMark.className = "armyMapMark enemy";
+                    foreignMark.style.left = (5 + (ownArmies.length + enemyIndex) * 27) + "px";
+                    foreignMark.title = "ОБНАРУЖЕНА ЧУЖАЯ АРМИЯ · " + Math.max(0, Math.floor(Number(foreignArmy.archers) || 0)) + " лучн.";
+                    foreignMark.textContent = "⚔";
+                    foreignMark.onclick = function(event) {
+                        event.stopPropagation();
+                        mapState.selectedX = x;
+                        mapState.selectedY = y;
+                        mapState.x = x;
+                        mapState.y = y;
+                        mapState.selectedForeignArmyId = foreignArmy.id;
+                        const stationaryOwn = ownArmies.filter(function(item) { return !item.move; });
+                        mapState.selectedArmyId = stationaryOwn.length === 1 ? stationaryOwn[0].id : null;
+                        mapState.mode = "view";
+                        mapState.actionsOpen = true;
+                        updateMap();
+                        openMapActions();
+                    };
+                    cell.appendChild(foreignMark);
+                });
             }
 
             if (mapState.selectedX === x && mapState.selectedY === y) {
@@ -8453,6 +8520,7 @@ function selectMapCell(x, y) {
 
     mapState.selectedX = x;
     mapState.selectedY = y;
+    mapState.selectedForeignArmyId = null;
 
     // Если конкретная армия уже выбрана, не сбрасываем её при выборе
     // клетки назначения. Это позволяет отправить армию на клетку, где
@@ -13475,6 +13543,87 @@ function getArmyDefenseValue(army) {
     return count * 10;
 }
 
+async function attackDetectedArmy(targetArmyId) {
+    const house = getHouse();
+    if (!house || !house.serverDynastyId || !window.theRealmsSupabase) return;
+    prepareHouse(house);
+
+    const attacker = getArmyById(house, mapState.selectedArmyId);
+    const target = getDetectedForeignArmyById(house, targetArmyId);
+    if (!attacker || !target) {
+        alert("Чужая армия больше не обнаруживается на этой клетке.");
+        return;
+    }
+
+    if (attacker.move) {
+        alert("Нельзя атаковать армию во время похода.");
+        return;
+    }
+
+    if (Number(attacker.x) !== Number(target.x) || Number(attacker.y) !== Number(target.y)) {
+        alert("Для атаки армии должны находиться на одной клетке.");
+        return;
+    }
+
+    const status = getDiplomacyStatusForDynasty(target.dynasty_id);
+    if (status !== "war") {
+        alert("Для атаки необходимо объявить войну этому государству.");
+        return;
+    }
+
+    if (!confirm("Атаковать обнаруженную армию?\n\n" +
+        "Ваши войска: " + attacker.archers + " лучн.\n" +
+        "Войска противника: " + target.archers + " лучн.")) return;
+
+    try {
+        const result = await window.theRealmsSupabase.rpc("the_realms_army_battle", {
+            p_external_id: getServerExternalId(),
+            p_slot: getCurrentDynastySlotNumber(),
+            p_attacker_army_id: String(attacker.id),
+            p_target_dynasty_id: target.dynasty_id,
+            p_target_army_id: String(target.id)
+        });
+
+        if (result.error) throw result.error;
+
+        const battle = result.data || {};
+        const attackerState = battle.attackerState;
+        if (attackerState && attackerState.army) {
+            house.army = attackerState.army;
+            prepareHouse(house);
+        }
+
+        const attackerName = attacker.name;
+        const resultText = battle.attackerWon ? "победила" : "потерпела поражение";
+        addChronicleEvent(
+            house,
+            attackerName + " " + resultText + ". Потери: " +
+            Number(battle.attackerLosses || 0) + ". Потери противника: " +
+            Number(battle.defenderLosses || 0) + "."
+        );
+
+        mapState.selectedForeignArmyId = null;
+        mapState.selectedArmyId = battle.attackerRemoved ? null : attacker.id;
+        saveHouseData(house);
+        updatePopulationSoldiersCount(house);
+        updateArmy();
+        updatePopulation();
+        updateResources();
+        await loadSharedWorld(true);
+        updateMap();
+        openMapActions();
+
+        alert(
+            (battle.attackerWon ? "ПОБЕДА" : "ПОРАЖЕНИЕ") +
+            "\n\nВаши потери: " + Number(battle.attackerLosses || 0) +
+            "\nПотери противника: " + Number(battle.defenderLosses || 0)
+        );
+    } catch (error) {
+        console.error("The Realms: ошибка боевого столкновения", error);
+        alert("Не удалось провести сражение.\n\n" + (error.message || "Военный сервер временно недоступен."));
+    }
+}
+
 function splitArmy(armyId, count) {
     const house = getHouse();
     if (!house) return;
@@ -13716,7 +13865,11 @@ function isArmyTargetAllowed(house, x, y) {
 
     const foreign = isForeignTerritoryAt(x, y, house);
     if (foreign) {
-        return { ok: false, reason: "На текущем этапе армия не может входить на территорию другого государства." };
+        const targetDynastyId = getForeignTerritoryDynastyIdAt(x, y, house);
+        const status = getDiplomacyStatusForDynasty(targetDynastyId);
+        if (status !== "war") {
+            return { ok: false, reason: "Армия может входить на территорию другого государства только во время войны." };
+        }
     }
 
     return { ok: true };
@@ -14026,6 +14179,7 @@ function renderArmyMapPanel(house, x, y) {
     );
     const armiesAtCell = getArmiesAtCell(house, targetX, targetY);
     const selectedArmy = getSelectedArmy(house);
+    const selectedForeignArmy = getDetectedForeignArmyById(house, mapState.selectedForeignArmyId);
     const isCapitalCell = !!(
         house.city &&
         Number(house.city.x) === targetX &&
@@ -14035,6 +14189,56 @@ function renderArmyMapPanel(house, x, y) {
     const allowed = isArmyTargetAllowed(house, targetX, targetY);
 
     panel.style.display = "block";
+
+    // Обнаруженная чужая армия имеет собственную панель управления.
+    // Она доступна даже на чужой территории; движение туда регулируется отдельно.
+    if (selectedForeignArmy &&
+        Number(selectedForeignArmy.x) === targetX &&
+        Number(selectedForeignArmy.y) === targetY) {
+        title.textContent = "ОБНАРУЖЕНА ЧУЖАЯ АРМИЯ";
+        stats.textContent =
+            "Лучников: " + Math.max(0, Math.floor(Number(selectedForeignArmy.archers) || 0)) +
+            " · АТАКА: " + getArmyAttackValue(selectedForeignArmy) +
+            " · ЗАЩИТА: " + getArmyDefenseValue(selectedForeignArmy) +
+            " · БОЕГОТОВНОСТЬ: " + Math.round(Math.max(0, Math.min(100, Number(selectedForeignArmy.readiness) || 75))) + "%";
+
+        const ownerStatus = getDiplomacyStatusForDynasty(selectedForeignArmy.dynasty_id);
+        const ownStationaryArmies = armiesAtCell.filter(function(item) { return !item.move; });
+        if (ownerStatus === "war" && ownStationaryArmies.length === 1) {
+            const attackButton = document.createElement("button");
+            attackButton.className = "mapArmyButton mapArmyWarButton";
+            attackButton.textContent = "АТАКОВАТЬ";
+            attackButton.onclick = function() { attackDetectedArmy(selectedForeignArmy.id); };
+            actions.appendChild(attackButton);
+            hint.textContent = "ВОЙНА · Войска находятся на одной клетке. Можно начать сражение.";
+        } else if (ownerStatus === "war" && ownStationaryArmies.length > 1) {
+            hint.textContent = "ВОЙНА · Выберите армию для атаки:";
+            ownStationaryArmies.forEach(function(ownArmy) {
+                const chooseAttack = document.createElement("button");
+                chooseAttack.className = "mapArmyButton mapArmyWarButton";
+                chooseAttack.textContent = "АТАКОВАТЬ " + ownArmy.name + " · " + ownArmy.archers + " лучн.";
+                chooseAttack.onclick = function() {
+                    mapState.selectedArmyId = ownArmy.id;
+                    attackDetectedArmy(selectedForeignArmy.id);
+                };
+                actions.appendChild(chooseAttack);
+            });
+        } else if (ownerStatus === "war") {
+            hint.textContent = "ВОЙНА · Для атаки нужна остановившаяся полевая армия на этой клетке.";
+        } else {
+            hint.textContent = "Чужая армия обнаружена. Для нападения необходимо объявить войну.";
+        }
+
+        const closeEnemy = document.createElement("button");
+        closeEnemy.className = "mapArmyButton";
+        closeEnemy.textContent = "СКРЫТЬ ОБНАРУЖЕНИЕ";
+        closeEnemy.onclick = function() {
+            mapState.selectedForeignArmyId = null;
+            openMapActions();
+        };
+        actions.appendChild(closeEnemy);
+        return;
+    }
 
     // Если клетка недоступна, всё равно показываем резерв и причину.
     if (!allowed.ok) {

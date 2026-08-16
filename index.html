@@ -2837,6 +2837,12 @@ textarea.input {
 
 </style>
 
+
+<style>
+.infoTipButton{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;margin-left:7px;border:1px solid rgba(183,154,97,.7);border-radius:50%;background:transparent;color:#b79a61;font:700 11px Arial;cursor:pointer;vertical-align:middle;padding:0}.infoTipButton:active{transform:scale(.95)}
+#realmTooltipOverlay{position:fixed;inset:0;z-index:10050;display:none;align-items:center;justify-content:center;padding:20px;background:rgba(0,0,0,.72)}
+.realmTooltipWindow{width:min(92vw,430px);max-height:80vh;overflow:auto;background:#17130f;border:1px solid rgba(183,154,97,.65);border-radius:14px;box-shadow:0 18px 60px rgba(0,0,0,.6);padding:22px;color:#eee} .realmTooltipTitle{font-size:16px;letter-spacing:1px;color:#d6b66d;margin-bottom:14px;font-weight:700}.realmTooltipText{font-size:14px;line-height:1.6;color:#ddd;white-space:pre-line}.realmTooltipClose{width:100%;margin-top:18px;padding:12px;border:1px solid rgba(183,154,97,.55);background:transparent;color:#d6b66d;border-radius:9px;font-weight:700}
+</style>
 </head>
 
 
@@ -3307,14 +3313,14 @@ textarea.input {
         <div class="diplomacyOverview">
 
             <section class="diplomacyOverviewCard">
-                <div class="diplomacyOverviewTitle">🤝 СОЮЗНИКИ</div>
+                <div class="diplomacyOverviewTitle">🤝 СОЮЗНИКИ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Союзники','Дома, с которыми заключён союз. Союз открывает дополнительные возможности, включая торговлю.')">?</button></div>
                 <div class="diplomacyOverviewList" id="alliesOverviewList">
                     <div class="diplomacyOverviewEmpty">Нет союзников</div>
                 </div>
             </section>
 
             <section class="diplomacyOverviewCard">
-                <div class="diplomacyOverviewTitle">⚔ ВОЙНА</div>
+                <div class="diplomacyOverviewTitle">⚔ ВОЙНА <button class="infoTipButton" type="button" onclick="showRealmTooltip('Война','Государства, с которыми ваш Дом находится в состоянии войны. Торговля и мирные взаимодействия недоступны.')">?</button></div>
                 <div class="diplomacyOverviewList" id="warsOverviewList">
                     <div class="diplomacyOverviewEmpty">Нет государств, с которыми ведётся война</div>
                 </div>
@@ -3324,7 +3330,7 @@ textarea.input {
 
         <div class="socialOverview">
             <section class="socialCard">
-                <div class="socialCardTitle">✉ СОЦИАЛЬНЫЙ ЦЕНТР <span class="socialBadge" id="socialUnreadBadge">0</span></div>
+                <div class="socialCardTitle">✉ СОЦИАЛЬНЫЙ ЦЕНТР <button class="infoTipButton" type="button" onclick="showRealmTooltip('Социальный центр','Здесь находятся сообщения и социальные отношения между Домами.')">?</button> <span class="socialBadge" id="socialUnreadBadge">0</span></div>
                 <div class="socialCardText" id="socialOverviewText">Сообщения и отношения между Домами.</div>
                 <button class="socialOpenButton" type="button" onclick="openSocialCenter()">ОТКРЫТЬ СОЦИАЛЬНЫЙ ЦЕНТР</button>
             </section>
@@ -3340,7 +3346,7 @@ textarea.input {
             <div class="sectionHeader">
 
                 <div class="sectionTitle">
-                    НАСЕЛЕНИЕ
+                    НАСЕЛЕНИЕ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Население','Жители вашего государства. Свободных жителей можно назначать на производство или в армию. Их назначение влияет на производство ресурсов и военную силу.')">?</button>
                 </div>
 
                 <div
@@ -3520,7 +3526,7 @@ textarea.input {
         <section class="realmSection armySection" id="armySection">
 
             <div class="sectionHeader">
-                <div class="sectionTitle">АРМИЯ</div>
+                <div class="sectionTitle">АРМИЯ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Армия','Армия формируется из военнослужащих. Разные типы войск имеют собственные характеристики атаки и защиты.')">?</button></div>
                 <div class="sectionTotal" id="armyTotalLabel">
                     ВСЕГО: 0
                 </div>
@@ -3635,7 +3641,7 @@ textarea.input {
         <section class="realmSection resourcesSection">
 
             <div class="sectionHeader">
-                <div class="sectionTitle">СКЛАД</div>
+                <div class="sectionTitle">СКЛАД <button class="infoTipButton" type="button" onclick="showRealmTooltip('Ресурсы','Ресурсы используются для строительства, содержания и торговли. Добыча увеличивает запасы, а расходы уменьшают их.')">?</button></div>
                 <div class="sectionTotal" id="storageCapacityLabel">
                     ВМЕСТИМОСТЬ: 5000
                 </div>
@@ -3790,7 +3796,7 @@ textarea.input {
         <div class="history">
 
             <div class="historyTitle">
-                ЛЕТОПИСЬ ДОМА
+                ЛЕТОПИСЬ ДОМА <button class="infoTipButton" type="button" onclick="showRealmTooltip('Летопись дома','Здесь сохраняются последние важные события вашего государства: дипломатия, торговля, добыча и расходы ресурсов.')">?</button>
             </div>
 
             <div
@@ -3946,9 +3952,9 @@ textarea.input {
         <div class="mapCellInfoCoordinates" id="mapCellInfoCoordinates">—</div>
     </div>
 
-    <div class="mapNotice" id="mapNotice">МИР · 100 × 100 КЛЕТОК</div>
+    <div class="mapNotice" id="mapNotice">МИР · 100 × 100 КЛЕТОК <button class="infoTipButton" type="button" onclick="showRealmTooltip('Карта мира','На карте расположены города и территории всех Домов. Ваши здания отображаются подробно, постройки других государств — как объекты на карте.')">?</button></div>
 
-    <div class="mapLegend">
+    <div class="mapLegend"><button class="infoTipButton" type="button" onclick="showRealmTooltip('Типы земель','Равнина — единственный тип земли, на котором можно основать город.\n\n🌲 Лес — подходит для охоты и лесного хозяйства.\n🪨 Холмы — особый тип территории.\n⛰ Горы — город основать нельзя.\n💧 Озеро — город основать нельзя.\n≋ Море — город основать нельзя.')">?</button>
         <div><span>🌲</span> Лес</div>
         <div><span>·</span> Равнина</div>
         <div><span>🪨</span> Холмы</div>
@@ -4024,6 +4030,8 @@ textarea.input {
 
 </main>
 
+<div id="realmTooltipOverlay" onclick="if(event.target===this)closeRealmTooltip()"><div class="realmTooltipWindow"><div class="realmTooltipTitle" id="realmTooltipTitle"></div><div class="realmTooltipText" id="realmTooltipText"></div><button class="realmTooltipClose" type="button" onclick="closeRealmTooltip()">ПОНЯТНО</button></div></div>
+
 <!-- =====================================================
      УВЕДОМЛЕНИЕ О ДИПЛОМАТИИ
 ===================================================== -->
@@ -4087,7 +4095,7 @@ textarea.input {
 
 <div id="tradeOfferOverlay">
     <div class="tradeOfferWindow">
-        <div class="tradeOfferTitle">ТОРГОВОЕ ПРЕДЛОЖЕНИЕ</div>
+        <div class="tradeOfferTitle">ТОРГОВОЕ ПРЕДЛОЖЕНИЕ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Торговля','Торговля доступна только между союзниками. Укажите, сколько ресурсов вы отдаёте и сколько хотите получить взамен.')">?</button></div>
         <div class="tradeOfferTarget" id="tradeOfferTarget">Союзнику</div>
 
         <div class="tradeOfferGrid">
@@ -4172,7 +4180,7 @@ textarea.input {
         <div class="cityInfoCoordinates" id="cityInfoCoordinates">X: 0 · Y: 0</div>
 
         <div class="diplomacyBlock" id="diplomacyBlock" style="display:none;">
-            <div class="diplomacyLabel">ОТНОШЕНИЯ</div>
+            <div class="diplomacyLabel">ОТНОШЕНИЯ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Дипломатические отношения','⚖️ Нейтралитет — между Домами нет особых договорённостей.\n\n🕊️ Дружба — мирные отношения между Домами.\n\n🤝 Союз — особые отношения, открывающие дополнительные возможности, включая торговлю.\n\n⚔️ Война — военный конфликт. Торговля и мирные взаимодействия недоступны.')">?</button></div>
             <div class="diplomacyStatus" id="diplomacyStatus">НЕЙТРАЛИТЕТ</div>
             <div class="diplomacyActions" id="diplomacyActions"></div>
             <div class="diplomacyHint" id="diplomacyHint"></div>
@@ -11712,6 +11720,11 @@ async function proposeSocialFriend(id,name){try{await socialRpc("the_realms_soci
 
 </script>
 
+
+<script>
+function showRealmTooltip(title,text){const o=document.getElementById("realmTooltipOverlay"),t=document.getElementById("realmTooltipTitle"),b=document.getElementById("realmTooltipText");if(t)t.textContent=title;if(b)b.textContent=text;if(o)o.style.display="flex";}
+function closeRealmTooltip(){const o=document.getElementById("realmTooltipOverlay");if(o)o.style.display="none";}
+</script>
 <script>
 function getTheRealmsServerStatus() {
     return window.theRealmsSupabaseStatus || "not_initialized";

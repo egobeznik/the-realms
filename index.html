@@ -1703,17 +1703,11 @@ textarea.input {
 
 .mapArmyPanel {
     display:none;
-    position:absolute;
-    left:50%;
-    bottom:calc(92px + env(safe-area-inset-bottom));
-    transform:translateX(-50%);
-    z-index:32;
-    width:calc(100% - 28px);
-    max-width:390px;
+    width:100%;
     box-sizing:border-box;
-    padding:11px 12px;
-    border:1px solid rgba(157,126,72,.62);
-    background:rgba(20,16,12,.94);
+    margin-top:10px;
+    padding-top:10px;
+    border-top:1px solid rgba(157,126,72,.42);
     color:#b7a17a;
     font-size:10px;
     line-height:1.4;
@@ -1928,6 +1922,134 @@ textarea.input {
 
 .mapBuildStack .mapFoundButton:active {
     transform: scale(.98) !important;
+}
+
+/* =====================================================
+   ЕДИНОЕ ОКНО ДЕЙСТВИЙ КЛЕТКИ
+===================================================== */
+.mapActionsButton {
+    position:absolute;
+    left:50%;
+    bottom:calc(82px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);
+    z-index:31;
+    width:calc(100% - 28px);
+    max-width:390px;
+    min-height:53px;
+    border:1px solid rgba(174,141,82,.78);
+    background:rgba(30,25,19,.95);
+    color:#d5c4a5;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:10px;
+    letter-spacing:2.5px;
+    cursor:pointer;
+}
+.mapActionsButton:active { transform:translateX(-50%) scale(.98); }
+
+.mapActionsOverlay {
+    position:fixed;
+    inset:0;
+    z-index:700;
+    align-items:center;
+    justify-content:center;
+    padding:18px;
+    background:rgba(0,0,0,.76);
+}
+.mapActionsWindow {
+    width:100%;
+    max-width:390px;
+    max-height:82vh;
+    overflow-y:auto;
+    box-sizing:border-box;
+    padding:18px 14px 14px;
+    border:1px solid rgba(174,141,82,.68);
+    background:#110e0a;
+    box-shadow:0 12px 45px rgba(0,0,0,.72);
+}
+.mapActionsTitle {
+    color:#d3c2a3;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:14px;
+    letter-spacing:2.5px;
+    text-align:center;
+}
+.mapActionsCell {
+    margin:8px 0 14px;
+    color:#8f806c;
+    font-size:10px;
+    text-align:center;
+}
+.mapActionsSection {
+    margin-top:10px;
+    padding:10px;
+    border:1px solid rgba(157,126,72,.38);
+    background:rgba(20,16,12,.62);
+}
+.mapActionsSectionTitle {
+    color:#c2b292;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:10px;
+    letter-spacing:2px;
+    margin-bottom:8px;
+}
+.mapActionsEmpty {
+    padding:8px 4px;
+    color:#756b60;
+    font-size:10px;
+    line-height:1.4;
+    text-align:center;
+}
+.mapActionsClose {
+    width:100%;
+    min-height:42px;
+    margin-top:12px;
+    border:1px solid rgba(117,94,56,.55);
+    background:rgba(36,29,21,.8);
+    color:#b7a17a;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:9px;
+    letter-spacing:2px;
+    cursor:pointer;
+}
+.mapActionsWindow .mapBuildStack {
+    position:static;
+    left:auto;
+    bottom:auto;
+    transform:none;
+    width:100%;
+    max-width:none;
+    display:flex;
+    gap:7px;
+}
+.mapActionsWindow .mapBuildStack .mapFoundButton {
+    position:static !important;
+    left:auto !important;
+    right:auto !important;
+    bottom:auto !important;
+    transform:none !important;
+    width:100% !important;
+    max-width:none !important;
+    min-height:42px;
+    height:auto;
+    padding:8px 10px;
+}
+.mapActionsWindow .mapArmyPanel {
+    position:static;
+    left:auto;
+    bottom:auto;
+    transform:none;
+    width:100%;
+    max-width:none;
+    box-sizing:border-box;
+    padding:0;
+    border:0;
+    background:transparent;
+}
+.mapActionsWindow .mapActionPanel {
+    width:100%;
+}
+.mapActionsWindow .mapScoutProgress {
+    margin-top:0;
 }
 
 /* Компактная кнопка строительства охотничьего угодья */
@@ -4068,12 +4190,6 @@ textarea.input {
                 Для назначения войск используется свободное население. Разведчики и лучники формируют отдельные структуры.
             </div>
 
-            <div class="armyFieldControl" id="armyFieldControl">
-                <div class="armyFieldControlTitle">ПОЛЕВАЯ АРМИЯ</div>
-                <div class="armyFieldControlText" id="armyFieldControlText">Проверьте резерв лучников и сформируйте подразделение для похода.</div>
-                <button type="button" class="armyUnitButton armyFieldControlButton" id="armyFormButton" onclick="openArmyFormationFromRealm()">СФОРМИРОВАТЬ ПОДРАЗДЕЛЕНИЕ</button>
-            </div>
-
         </section>
 
 
@@ -4395,7 +4511,7 @@ textarea.input {
         <div class="mapCellInfoCoordinates" id="mapCellInfoCoordinates">—</div>
     </div>
 
-    <div class="mapNotice" id="mapNotice">МИР · 100 × 100 КЛЕТОК <button class="infoTipButton" type="button" onclick="showRealmTooltip('Карта мира','Ваши территории отмечены рамкой. 🔎 показывает активную разведку, ⚔ — положение армии. Нажмите на свою армию, чтобы переместить её или поставить на охрану клетки. 1 клетка пути занимает 1 час. Нейтральные сухопутные клетки доступны для перемещения.')">?</button></div>
+    <div class="mapNotice" id="mapNotice">МИР · 100 × 100 КЛЕТОК <button class="infoTipButton" type="button" onclick="showRealmTooltip('Карта мира','Ваши территории отмечены рамкой. 🔎 показывает активную разведку, ⚔ — положение армии. Нажмите на клетку карты. Под разведкой появится отправка армии и выбор количества воинов. 1 клетка пути занимает 1 час.')">?</button></div>
 
     <div class="mapLegend">
         <div><span>🌲</span> Лес</div>
@@ -4421,68 +4537,57 @@ textarea.input {
         ОСНОВАТЬ ГОРОД
     </button>
 
-    <div class="mapBuildStack" id="mapBuildStack">
-    <button
-        class="mapFoundButton"
-        id="mapBuildHouseButton"
-        onclick="buildHouseBuilding()"
-        title="Построить дом"
-        aria-label="Построить дом"
-        style="display:none;"
-    >
-        <span class="houseBuildIcon">🏠</span>
-        <span class="houseBuildText">ПОСТРОИТЬ ДОМ · 50 🌲 · 25 🍖</span>
-    </button>
+    <button class="mapActionsButton" id="mapActionsButton" type="button" onclick="openMapActions()" style="display:none;">ДЕЙСТВИЯ</button>
 
-    <button
-        class="mapFoundButton"
-        id="mapBuildHuntingButton"
-        onclick="buildHuntingGround()"
-        title="Построить охотничье угодье"
-        aria-label="Построить охотничье угодье"
-        style="display:none;"
-    >
-        <span class="huntingBuildIcon">🏹</span>
-        <span class="huntingBuildText">ПОСТРОИТЬ ОХОТНИЧЬЕ УГОДЬЕ · 10 🌲</span>
-    </button>
+    <div id="mapActionsOverlay" class="mapActionsOverlay" style="display:none;" onclick="if(event.target===this)closeMapActions()">
+        <div class="mapActionsWindow">
+            <div class="mapActionsTitle">ДЕЙСТВИЯ</div>
+            <div class="mapActionsCell" id="mapActionsCell"></div>
 
-    <button
-        class="mapFoundButton"
-        id="mapBuildWarehouseButton"
-        onclick="buildWarehouse()"
-        title="Построить склад"
-        aria-label="Построить склад"
-        style="display:none;"
-    >
-        <span class="warehouseBuildIcon">📦</span>
-        <span class="warehouseBuildText">ПОСТРОИТЬ СКЛАД · 100 🌲</span>
-    </button>
+            <div class="mapActionsSection">
+                <div class="mapActionsSectionTitle">ПОСТРОИТЬ</div>
+                <div class="mapBuildStack" id="mapBuildStack">
+                    <div class="mapActionsEmpty" id="mapBuildEmpty">На этой клетке сейчас нет доступных построек.</div>
+                    <button class="mapFoundButton" id="mapBuildHouseButton" onclick="buildHouseBuilding()" title="Построить дом" aria-label="Построить дом" style="display:none;">
+                        <span class="houseBuildIcon">🏠</span><span class="houseBuildText">ПОСТРОИТЬ ДОМ · 50 🌲 · 25 🍖</span>
+                    </button>
+                    <button class="mapFoundButton" id="mapBuildHuntingButton" onclick="buildHuntingGround()" title="Построить охотничье угодье" aria-label="Построить охотничье угодье" style="display:none;">
+                        <span class="huntingBuildIcon">🏹</span><span class="huntingBuildText">ПОСТРОИТЬ ОХОТНИЧЬЕ УГОДЬЕ · 10 🌲</span>
+                    </button>
+                    <button class="mapFoundButton" id="mapBuildWarehouseButton" onclick="buildWarehouse()" title="Построить склад" aria-label="Построить склад" style="display:none;">
+                        <span class="warehouseBuildIcon">📦</span><span class="warehouseBuildText">ПОСТРОИТЬ СКЛАД · 100 🌲</span>
+                    </button>
+                    <button class="mapFoundButton" id="mapBuildForestryButton" onclick="buildForestry()" title="Построить лесничество" aria-label="Построить лесничество" style="display:none;">
+                        <span class="forestryBuildIcon">🪵</span><span class="forestryBuildText">ПОСТРОИТЬ ЛЕСНИЧЕСТВО · 15 🌲</span>
+                    </button>
+                </div>
+            </div>
 
-    <button
-        class="mapFoundButton"
-        id="mapBuildForestryButton"
-        onclick="buildForestry()"
-        title="Построить лесничество"
-        aria-label="Построить лесничество"
-        style="display:none;"
-    >
-        <span class="forestryBuildIcon">🪵</span>
-        <span class="forestryBuildText">ПОСТРОИТЬ ЛЕСНИЧЕСТВО · 15 🌲</span>
-    </button>
+            <div class="mapActionsSection">
+                <div class="mapActionsSectionTitle">РАЗВЕДКА</div>
+                <div id="mapScoutPanel" class="mapActionPanel" style="display:none;">
+                    <div class="mapScoutProgress" id="mapScoutProgress"></div>
+                    <div class="mapScoutControls">
+                        <input class="mapScoutInput" id="mapScoutCountInput" type="number" min="1" max="1" value="1" inputmode="numeric" aria-label="Количество разведчиков">
+                        <button class="mapScoutButton" id="mapScoutButton" type="button" onclick="startCellScouting()">РАЗВЕДАТЬ КЛЕТКУ</button>
+                    </div>
+                </div>
+                <div class="mapActionsEmpty" id="mapScoutEmpty" style="display:none;"></div>
+            </div>
 
-    <div id="mapScoutPanel" style="display:none;">
-        <div class="mapScoutProgress" id="mapScoutProgress"></div>
-        <div class="mapScoutControls">
-            <input class="mapScoutInput" id="mapScoutCountInput" type="number" min="1" max="1" value="1" inputmode="numeric" aria-label="Количество разведчиков">
-            <button class="mapScoutButton" id="mapScoutButton" type="button" onclick="startCellScouting()">РАЗВЕДАТЬ КЛЕТКУ</button>
+            <div class="mapActionsSection">
+                <div class="mapActionsSectionTitle">АРМИЯ</div>
+                <div id="mapArmyPanel" class="mapArmyPanel">
+                    <div class="mapArmyTitle" id="mapArmyTitle">АРМИЯ</div>
+                    <div class="mapArmyStats" id="mapArmyStats"></div>
+                    <div class="mapArmyActions" id="mapArmyActions"></div>
+                    <div class="mapArmyHint" id="mapArmyHint"></div>
+                </div>
+                <div class="mapActionsEmpty" id="mapArmyEmpty" style="display:none;"></div>
+            </div>
+
+            <button class="mapActionsClose" type="button" onclick="closeMapActions()">ЗАКРЫТЬ</button>
         </div>
-    </div>
-    <div id="mapArmyPanel" class="mapArmyPanel">
-        <div class="mapArmyTitle" id="mapArmyTitle">АРМИЯ I</div>
-        <div class="mapArmyStats" id="mapArmyStats"></div>
-        <div class="mapArmyActions" id="mapArmyActions"></div>
-        <div class="mapArmyHint" id="mapArmyHint"></div>
-    </div>
     </div>
 
 </main>
@@ -5379,6 +5484,7 @@ let mapState = {
     selectedX: null,
     selectedY: null,
     mode: "view",
+    actionsOpen: false,
     pendingArmyCount: 0,
     pendingScoutCount: 0,
     pendingScoutReadyId: null,
@@ -6336,8 +6442,25 @@ function openWorldMap() {
     window.scrollTo(0, 0);
 }
 
+function openMapActions() {
+    const house = getHouse();
+    if (!house || mapState.selectedX === null || mapState.selectedY === null) return;
+    if (mapState.mode === "foundation") return;
+    mapState.actionsOpen = true;
+    const overlay = document.getElementById("mapActionsOverlay");
+    if (overlay) overlay.style.display = "flex";
+    updateMap();
+}
+
+function closeMapActions() {
+    mapState.actionsOpen = false;
+    const overlay = document.getElementById("mapActionsOverlay");
+    if (overlay) overlay.style.display = "none";
+}
+
 function setMapMode(mode) {
     mapState.mode = mode;
+    if (mode !== "view") closeMapActions();
 
     const buildButton =
         document.getElementById("mapBuildHuntingButton");
@@ -7671,7 +7794,7 @@ function addDeleteBuildingButton(x, y, label) {
     removeDeleteBuildingButton();
 
     const info =
-        document.getElementById("mapCellInfo");
+        document.getElementById("mapBuildStack");
 
     if (!info) return;
 
@@ -7715,6 +7838,16 @@ function updateMap() {
 
     const houseButton =
         document.getElementById("mapBuildHouseButton");
+    const actionsButton =
+        document.getElementById("mapActionsButton");
+    const actionsCell =
+        document.getElementById("mapActionsCell");
+    const buildEmpty =
+        document.getElementById("mapBuildEmpty");
+    const scoutEmpty =
+        document.getElementById("mapScoutEmpty");
+    const armyEmpty =
+        document.getElementById("mapArmyEmpty");
 
     if (mapState.selectedX !== null) {
 
@@ -7904,35 +8037,51 @@ function updateMap() {
         renderScoutingUI(house, mapState.selectedX, mapState.selectedY);
         renderArmyMapPanel(house, mapState.selectedX, mapState.selectedY);
 
-        const armyPanel = document.getElementById("mapArmyPanel");
-        const armyPanelVisible = !!(armyPanel && armyPanel.style.display !== "none");
         const buildStack = document.getElementById("mapBuildStack");
-        const scoutPanel = document.getElementById("mapScoutPanel");
-        const foundButton = document.getElementById("mapFoundButton");
-        if (armyPanelVisible) {
-            if (buildStack) buildStack.style.display = "none";
-            if (scoutPanel) scoutPanel.style.display = "none";
-            if (foundButton) foundButton.style.display = "none";
-        } else if (buildStack) {
-            buildStack.style.display = "";
+        const anyBuildAvailable =
+            !!(huntingButton && huntingButton.style.display !== "none") ||
+            !!(forestryButton && forestryButton.style.display !== "none") ||
+            !!(warehouseButton && warehouseButton.style.display !== "none") ||
+            !!(houseButton && houseButton.style.display !== "none") ||
+            !!document.getElementById("mapDeleteBuildingButton");
+
+        if (buildEmpty) buildEmpty.style.display = anyBuildAvailable ? "none" : "block";
+        if (actionsCell) actionsCell.textContent = "X: " + mapState.selectedX + " · Y: " + mapState.selectedY + " · " + terrainName(type);
+        if (actionsButton) {
+            actionsButton.style.display = foundationMode ? "none" : "block";
+        }
+        if (buildStack) buildStack.style.display = "flex";
+
+        if (scoutEmpty) {
+            const scoutVisible = document.getElementById("mapScoutPanel")?.style.display !== "none";
+            scoutEmpty.style.display = scoutVisible ? "none" : "block";
+            scoutEmpty.textContent = scoutingAllowedForCell(house, mapState.selectedX, mapState.selectedY)
+                ? "Нет доступных разведчиков или разведка этой клетки уже завершена."
+                : "Разведка доступна только для соседней нейтральной клетки.";
+        }
+
+        if (armyEmpty) {
+            const armyVisible = document.getElementById("mapArmyPanel")?.style.display !== "none";
+            armyEmpty.style.display = armyVisible ? "none" : "block";
+            armyEmpty.textContent = "Армия для этой клетки сейчас недоступна.";
         }
 
         if (armyMoveMode) {
-            if (huntingButton) huntingButton.style.display = "none";
-            if (forestryButton) forestryButton.style.display = "none";
-            if (warehouseButton) warehouseButton.style.display = "none";
-            if (houseButton) houseButton.style.display = "none";
-            document.getElementById("mapFoundButton").style.display = "none";
+            if (actionsButton) actionsButton.style.display = "none";
+            closeMapActions();
+        } else if (mapState.actionsOpen) {
+            const overlay = document.getElementById("mapActionsOverlay");
+            if (overlay) overlay.style.display = "flex";
         }
 
     } else {
 
+        closeMapActions();
+        if (actionsButton) actionsButton.style.display = "none";
         const scoutPanel = document.getElementById("mapScoutPanel");
         if (scoutPanel) scoutPanel.style.display = "none";
-        const armyPanel = document.getElementById("mapArmyPanel");
-        if (armyPanel) armyPanel.style.display = "none";
         const buildStack = document.getElementById("mapBuildStack");
-        if (buildStack) buildStack.style.display = "";
+        if (buildStack) buildStack.style.display = "flex";
 
         document.getElementById("mapSelectionInfo").textContent =
             mapState.mode === "view"
@@ -7965,6 +8114,13 @@ function updateMap() {
     }
 }
 
+function scoutingAllowedForCell(house, x, y) {
+    if (!house || x === null || y === null) return false;
+    return !isTerritoryCell(house, x, y) &&
+        !isForeignTerritoryAt(x, y, house) &&
+        isAdjacentToOwnTerritory(house, x, y);
+}
+
 function terrainName(type) {
     if (type === "forest") return "ЛЕС";
     if (type === "hill") return "ХОЛМЫ";
@@ -7990,6 +8146,8 @@ function selectMapCell(x, y) {
 
     mapState.selectedX = x;
     mapState.selectedY = y;
+    mapState.actionsOpen = false;
+    closeMapActions();
 
     // Центрируем выбранную клетку.
     mapState.x = x;
@@ -12122,26 +12280,7 @@ function updateArmy() {
 
     if (totalLabel)
         totalLabel.textContent =
-            "БОЕВАЯ АРМИЯ: " + total;
-
-    const armyFieldControlText = document.getElementById("armyFieldControlText");
-    const armyFormButton = document.getElementById("armyFormButton");
-    const fieldArmy = getFieldArmy(house);
-    if (armyFieldControlText && armyFormButton) {
-        if (fieldArmy && Number(fieldArmy.archers || 0) > 0) {
-            armyFieldControlText.textContent = "В поле: " + Math.floor(Number(fieldArmy.archers) || 0) + " лучн. · В столице: " + reserveArchers + " лучн.";
-            armyFormButton.textContent = fieldArmy.move ? "АРМИЯ В ПОХОДЕ" : "ОТКРЫТЬ УПРАВЛЕНИЕ АРМИЕЙ";
-            armyFormButton.disabled = !!fieldArmy.move;
-        } else if (reserveArchers > 0) {
-            armyFieldControlText.textContent = "В столице: " + reserveArchers + " лучн. · Выберите, сколько отправить в подразделение.";
-            armyFormButton.textContent = "СФОРМИРОВАТЬ ПОДРАЗДЕЛЕНИЕ";
-            armyFormButton.disabled = false;
-        } else {
-            armyFieldControlText.textContent = "В столице нет лучников. Сначала назначьте хотя бы одного лучника.";
-            armyFormButton.textContent = "НЕТ ВОЙСК ДЛЯ ПОХОДА";
-            armyFormButton.disabled = true;
-        }
-    }
+            "ВОЙСКА В ПОЛЕ: " + total;
 
     const free =
         house.population.free;
@@ -12975,68 +13114,6 @@ function startArmyMoveToSelectedCell() {
     updateArmy();
     updateMap();
 }
-function openArmyFormationFromRealm() {
-    const house = getHouse();
-    if (!house || !house.city) return;
-
-    const reserve = Math.max(0, Math.floor(Number(house.army?.archers) || 0));
-    if (reserve < 1) {
-        alert("В военном резерве нет свободных лучников для формирования армии.");
-        return;
-    }
-
-    openWorldMap();
-    mapState.selectedX = null;
-    mapState.selectedY = null;
-    mapState.x = Number(house.city.x);
-    mapState.y = Number(house.city.y);
-    mapState.pendingArmyCount = 0;
-    mapState.mode = "army_move";
-
-    const title = document.querySelector(".mapInstructionTitle");
-    const instructionText = document.querySelector(".mapInstructionText");
-    if (title) title.textContent = "ФОРМИРОВАНИЕ АРМИИ";
-    if (instructionText) instructionText.textContent = "Выберите клетку назначения. После выбора укажите, сколько лучников отправить из военного резерва.";
-    const instruction = document.getElementById("mapInstruction");
-    if (instruction) instruction.classList.remove("viewMode");
-
-    updateMap();
-}
-
-function beginArmyMoveMode() {
-    const house = getHouse();
-    if (!house) return;
-    prepareHouse(house);
-    const army = getFieldArmy(house);
-
-    // Если есть уже существующая полевая армия, команда "переместить"
-    // относится к ней. Новая армия создаётся только после выбора клетки
-    // и количества войск.
-    if (army) {
-        if (army.move) return;
-        if (getAssignedCombatPersonnel(house) < 1) {
-            alert("В армии нет боевых подразделений.");
-            return;
-        }
-        mapState.pendingArmyCount = getAssignedCombatPersonnel(house);
-    } else {
-        if (Math.max(0, Math.floor(Number(house.army.archers) || 0)) < 1) {
-            alert("В военном резерве нет лучников для формирования армии.");
-            return;
-        }
-        mapState.pendingArmyCount = 0;
-    }
-
-    mapState.mode = "army_move";
-    const title = document.querySelector(".mapInstructionTitle");
-    const text = document.querySelector(".mapInstructionText");
-    if (title) title.textContent = "ПЕРЕМЕЩЕНИЕ АРМИИ";
-    if (text) text.textContent = "Выберите сухопутную клетку. 1 клетка пути занимает 1 час.";
-    const instruction = document.getElementById("mapInstruction");
-    if (instruction) instruction.classList.remove("viewMode");
-    updateMap();
-}
-
 function guardArmyAtSelectedCell() {
     const house = getHouse();
     if (!house) return;
@@ -13086,186 +13163,113 @@ function renderArmyMapPanel(house, x, y) {
     const actions = document.getElementById("mapArmyActions");
     const hint = document.getElementById("mapArmyHint");
     if (!panel || !title || !stats || !actions || !hint) return;
+
     panel.style.display = "none";
     actions.innerHTML = "";
 
+    if (!house || x === null || y === null) return;
+
+    const reserveArchers = Math.max(0, Math.floor(Number(house.army?.archers) || 0));
     const army = getFieldArmy(house);
-    if (x === null || y === null) return;
 
-    const reserveArchers = Math.max(0, Math.floor(Number(house.army.archers) || 0));
+    // Карточка армии должна быть доступна на выбранной сухопутной клетке
+    // даже тогда, когда разведка для этой клетки недоступна.
+    const scoutPanel = document.getElementById("mapScoutPanel");
+    const scoutProgress = document.getElementById("mapScoutProgress");
+    const scoutControls = document.querySelector("#mapScoutPanel .mapScoutControls");
+    const adjacent = isAdjacentToOwnTerritory(house, Number(x), Number(y));
+    const foreign = isForeignTerritoryAt(Number(x), Number(y), house);
+    const scoutingAllowed = !isTerritoryCell(house, Number(x), Number(y)) && !foreign && adjacent;
 
-    // Army 3.0: если полевой армии ещё нет, клетка сама становится точкой
-    // формирования. Количество войск выбирается прямо в карточке выбранной клетки.
-    if (!army) {
-        if (reserveArchers <= 0 || mapState.mode !== "army_move") return;
-
-        const allowed = isArmyTargetAllowed(house, Number(x), Number(y));
-        if (!allowed.ok) {
-            panel.style.display = "block";
-            title.textContent = "ФОРМИРОВАНИЕ АРМИИ";
-            stats.textContent = "В военном резерве: " + reserveArchers + " лучн.";
-            hint.textContent = allowed.reason;
-            return;
+    if (!scoutingAllowed && scoutPanel) {
+        scoutPanel.style.display = "block";
+        if (scoutProgress) {
+            scoutProgress.textContent = "РАЗВЕДКА ДЛЯ ЭТОЙ КЛЕТКИ НЕДОСТУПНА.";
         }
+        if (scoutControls) scoutControls.style.display = "none";
+    }
 
-        if (house.city &&
-            Number(house.city.x) === Number(x) &&
-            Number(house.city.y) === Number(y)) {
-            panel.style.display = "block";
-            title.textContent = "ФОРМИРОВАНИЕ АРМИИ";
-            stats.textContent = "Военный резерв: " + reserveArchers + " лучн.";
-            hint.textContent = "Выберите клетку назначения, затем укажите количество лучников.";
-            return;
-        }
-
-        panel.style.display = "block";
-        title.textContent = "НОВАЯ ПОЛЕВАЯ АРМИЯ";
-        stats.textContent = "В военном резерве: " + reserveArchers + " лучн.";
-        hint.textContent = "Выберите, сколько лучников отправить на эту клетку. Разведчики — отдельная структура.";
-
-        const formation = document.createElement("div");
-        formation.className = "mapArmyFormation";
-
-        const input = document.createElement("input");
-        input.type = "number";
-        input.min = "1";
-        input.max = String(reserveArchers);
-        input.value = String(Math.min(1, reserveArchers));
-        input.id = "mapArmyFormationCount";
-        input.setAttribute("aria-label", "Количество лучников для армии");
-
-        const confirm = document.createElement("button");
-        confirm.className = "mapArmyButton";
-        confirm.textContent = "ОТПРАВИТЬ АРМИЮ";
-        confirm.onclick = function() {
-            const count = Math.max(0, Math.min(reserveArchers, Math.floor(Number(input.value) || 0)));
-            if (count < 1) {
-                alert("Выберите хотя бы одного лучника.");
-                return;
-            }
-            mapState.pendingArmyCount = count;
-            startArmyMoveToSelectedCell();
-        };
-
-        formation.appendChild(input);
-        formation.appendChild(confirm);
-        actions.appendChild(formation);
-
-        const cancel = document.createElement("button");
-        cancel.className = "mapArmyButton cancel";
-        cancel.textContent = "ОТМЕНИТЬ";
-        cancel.onclick = function() {
-            mapState.mode = "view";
-            mapState.pendingArmyCount = 0;
-            updateMap();
-        };
-        actions.appendChild(cancel);
+    // Армия отправляется только из выбранной клетки карты.
+    // Из экрана Дома входа в режим армии больше нет.
+    if (house.city &&
+        Number(house.city.x) === Number(x) &&
+        Number(house.city.y) === Number(y)) {
         return;
     }
 
-    const isArmyCell = Number(army.x) === Number(x) && Number(army.y) === Number(y);
-    const isMoveTarget = mapState.mode === "army_move";
-    if (!isArmyCell && !isMoveTarget) return;
+    const allowed = isArmyTargetAllowed(house, Number(x), Number(y));
+    if (!allowed.ok) return;
 
     panel.style.display = "block";
-    title.textContent = army.name + " · " + formatArmyMode(army);
-    const distance = getArmyDistanceFromCapital(house, army);
-    const multiplier = getArmyLogisticsMultiplier(house);
-    const combatPersonnel = getAssignedCombatPersonnel(house);
-    const scoutsReserved = getScoutingOperations(house).reduce(function(sum, op) { return sum + Math.max(0, Math.floor(Number(op.scouts) || 0)); }, 0);
-    stats.textContent = "В армии: " + combatPersonnel + " лучн. · В столице: " + reserveArchers + " лучн. · В разведке: " + scoutsReserved +
-        " · Расстояние до столицы: " + distance + " кл. · Содержание: ×" + multiplier.toFixed(2);
-    hint.textContent = army.move
-        ? "Армия в пути. Осталось: " + formatArmyMoveRemaining(getArmyMoveRemaining(army)) + ". Поход можно отменить."
-        : "Лучники входят в армию. Разведчики — отдельная структура и в армию не входят. Состав армии можно менять только в столице.";
 
-    if (army.move) {
-        const cancel = document.createElement("button");
-        cancel.className = "mapArmyButton cancel";
-        cancel.textContent = "ОТМЕНИТЬ ПОХОД";
-        cancel.onclick = cancelArmyMove;
-        actions.appendChild(cancel);
+    // Если полевая армия уже существует, показываем её состояние,
+    // но не создаём второй независимый интерфейс поверх карты.
+    if (army && Number(army.archers || 0) > 0) {
+        title.textContent = army.name + " · " + formatArmyMode(army);
+        stats.textContent =
+            "В армии: " + Math.floor(Number(army.archers) || 0) +
+            " лучн. · В резерве: " + reserveArchers;
+
+        hint.textContent = army.move
+            ? "Армия уже находится в походе. Новая отправка с этой клетки недоступна."
+            : "Армия уже сформирована. Чтобы отправить её в другое место, выберите саму армию на карте.";
+
+        if (army.move) {
+            const cancel = document.createElement("button");
+            cancel.className = "mapArmyButton cancel";
+            cancel.textContent = "ОТМЕНИТЬ ПОХОД";
+            cancel.onclick = cancelArmyMove;
+            actions.appendChild(cancel);
+        }
         return;
     }
 
-    if (isArmyCell) {
-        if (isArmyAtCapital(house, army) && mapState.mode === "army_move" && mapState.pendingArmyCount === 0) {
-            const formation = document.createElement("div");
-            formation.className = "mapArmyFormation";
-            const input = document.createElement("input");
-            input.type = "number";
-            input.min = "1";
-            input.max = String(reserveArchers);
-            input.value = String(Math.min(1, reserveArchers));
-            input.id = "mapArmyFormationCount";
-            input.setAttribute("aria-label", "Количество лучников для похода");
-            const confirm = document.createElement("button");
-            confirm.className = "mapArmyButton";
-            confirm.textContent = "СФОРМИРОВАТЬ · " + reserveArchers + " В РЕЗЕРВЕ";
-            confirm.onclick = function() {
-                const count = Math.max(0, Math.min(reserveArchers, Math.floor(Number(input.value) || 0)));
-                if (count < 1) { alert("Выберите хотя бы одного лучника."); return; }
-                mapState.pendingArmyCount = count;
-                const title = document.querySelector(".mapInstructionTitle");
-                const text = document.querySelector(".mapInstructionText");
-                if (title) title.textContent = "МАРШРУТ АРМИИ";
-                if (text) text.textContent = "Выберите клетку назначения. " + count + " лучн. отправятся в поход.";
-                updateMap();
-            };
-            formation.appendChild(input);
-            formation.appendChild(confirm);
-            actions.appendChild(formation);
-            const cancelForm = document.createElement("button");
-            cancelForm.className = "mapArmyButton cancel";
-            cancelForm.textContent = "ОТМЕНИТЬ ВЫБОР";
-            cancelForm.onclick = function(){ mapState.mode = "view"; mapState.pendingArmyCount = 0; updateMap(); };
-            actions.appendChild(cancelForm);
-            return;
-        }
+    // Свободного боевого подразделения нет — формируем его прямо здесь,
+    // полностью по аналогии с выбором количества разведчиков.
+    title.textContent = "ОТПРАВИТЬ АРМИЮ";
+    stats.textContent = "Военный резерв: " + reserveArchers + " лучн.";
 
-        if (isArmyAtCapital(house, army) && mapState.mode === "army_move" && mapState.pendingArmyCount > 0) {
-            const routeHint = document.createElement("div");
-            routeHint.style.width = "100%";
-            routeHint.textContent = "Сформировано: " + mapState.pendingArmyCount + " лучн. Выберите клетку назначения.";
-            actions.appendChild(routeHint);
-            const cancelRoute = document.createElement("button");
-            cancelRoute.className = "mapArmyButton cancel";
-            cancelRoute.textContent = "ОТМЕНИТЬ ПОХОД";
-            cancelRoute.onclick = function(){ mapState.mode = "view"; mapState.pendingArmyCount = 0; updateMap(); };
-            actions.appendChild(cancelRoute);
-            return;
-        }
-
-        const move = document.createElement("button");
-        move.className = "mapArmyButton";
-        move.textContent = "ПЕРЕМЕСТИТЬ";
-        move.onclick = beginArmyMoveMode;
-        actions.appendChild(move);
-
-        if (army.mode === "guard") {
-            const release = document.createElement("button");
-            release.className = "mapArmyButton cancel";
-            release.textContent = "СНЯТЬ С ОХРАНЫ";
-            release.onclick = cancelArmyGuard;
-            actions.appendChild(release);
-        } else if (isTerritoryCell(house, x, y)) {
-            const guard = document.createElement("button");
-            guard.className = "mapArmyButton";
-            guard.textContent = "ОХРАНЯТЬ КЛЕТКУ";
-            guard.onclick = guardArmyAtSelectedCell;
-            actions.appendChild(guard);
-        }
-    } else if (isMoveTarget) {
-        const allowed = isArmyTargetAllowed(house, x, y);
-        const move = document.createElement("button");
-        move.className = "mapArmyButton";
-        move.textContent = "ОТПРАВИТЬ · " + Math.max(Math.abs(army.x - x), Math.abs(army.y - y)) + " Ч · " + (mapState.pendingArmyCount || 0) + " ЛУЧН.";
-        move.disabled = !allowed.ok;
-        move.onclick = startArmyMoveToSelectedCell;
-        actions.appendChild(move);
+    if (reserveArchers <= 0) {
+        hint.textContent = "В военном резерве нет свободных лучников.";
+        return;
     }
-}
 
+    hint.textContent =
+        "Выберите количество лучников для похода на X:" + x + " Y:" + y + ".";
+
+    const formation = document.createElement("div");
+    formation.className = "mapArmyFormation";
+
+    const input = document.createElement("input");
+    input.type = "number";
+    input.min = "1";
+    input.max = String(reserveArchers);
+    input.value = String(Math.min(1, reserveArchers));
+    input.id = "mapArmyFormationCount";
+    input.setAttribute("aria-label", "Количество воинов");
+
+    const send = document.createElement("button");
+    send.className = "mapArmyButton";
+    send.textContent = "ОТПРАВИТЬ АРМИЮ";
+    send.onclick = function() {
+        const count = Math.max(
+            0,
+            Math.min(reserveArchers, Math.floor(Number(input.value) || 0))
+        );
+
+        if (count < 1) {
+            alert("Выберите хотя бы одного лучника.");
+            return;
+        }
+
+        mapState.pendingArmyCount = count;
+        startArmyMoveToSelectedCell();
+    };
+
+    formation.appendChild(input);
+    formation.appendChild(send);
+    actions.appendChild(formation);
+}
 /* =====================================================
    РЕСУРСЫ
 ===================================================== */

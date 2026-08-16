@@ -981,7 +981,7 @@ function startGrainResearch(){
     addChronicleResourceEvent(house,"spend",{wood:GRAIN_RESEARCH_WOOD_COST,meat:GRAIN_RESEARCH_MEAT_COST},"research"); saveHouseData(house); updateResources(); updateResearchUI();
 }
 function updateResearchUI(){
-    const house=getHouse(); if(!house)return; house=prepareHouse(house);
+    const house=getHouse(); if(!house)return;
     const status=document.getElementById("researchStatus"), timer=document.getElementById("grainResearchTimer"), button=document.getElementById("grainResearchButton");
     if(!status||!timer||!button)return;
     if(house.research.grainUnlocked){ status.textContent="Исследование завершено. Земледелие доступно."; timer.textContent="✓ ЗЕРНО ИССЛЕДОВАНО"; button.style.display="none"; return; }
@@ -997,7 +997,7 @@ function toggleGrainCategory(){ const c=document.getElementById("grainCategory")
 function processFields(house,nowOverride){ if(!house||!house.fields||!house.fields.length||!isGrainResearchComplete(house))return; const now=typeof nowOverride==="number"?nowOverride:Date.now(); house.fields.forEach(function(f){if(f.active===false||f.farmers<FIELD_MINIMUM){f.lastProduction=now;return;} const cycles=Math.floor((now-f.lastProduction)/FIELD_INTERVAL); if(cycles<=0)return; const per=Math.floor((Math.floor(f.farmers/4)*FIELD_GRAIN_PER_CYCLE)*getProductionEfficiencyMultiplier(house)); if(per>0){const free=getStorageFreeSpace(house); const add=Math.min(per*cycles,free); house.resources.grain+=add;} f.lastProduction+=cycles*FIELD_INTERVAL;}); }
 function processBakeries(house,nowOverride){ if(!house||!house.bakeries||!house.bakeries.length||!isGrainResearchComplete(house))return; const now=typeof nowOverride==="number"?nowOverride:Date.now(); house.bakeries.forEach(function(b){if(b.active===false||b.bakers<BAKERY_MINIMUM){b.lastProduction=now;return;} const cycles=Math.floor((now-b.lastProduction)/BAKERY_INTERVAL); if(cycles<=0)return; const possible=Math.min(Math.floor(b.bakers/2)*BAKERY_GRAIN_PER_CYCLE*cycles,Math.floor(house.resources.grain)); const bread=Math.floor(possible*(BAKERY_BREAD_PER_CYCLE/BAKERY_GRAIN_PER_CYCLE)); const free=getStorageFreeSpace(house); const add=Math.min(bread,free); if(add>0){house.resources.grain-=add;house.resources.bread+=add;} b.lastProduction+=cycles*BAKERY_INTERVAL;}); }
 function updateFieldAndBakeryUI(){
-    const house=getHouse(); if(!house)return; house=prepareHouse(house); const category=document.getElementById("grainCategory"); if(category) category.style.display=isGrainResearchComplete(house)?"block":"none"; if(!isGrainResearchComplete(house))return; const fl=document.getElementById("fieldList"),bl=document.getElementById("bakeryList"); if(!fl||!bl)return; fl.innerHTML="";bl.innerHTML="";
+    const house=getHouse(); if(!house)return; const category=document.getElementById("grainCategory"); if(category) category.style.display=isGrainResearchComplete(house)?"block":"none"; if(!isGrainResearchComplete(house))return; const fl=document.getElementById("fieldList"),bl=document.getElementById("bakeryList"); if(!fl||!bl)return; fl.innerHTML="";bl.innerHTML="";
     house.fields.forEach(function(f,i){const div=document.createElement("div");div.className="huntingGroundItem";const prod=Math.floor(f.farmers/4)*FIELD_GRAIN_PER_CYCLE; const left=getProductionTimeLeft(f,FIELD_INTERVAL,Date.now()); div.innerHTML='<div class="huntingGroundItemTop"><div><div class="huntingGroundItemName">ПОЛЕ '+(i+1)+'</div><div class="huntingGroundItemCoords">🌾 Равнина · X: '+f.x+' · Y: '+f.y+'</div></div><div style="font-size:17px;">🌾</div></div><div class="huntingGroundControl"><button class="hunterButton" onclick="removeFarmerFromField('+i+')" '+(f.farmers<=0?'disabled':'')+'>−</button><div class="huntingGroundCount"><div class="huntingGroundCountNumber">'+f.farmers+' / '+FIELD_MAXIMUM+'</div><div class="huntingGroundCountText">ЗЕМЛЕДЕЛЬЦЕВ</div></div><button class="hunterButton" onclick="addFarmerToField('+i+')" '+(f.farmers>=FIELD_MAXIMUM||getAvailableProductionWorkers(house)<=0||isHouseHungry(house)?'disabled':'')+'>+</button></div><div class="huntingGroundItemStatus">'+(prod>0?'+'+prod+' 🌾 / ч. · до урожая: '+formatProductionTimeLeft(left):'Требуется минимум 4 земледельца.')+'</div>';fl.appendChild(div);});
     house.bakeries.forEach(function(b,i){const div=document.createElement("div");div.className="huntingGroundItem";const prod=Math.floor(b.bakers/2)*BAKERY_BREAD_PER_CYCLE; const left=getProductionTimeLeft(b,BAKERY_INTERVAL,Date.now()); div.innerHTML='<div class="huntingGroundItemTop"><div><div class="huntingGroundItemName">ПЕКАРНЯ '+(i+1)+'</div><div class="huntingGroundItemCoords">🥖 Город · X: '+b.x+' · Y: '+b.y+'</div></div><div style="font-size:17px;">🥖</div></div><div class="huntingGroundControl"><button class="hunterButton" onclick="removeBakerFromBakery('+i+')" '+(b.bakers<=0?'disabled':'')+'>−</button><div class="huntingGroundCount"><div class="huntingGroundCountNumber">'+b.bakers+' / '+BAKERY_MAXIMUM+'</div><div class="huntingGroundCountText">ПЕКАРЕЙ</div></div><button class="hunterButton" onclick="addBakerToBakery('+i+')" '+(b.bakers>=BAKERY_MAXIMUM||getAvailableProductionWorkers(house)<=0||isHouseHungry(house)?'disabled':'')+'>+</button></div><div class="huntingGroundItemStatus">'+(prod>0?'+'+prod+' 🍞 / ч. · до выпечки: '+formatProductionTimeLeft(left):'Требуется минимум 2 пекаря.')+'</div>';bl.appendChild(div);});
 }
@@ -5124,12 +5124,9 @@ function demoAdvanceTime() {
        Никаких новых правил добычи здесь нет.
     */
 
-    processResearch(house);
     processBuildingUpkeep(house);
     processHunting(house);
     processForestry(house);
-    processFields(house);
-    processBakeries(house);
     processFoodConsumption(house);
     processPopulationGrowth(house);
     processScouting(house);
@@ -12021,8 +12018,12 @@ function processBuildingUpkeep(house, nowOverride) {
         processBuilding(ground, FORESTRY_UPKEEP);
     });
 
-    house.fields.forEach(function(field) { processBuilding(field, FIELD_UPKEEP); });
-    house.bakeries.forEach(function(bakery) { processBuilding(bakery, BAKERY_UPKEEP); });
+    if (Array.isArray(house.fields)) {
+        house.fields.forEach(function(field) { processBuilding(field, FIELD_UPKEEP); });
+    }
+    if (Array.isArray(house.bakeries)) {
+        house.bakeries.forEach(function(bakery) { processBuilding(bakery, BAKERY_UPKEEP); });
+    }
 
     house.warehouses.forEach(function(warehouse) {
         processBuilding(warehouse, WAREHOUSE_UPKEEP);
@@ -14668,7 +14669,6 @@ function openRealm() {
             showScoutingEvent(getWildAnimalsEvent());
         }
     }
-    processResearch(house);
     processHunting(house);
     processBuildingUpkeep(house);
     processForestry(house);
@@ -15249,8 +15249,6 @@ setInterval(function() {
     const realmScreen = document.getElementById("realmScreen");
     if (realmScreen && realmScreen.style.display !== "none") {
         updatePopulation();
-        updateFieldAndBakeryUI();
-        updateResearchUI();
     }
 
 }, 1000);
@@ -15260,8 +15258,10 @@ setInterval(function() {
 setInterval(function() {
     try {
         updateProductionCountdowns();
+        updateFieldAndBakeryUI();
+        updateResearchUI();
     } catch (error) {
-        console.error("The Realms: ошибка таймеров производства", error);
+        console.error("The Realms: ошибка интерфейса производства/исследований", error);
     }
 }, 1000);
 

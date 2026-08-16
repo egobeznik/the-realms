@@ -6767,6 +6767,91 @@ async function syncExpandedTerritoryCell(house, x, y) {
     }
 }
 
+async function startCellScouting() {
+    const house = getHouse();
+    if (!house) return;
+
+    const x = Number(mapState.selectedX);
+    const y = Number(mapState.selectedY);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) {
+        alert("Сначала выберите клетку для разведки.");
+        return;
+    }
+
+    if (isTerritoryCell(house, x, y)) {
+        alert("Эта клетка уже принадлежит вашему государству.");
+        return;
+    }
+
+    if (isForeignTerritoryAt(x, y, house)) {
+        alert("Нельзя проводить разведку на территории другого государства.");
+        return;
+    }
+
+    if (!isAdjacentToOwnTerritory(house, x, y)) {
+        alert("Разведывать можно только клетку, соседнюю с вашей территорией.");
+        return;
+    }
+
+    const progress = getScoutingProgress(house, x, y);
+    if (progress >= 100) {
+        alert("Эта клетка уже полностью разведана.");
+        return;
+    }
+
+    const existing = getActiveScoutingForCell(house, x, y);
+    if (existing) {
+        alert("Эта клетка уже разведуется.");
+        return;
+    }
+
+    const input = document.getElementById("mapScoutCountInput");
+    const requested = Math.floor(Number(input && input.value) || 0);
+    const available = getAvailableScoutsForScouting(house);
+    const scoutCount = Math.min(requested, available);
+
+    if (scoutCount < SCOUTING_MIN_SCOUTS) {
+        alert("Нет свободных разведчиков для отправки.");
+        return;
+    }
+
+    const scouting = ensureScoutingState(house);
+    const now = Date.now();
+
+    const operation = {
+        id: "scout_" + now + "_" + Math.random().toString(36).slice(2, 8),
+        x: x,
+        y: y,
+        scouts: scoutCount,
+        elapsedMs: 0,
+        lastTickAt: now,
+        hasEvent: Math.random() < SCOUTING_EVENT_CHANCE,
+        eventTriggered: false,
+        eventPending: false,
+        eventType: null,
+        eventPenalty: 0,
+        eventAtMs: Math.floor(SCOUTING_DURATION_MS * (0.35 + Math.random() * 0.35))
+    };
+
+    scouting.operations.push(operation);
+    scouting.active = scouting.operations[0] || null;
+
+    // После фактического запуска режим выбора сбрасывается.
+    mapState.mode = "view";
+    mapState.pendingScoutCount = 0;
+    mapState.pendingScoutReadyId = null;
+
+    saveHouseData(house);
+    updateArmy();
+    updateMap();
+
+    // Сразу синхронизируем новое состояние, чтобы разведка не терялась
+    // при обновлении страницы/Telegram WebView.
+    syncScoutingStateToServer(house);
+
+    return operation.id;
+}
+
 function showScoutingEvent(event) {
     const overlay = document.getElementById("scoutingEventOverlay");
     const title = document.getElementById("scoutingEventTitle");

@@ -500,13 +500,13 @@ textarea.input {
 
 
 /* =====================================================
-   СВОРАЧИВАЕМЫЕ СЕКЦИИ ГЛАВНОГО ЭКРАНА
+   СВОРАЧИВАЕМЫЕ БЛОКИ ГЛАВНОГО ЭКРАНА — UI ONLY
 ===================================================== */
 .realmSectionToggle { width:28px; height:28px; flex:0 0 28px; padding:0; border:1px solid rgba(142,116,70,.45); background:rgba(36,29,21,.55); color:#94784c; font-family:Georgia,serif; font-size:12px; line-height:1; cursor:pointer; transition:transform .2s ease,background .2s ease; }
 .realmSectionToggle:active { background:rgba(91,68,38,.55); transform:scale(.94); }
 .realmSection.collapsed .realmSectionToggle { transform:rotate(-90deg); }
-.realmSectionBody { display:block; }
-.realmSection.collapsed > .realmSectionBody { display:none; }
+.realmSection.collapsed:not(.productionSection) > :not(.sectionHeader) { display:none; }
+.productionSection.collapsed > .productionMenu { display:none; }
 .sectionHeaderRight { display:flex; align-items:center; gap:7px; min-width:0; }
 
 /* =====================================================
@@ -1036,7 +1036,7 @@ function processPopulationGrowth(house, nowOverride) {
 }
 
 .productionHeader {
-    cursor: pointer;
+    cursor: default;
 }
 
 .productionHeader:active {
@@ -1063,14 +1063,14 @@ function processPopulationGrowth(house, nowOverride) {
     transform: rotate(180deg);
 }
 
-.productionSection.collapsed .productionMenu { display:none; }
-.productionSection.collapsed #forestryCategory { display:none; }
-
 .productionMenu {
     display: block;
     border-top: 1px solid rgba(117, 94, 56, 0.32);
 }
 
+.productionArrow {
+    display: none;
+}
 
 .productionCard {
     margin: 10px;
@@ -4059,16 +4059,18 @@ function processPopulationGrowth(house, nowOverride) {
         <section class="realmSection" id="populationSection">
 
             <div class="sectionHeader">
+
                 <div class="sectionTitle">
-                    НАСЕЛЕНИЕ <button class="infoTipButton" type="button" onclick="event.stopPropagation(); showRealmTooltip('Население','Жители вашего государства. Свободных жителей можно назначать на производство или в армию. Их назначение влияет на производство ресурсов и военную силу.')">?</button>
+                    НАСЕЛЕНИЕ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Население','Жители вашего государства. Свободных жителей можно назначать на производство или в армию. Их назначение влияет на производство ресурсов и военную силу.')">?</button>
                 </div>
+
                 <div class="sectionHeaderRight">
                     <div class="sectionTotal" id="populationTotal">Всего: 100</div>
                     <button class="realmSectionToggle" type="button" aria-label="Свернуть население" onclick="toggleRealmSection('populationSection')">▼</button>
                 </div>
+
             </div>
 
-            <div class="realmSectionBody">
 
             <!-- СВОБОДНОЕ -->
 
@@ -4227,7 +4229,6 @@ function processPopulationGrowth(house, nowOverride) {
 
             </div>
 
-            </div>
         </section>
 
 
@@ -4238,14 +4239,13 @@ function processPopulationGrowth(house, nowOverride) {
         <section class="realmSection armySection" id="armySection">
 
             <div class="sectionHeader">
-                <div class="sectionTitle">АРМИЯ <button class="infoTipButton" type="button" onclick="event.stopPropagation(); showRealmTooltip('Армия','Лучники формируют полевую армию. Разведчики — отдельная структура и не входят в армию. Армию можно перемещать: 1 клетка занимает 1 час. Чем дальше она от столицы, тем выше содержание. Государство может иметь несколько самостоятельных полевых армий. Состав каждой армии определяется при формировании.')">?</button></div>
+                <div class="sectionTitle">АРМИЯ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Армия','Лучники формируют полевую армию. Разведчики — отдельная структура и не входят в армию. Армию можно перемещать: 1 клетка занимает 1 час. Чем дальше она от столицы, тем выше содержание. Государство может иметь несколько самостоятельных полевых армий. Состав каждой армии определяется при формировании.')">?</button></div>
                 <div class="sectionHeaderRight">
                     <div class="sectionTotal" id="armyTotalLabel">ВСЕГО: 0</div>
                     <button class="realmSectionToggle" type="button" aria-label="Свернуть армию" onclick="toggleRealmSection('armySection')">▼</button>
                 </div>
             </div>
 
-            <div class="realmSectionBody">
             <div class="armyList">
 
                 <div class="armyTotalStats">
@@ -4363,7 +4363,6 @@ function processPopulationGrowth(house, nowOverride) {
                 Для назначения войск используется свободное население. Разведчики и лучники формируют отдельные структуры.
             </div>
 
-            </div>
         </section>
 
 
@@ -4374,14 +4373,13 @@ function processPopulationGrowth(house, nowOverride) {
         <section class="realmSection resourcesSection" id="resourcesSection">
 
             <div class="sectionHeader">
-                <div class="sectionTitle">СКЛАД <button class="infoTipButton" type="button" onclick="event.stopPropagation(); showRealmTooltip('Ресурсы','Ресурсы используются для строительства, содержания и торговли. Добыча увеличивает запасы, а расходы уменьшают их.')">?</button></div>
+                <div class="sectionTitle">СКЛАД <button class="infoTipButton" type="button" onclick="showRealmTooltip('Ресурсы','Ресурсы используются для строительства, содержания и торговли. Добыча увеличивает запасы, а расходы уменьшают их.')">?</button></div>
                 <div class="sectionHeaderRight">
                     <div class="sectionTotal" id="storageCapacityLabel">ВМЕСТИМОСТЬ: 5000</div>
                     <button class="realmSectionToggle" type="button" aria-label="Свернуть ресурсы" onclick="toggleRealmSection('resourcesSection')">▼</button>
                 </div>
             </div>
 
-            <div class="realmSectionBody">
             <div class="storageList">
 
                 <div class="storageRow">
@@ -4408,7 +4406,6 @@ function processPopulationGrowth(house, nowOverride) {
 
             </div>
 
-            </div>
         </section>
 
         <!-- =================================================
@@ -4483,7 +4480,6 @@ function processPopulationGrowth(house, nowOverride) {
                     >
                         <div id="huntingGroundList"></div>
                     </div>
-                </div>
                 </div>
 
                 <div
@@ -5482,22 +5478,105 @@ function openCreation() {
    ГЕРБ
 ===================================================== */
 
-function previewCrest(event) {
+function getCrestStorageKey(dynastyId) {
+    return "theRealmsCrest_v1_" + String(dynastyId || "legacy");
+}
+
+function getStoredCrest(dynastyId) {
+    try {
+        return localStorage.getItem(getCrestStorageKey(dynastyId)) || "";
+    } catch (e) {
+        return "";
+    }
+}
+
+function setStoredCrest(dynastyId, crest) {
+    try {
+        const key = getCrestStorageKey(dynastyId);
+        if (crest) localStorage.setItem(key, crest);
+        else localStorage.removeItem(key);
+    } catch (e) {
+        console.warn("The Realms: не удалось сохранить герб отдельно", e);
+    }
+}
+
+function optimizeCrestFile(file) {
+    return new Promise(function(resolve, reject) {
+        if (!file) {
+            resolve("");
+            return;
+        }
+
+        const objectUrl = URL.createObjectURL(file);
+        const image = new Image();
+        image.onload = function() {
+            try {
+                const maxSize = 256;
+                const scale = Math.min(1, maxSize / Math.max(image.naturalWidth || image.width || 1, image.naturalHeight || image.height || 1));
+                const width = Math.max(1, Math.round((image.naturalWidth || image.width) * scale));
+                const height = Math.max(1, Math.round((image.naturalHeight || image.height) * scale));
+                const canvas = document.createElement("canvas");
+                canvas.width = width;
+                canvas.height = height;
+                const ctx = canvas.getContext("2d");
+                if (!ctx) throw new Error("Canvas недоступен");
+                ctx.clearRect(0, 0, width, height);
+                ctx.drawImage(image, 0, 0, width, height);
+
+                let dataUrl = "";
+                try {
+                    dataUrl = canvas.toDataURL("image/webp", 0.78);
+                } catch (e) {}
+                if (!dataUrl || dataUrl.indexOf("data:image/") !== 0) {
+                    dataUrl = canvas.toDataURL("image/jpeg", 0.82);
+                }
+                resolve(dataUrl);
+            } catch (error) {
+                reject(error);
+            } finally {
+                URL.revokeObjectURL(objectUrl);
+            }
+        };
+        image.onerror = function(error) {
+            URL.revokeObjectURL(objectUrl);
+            reject(error);
+        };
+        image.src = objectUrl;
+    });
+}
+
+function hydrateHouseCrest(house, dynastyId) {
+    if (!house) return house;
+    const stored = getStoredCrest(dynastyId);
+    if (stored) house.crest = stored;
+    return house;
+}
+
+function serializeHouseWithoutCrest(house) {
+    if (!house) return "";
+    const crest = house.crest || "";
+    try {
+        house.crest = "";
+        return JSON.stringify(house);
+    } finally {
+        house.crest = crest;
+    }
+}
+
+async function previewCrest(event) {
 
     const file = event.target.files[0];
 
     if (!file) return;
 
-    const reader = new FileReader();
-
-    reader.onload = function(event) {
-
+    try {
+        const optimized = await optimizeCrestFile(file);
         document.getElementById("crestPreview").innerHTML =
-            `<img src="${event.target.result}" alt="Герб">`;
-
-    };
-
-    reader.readAsDataURL(file);
+            `<img src="${optimized}" alt="Герб">`;
+    } catch (error) {
+        console.error("The Realms: не удалось подготовить герб", error);
+        alert("Не удалось обработать изображение герба.");
+    }
 }
 
 
@@ -5505,7 +5584,7 @@ function previewCrest(event) {
    СОЗДАНИЕ ДОМА
 ===================================================== */
 
-function saveHouse(event) {
+async function saveHouse(event) {
 
     event.preventDefault();
 
@@ -5613,39 +5692,23 @@ function saveHouse(event) {
 
 
     if (crestFile) {
-
-        const reader = new FileReader();
-
-        reader.onload = function(event) {
-
-            house.crest =
-                event.target.result;
-
-            saveHouseData(house);
-
-            if (!getActiveDynastyId()) {
-                createDynastyFromHouse(house);
-            }
-
-            openAfterCreation(house);
-
-        };
-
-        reader.readAsDataURL(crestFile);
-
-    }
-
-    else {
-
-        saveHouseData(house);
-
-        if (!getActiveDynastyId()) {
-            createDynastyFromHouse(house);
+        try {
+            house.crest = await optimizeCrestFile(crestFile);
+        } catch (error) {
+            console.error("The Realms: не удалось обработать герб", error);
+            alert("Не удалось обработать изображение герба.");
+            return;
         }
-
-        openAfterCreation(house);
-
     }
+
+    saveHouseData(house);
+
+    if (!getActiveDynastyId()) {
+        createDynastyFromHouse(house);
+    }
+
+    setStoredCrest(getActiveDynastyId(), house.crest || "");
+    openAfterCreation(house);
 
 }
 
@@ -8826,7 +8889,6 @@ function updateForestry() {
 
         item.className =
             "huntingGroundItem";
-        item.dataset.forestryIndex = String(index);
 
         const groups =
             Math.floor(
@@ -10198,37 +10260,60 @@ const ACTIVE_DYNASTY_KEY =
 function getDynastySlots() {
 
     try {
+        const raw = localStorage.getItem(DYNASTIES_KEY);
+        if (!raw) return [];
 
-        const raw =
-            localStorage.getItem(
-                DYNASTIES_KEY
-            );
+        const data = JSON.parse(raw);
+        if (!Array.isArray(data)) return [];
 
-        if (!raw)
-            return [];
+        const slots = data.slice(0, 2);
+        let migrated = false;
 
-        const data =
-            JSON.parse(raw);
+        slots.forEach(function(slot) {
+            if (!slot || !slot.data) return;
+            const stored = getStoredCrest(slot.id);
+            if (stored) {
+                slot.data.crest = stored;
+            } else if (slot.data.crest) {
+                setStoredCrest(slot.id, slot.data.crest);
+                slot.data.crest = slot.data.crest;
+                migrated = true;
+            }
+        });
 
-        return Array.isArray(data)
-            ? data.slice(0, 2)
-            : [];
+        if (migrated) {
+            setDynastySlots(slots);
+        }
+
+        return slots;
 
     } catch (e) {
-
         return [];
-
     }
 }
 
 function setDynastySlots(slots) {
 
-    localStorage.setItem(
-        DYNASTIES_KEY,
-        JSON.stringify(
-            slots.slice(0, 2)
-        )
-    );
+    const limited = slots.slice(0, 2);
+
+    limited.forEach(function(slot) {
+        if (slot && slot.data) {
+            if (slot.data.crest) {
+                setStoredCrest(slot.id, slot.data.crest);
+            }
+            slot.data.crest = "";
+        }
+    });
+
+    try {
+        localStorage.setItem(DYNASTIES_KEY, JSON.stringify(limited));
+    } finally {
+        limited.forEach(function(slot) {
+            if (slot && slot.data) {
+                slot.data.crest = getStoredCrest(slot.id);
+            }
+        });
+    }
 }
 
 function getActiveDynastyId() {
@@ -10407,12 +10492,11 @@ function loadDynasty(id) {
 
     setActiveDynastyId(slot.id);
 
-    localStorage.setItem(
-        "theRealmsHouse",
-        JSON.stringify(slot.data)
-    );
+    const house = hydrateHouseCrest(slot.data, slot.id);
+    setStoredCrest(slot.id, house.crest || "");
+    localStorage.setItem("theRealmsHouse", serializeHouseWithoutCrest(house));
 
-    return slot.data;
+    return house;
 
 }
 
@@ -10604,7 +10688,7 @@ function getHouse() {
         const slots = getDynastySlots();
         const slot = slots.find(function(item) { return item.id === activeId; });
         if (slot && slot.data) {
-            runtimeHouseCache = slot.data;
+            runtimeHouseCache = hydrateHouseCrest(slot.data, activeId);
             runtimeHouseCacheKey = cacheKey;
             return runtimeHouseCache;
         }
@@ -10619,6 +10703,7 @@ function getHouse() {
 
     try {
         runtimeHouseCache = JSON.parse(savedHouse);
+        hydrateHouseCrest(runtimeHouseCache, activeId);
         runtimeHouseCacheKey = cacheKey;
         return runtimeHouseCache;
     } catch (e) {
@@ -10631,7 +10716,11 @@ function getHouse() {
 function flushHouseData() {
     if (!runtimeHouseSavePending || !runtimeHouseCache) return;
     runtimeHouseSavePending = false;
-    localStorage.setItem("theRealmsHouse", JSON.stringify(runtimeHouseCache));
+
+    const activeId = getActiveDynastyId();
+    if (activeId) setStoredCrest(activeId, runtimeHouseCache.crest || "");
+
+    localStorage.setItem("theRealmsHouse", serializeHouseWithoutCrest(runtimeHouseCache));
     updateActiveDynasty(runtimeHouseCache);
 }
 
@@ -11990,9 +12079,7 @@ function processHunting(house, nowOverride) {
     house.resources.meat += addedMeat;
     addChronicleResourceEvent(house, "gain", { meat: totalProduction }, "hunting", getProductionEfficiencyMultiplier(house));
 
-    // Реальный таймер теперь хранится у каждого угодья отдельно.
-    house.hunting.lastProduction = now;
-
+    // Реальные таймеры хранятся у каждого угодья отдельно.
     saveHouseData(house);
 }
 
@@ -12205,8 +12292,7 @@ function processForestry(house, nowOverride) {
 
     house.resources.wood += addedWood;
     addChronicleResourceEvent(house, "gain", { wood: totalProduction }, "forestry", getProductionEfficiencyMultiplier(house));
-    house.forestry.lastProduction = now;
-
+    // Реальные таймеры хранятся у каждого лесничества отдельно.
     saveHouseData(house);
 }
 
@@ -12218,16 +12304,18 @@ function toggleRealmSection(id) {
     const section = document.getElementById(id);
     if (!section) return;
 
-    const collapsed = !section.classList.contains("collapsed");
-    section.classList.toggle("collapsed", collapsed);
-    section.classList.toggle("open", !collapsed);
+    const shouldCollapse = !section.classList.contains("collapsed");
+    section.classList.toggle("collapsed", shouldCollapse);
+    section.classList.toggle("open", !shouldCollapse);
 
     const button = section.querySelector(".realmSectionToggle");
-    if (button) button.setAttribute("aria-label", collapsed ? "Раскрыть раздел" : "Свернуть раздел");
+    if (button) {
+        button.setAttribute("aria-label", shouldCollapse ? "Раскрыть раздел" : "Свернуть раздел");
+    }
 
     try {
         const saved = JSON.parse(localStorage.getItem("theRealmsSectionState") || "{}");
-        saved[id] = !collapsed;
+        saved[id] = !shouldCollapse;
         localStorage.setItem("theRealmsSectionState", JSON.stringify(saved));
     } catch (error) {}
 }
@@ -12239,7 +12327,10 @@ function toggleProduction() {
 function restoreRealmSectionState() {
     const ids = ["populationSection", "armySection", "resourcesSection", "productionSection"];
     let saved = {};
-    try { saved = JSON.parse(localStorage.getItem("theRealmsSectionState") || "{}"); } catch (error) {}
+    try {
+        saved = JSON.parse(localStorage.getItem("theRealmsSectionState") || "{}");
+    } catch (error) {}
+
     ids.forEach(function(id) {
         const section = document.getElementById(id);
         if (!section) return;
@@ -12247,9 +12338,12 @@ function restoreRealmSectionState() {
         section.classList.toggle("collapsed", !isOpen);
         section.classList.toggle("open", isOpen);
         const button = section.querySelector(".realmSectionToggle");
-        if (button) button.setAttribute("aria-label", isOpen ? "Свернуть раздел" : "Раскрыть раздел");
+        if (button) {
+            button.setAttribute("aria-label", isOpen ? "Свернуть раздел" : "Раскрыть раздел");
+        }
     });
 }
+
 
 /* =====================================================
    РЕСУРСЫ — ОТКРЫТЬ
@@ -12921,7 +13015,6 @@ function updateHunting() {
 
             item.className =
                 "huntingGroundItem";
-            item.dataset.huntingIndex = String(index);
 
             const hunterCount =
                 Math.max(
@@ -14799,53 +14892,72 @@ function processOfflineEconomy(house) {
 
 function updateProductionCountdowns() {
     const house = getHouse();
-    if (!house) return;
+    if (!house || !document.getElementById("realmScreen") || document.getElementById("realmScreen").style.display === "none") return;
 
     const now = Date.now();
+    const efficiency = getProductionEfficiencyMultiplier(house);
 
-    if (Array.isArray(house.forestryGrounds)) {
-        house.forestryGrounds.forEach(function(ground, index) {
-            const item = document.querySelector('[data-forestry-index="' + String(index) + '"]');
-            if (!item) return;
+    const forestryList = document.getElementById("forestryList");
+    if (forestryList && Array.isArray(house.forestryGrounds)) {
+        Array.from(forestryList.querySelectorAll(".huntingGroundItem")).forEach(function(item, index) {
+            const ground = house.forestryGrounds[index];
+            const status = item.querySelector(".huntingGroundItemStatus");
+            if (!ground || !status) return;
 
-            const status = item.querySelector('.huntingGroundItemStatus');
-            if (!status) return;
-
-            if (isStorageFull(house)) {
-                status.textContent = 'Производство приостановлено, склады заполнены.';
-            } else if (ground.recoveryStartedAt !== null && ground.durability < FORESTRY_GROUND_DURABILITY_MAX) {
-                status.textContent = 'Восстановление леса. Осталось: ' + formatForestryGroundRecovery(getForestryGroundRecoveryLeft(ground, now)) + '.';
-            } else if (ground.foresters < FORESTRY_MINIMUM) {
-                status.textContent = 'Недостаточно рабочих. Требуется минимум 4.';
-            } else {
-                const groups = Math.floor(ground.foresters / FORESTRY_GROUP_SIZE);
-                const production = Math.floor(groups * WOOD_PER_GROUP * getProductionEfficiencyMultiplier(house));
-                status.textContent = 'Активная добыча: +' + production + ' 🌲 каждые 2 часа. До добычи: ' + formatProductionTimeLeft(getProductionTimeLeft(ground, FORESTRY_INTERVAL, now)) + '.';
+            if (ground.active === false) {
+                status.textContent = "Производство приостановлено.";
+                return;
             }
+            if (isStorageFull(house)) {
+                status.textContent = "Производство приостановлено, склады заполнены.";
+                return;
+            }
+            if (ground.recoveryStartedAt !== null || ground.durability <= 0) {
+                status.textContent = "Восстановление леса. Осталось: " + formatForestryGroundRecovery(getForestryGroundRecoveryLeft(ground, now)) + ".";
+                return;
+            }
+            if (ground.foresters < FORESTRY_MINIMUM) {
+                status.textContent = "Недостаточно рабочих. Требуется минимум 4.";
+                return;
+            }
+
+            const groups = Math.floor(Math.max(0, Math.floor(ground.foresters)) / FORESTRY_GROUP_SIZE);
+            const production = Math.floor(groups * WOOD_PER_GROUP * efficiency);
+            const remaining = getProductionTimeLeft(ground, FORESTRY_INTERVAL, now);
+            status.textContent = "Активная добыча: +" + production + " 🌲 каждые 2 часа. До добычи: " + formatProductionTimeLeft(remaining) + ".";
         });
     }
 
-    if (Array.isArray(house.huntingGrounds)) {
-        house.huntingGrounds.forEach(function(ground, index) {
-            const item = document.querySelector('[data-hunting-index="' + String(index) + '"]');
-            if (!item) return;
+    const huntingList = document.getElementById("huntingGroundList");
+    if (huntingList && Array.isArray(house.huntingGrounds)) {
+        Array.from(huntingList.querySelectorAll(".huntingGroundItem")).forEach(function(item, index) {
+            const ground = house.huntingGrounds[index];
+            const status = item.querySelector(".huntingGroundItemStatus");
+            if (!ground || !status) return;
 
-            const status = item.querySelector('.huntingGroundItemStatus');
-            if (!status) return;
-
-            const hunterCount = Math.max(0, Math.min(HUNTING_MAXIMUM, Math.floor(ground.hunters || 0)));
-
-            if (isStorageFull(house)) {
-                status.textContent = 'Производство приостановлено, склады заполнены.';
-            } else if (ground.recoveryStartedAt !== null && ground.gameLife < HUNTING_GROUND_GAME_MAX) {
-                status.textContent = 'Восстановление угодья. Осталось: ' + formatHuntingGroundRecovery(getHuntingGroundRecoveryLeft(ground, now)) + '.';
-            } else if (ground.hunters < HUNTING_MINIMUM) {
-                status.textContent = 'Недостаточно охотников. Требуется минимум 2.';
-            } else {
-                const groups = Math.floor(hunterCount / HUNTING_GROUP_SIZE);
-                const production = Math.floor((HUNTING_PRODUCTION_BY_GROUPS[Math.min(groups, HUNTING_PRODUCTION_BY_GROUPS.length - 1)] || 0) * getProductionEfficiencyMultiplier(house));
-                status.textContent = 'Активная охота: +' + production + ' 🍖 каждые 2 часа. ' + (hunterCount % HUNTING_GROUP_SIZE === 1 ? 'Лишний охотник ожидает формирования следующей пары. ' : '') + 'До добычи: ' + formatProductionTimeLeft(getProductionTimeLeft(ground, HUNTING_INTERVAL, now)) + '.';
+            if (ground.active === false) {
+                status.textContent = "Производство приостановлено.";
+                return;
             }
+            if (isStorageFull(house)) {
+                status.textContent = "Производство приостановлено, склады заполнены.";
+                return;
+            }
+            if (ground.recoveryStartedAt !== null || ground.gameLife <= 0) {
+                status.textContent = "Восстановление угодья. Осталось: " + formatHuntingGroundRecovery(getHuntingGroundRecoveryLeft(ground, now)) + ".";
+                return;
+            }
+            if (ground.hunters < HUNTING_MINIMUM) {
+                status.textContent = "Недостаточно охотников. Требуется минимум 2.";
+                return;
+            }
+
+            const hunterCount = Math.max(0, Math.min(HUNTING_MAXIMUM, Math.floor(ground.hunters)));
+            const groups = Math.floor(hunterCount / HUNTING_GROUP_SIZE);
+            const production = Math.floor((HUNTING_PRODUCTION_BY_GROUPS[Math.min(groups, HUNTING_PRODUCTION_BY_GROUPS.length - 1)] || 0) * efficiency);
+            const extra = hunterCount % HUNTING_GROUP_SIZE === 1 ? " Лишний охотник ожидает формирования следующей пары." : "";
+            const remaining = getProductionTimeLeft(ground, HUNTING_INTERVAL, now);
+            status.textContent = "Активная охота: +" + production + " 🍖 каждые 2 часа." + extra + " До добычи: " + formatProductionTimeLeft(remaining) + ".";
         });
     }
 }
@@ -14895,11 +15007,18 @@ setInterval(function() {
     const realmScreen = document.getElementById("realmScreen");
     if (realmScreen && realmScreen.style.display !== "none") {
         updatePopulation();
-        updateHunting();
-        updateForestry();
-        updateProductionCountdowns();
     }
 
+}, 1000);
+
+// Таймеры производства живут отдельно от экономического тика.
+// Ошибка в другой игровой подсистеме не может остановить визуальный отсчёт.
+setInterval(function() {
+    try {
+        updateProductionCountdowns();
+    } catch (error) {
+        console.error("The Realms: ошибка таймеров производства", error);
+    }
 }, 1000);
 
 /* =====================================================
@@ -14974,11 +15093,15 @@ function showRealmTooltip(title,text){const o=document.getElementById("realmTool
 function closeRealmTooltip(){const o=document.getElementById("realmTooltipOverlay");if(o)o.style.display="none";}
 </script>
 <script>
+if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", restoreRealmSectionState);
+} else {
+    restoreRealmSectionState();
+}
+
 function getTheRealmsServerStatus() {
     return window.theRealmsSupabaseStatus || "not_initialized";
 }
-
-if (document.readyState === "loading") { document.addEventListener("DOMContentLoaded", restoreRealmSectionState); } else { restoreRealmSectionState(); }
 </script>
 
 </body>

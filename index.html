@@ -1645,6 +1645,27 @@ textarea.input {
     filter: none;
 }
 
+.scoutingMark {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    z-index: 7;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(174, 141, 82, 0.72);
+    border-radius: 50%;
+    background: rgba(17, 13, 9, 0.92);
+    box-shadow:
+        0 2px 7px rgba(0, 0, 0, 0.55),
+        0 0 8px rgba(174, 141, 82, 0.22);
+    font-size: 13px;
+    line-height: 1;
+    pointer-events: none;
+}
+
 .forestryCell {
     box-shadow:
         inset 0 0 0 1px rgba(174, 141, 82, 0.28);
@@ -4540,6 +4561,17 @@ function demoAdvanceTime() {
         });
     }
 
+    // Ускоряем и активную разведывательную экспедицию.
+    // Движок разведки использует lastTickAt как точку отсчёта,
+    // поэтому сдвигаем её на час назад и оставляем всю остальную
+    // механику без изменений.
+    if (house.scouting && house.scouting.active) {
+        const scoutingActive = house.scouting.active;
+        if (typeof scoutingActive.lastTickAt === "number") {
+            scoutingActive.lastTickAt -= DEMO_ONE_HOUR;
+        }
+    }
+
     if (Array.isArray(house.forestryGrounds)) {
         house.forestryGrounds.forEach(function(ground) {
             if (typeof ground.lastProduction === "number") {
@@ -4582,6 +4614,7 @@ function demoAdvanceTime() {
     processHunting(house);
     processForestry(house);
     processFoodConsumption(house);
+    processScouting(house);
 
     saveHouseData(house);
 
@@ -4589,6 +4622,8 @@ function demoAdvanceTime() {
     updateHunting();
     updateForestry();
     updateResources();
+    updateArmy();
+    updateMap();
 }
 
 
@@ -6840,6 +6875,21 @@ function renderMapCells(force) {
             } else {
                 cell.innerHTML =
                     '<span class="terrainMark">' + terrainIcon(type) + '</span>';
+            }
+
+            // Активная разведка всегда получает отдельную иконку прямо
+            // на клетке, чтобы игрок сразу видел, где сейчас работает
+            // разведывательный отряд.
+            const activeScouting = house && house.scouting && house.scouting.active;
+            if (activeScouting &&
+                Number(activeScouting.x) === x &&
+                Number(activeScouting.y) === y) {
+                const scoutingMark = document.createElement("span");
+                scoutingMark.className = "scoutingMark";
+                scoutingMark.title = "Идёт разведка";
+                scoutingMark.setAttribute("aria-label", "Идёт разведка");
+                scoutingMark.textContent = "🔎";
+                cell.appendChild(scoutingMark);
             }
 
             if (mapState.selectedX === x && mapState.selectedY === y) {

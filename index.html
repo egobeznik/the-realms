@@ -14335,6 +14335,7 @@ function updateResources() {
     const wood = Math.max(0, Number(house.resources.wood) || 0);
     const grain = Math.max(0, Number(house.resources.grain) || 0);
     const bread = Math.max(0, Number(house.resources.bread) || 0);
+    const totalFoodStock = bread + meat;
 
     document
         .getElementById("foodValue")

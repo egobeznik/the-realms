@@ -6568,6 +6568,16 @@ function isTerritoryCell(house, x, y) {
     });
 }
 
+function getScoutingCompletionKey(item) {
+    if (!item) return "";
+    return [
+        Number(item.completedAt) || 0,
+        Number(item.x) || 0,
+        Number(item.y) || 0,
+        Number(item.scouts) || 0
+    ].join(":");
+}
+
 function ensureScoutingState(house) {
     if (!house) return null;
     if (!house.scouting || typeof house.scouting !== "object") {
@@ -6584,6 +6594,9 @@ function ensureScoutingState(house) {
     }
     if (!Array.isArray(house.scouting.dismissedReadyIds)) {
         house.scouting.dismissedReadyIds = [];
+    }
+    if (!Array.isArray(house.scouting.returnedCompletionKeys)) {
+        house.scouting.returnedCompletionKeys = [];
     }
 
     // Старые готовые экспедиции без id получают стабильный id один раз.
@@ -6680,9 +6693,14 @@ function formatScoutingRemaining(ms) {
     return minutes + " мин.";
 }
 
+let scoutingServerSyncQueued = false;
+
 async function syncScoutingStateToServer(house) {
     if (!window.theRealmsSupabase || !house) return;
-    if (scoutingServerSyncPending) return;
+    if (scoutingServerSyncPending) {
+        scoutingServerSyncQueued = true;
+        return;
+    }
     scoutingServerSyncPending = true;
     try {
         if (!house.serverDynastyId) await ensureCurrentServerDynasty(house);
@@ -6696,6 +6714,12 @@ async function syncScoutingStateToServer(house) {
         console.error("The Realms: не удалось синхронизировать разведку", error);
     } finally {
         scoutingServerSyncPending = false;
+        if (scoutingServerSyncQueued) {
+            scoutingServerSyncQueued = false;
+            setTimeout(function() {
+                syncScoutingStateToServer(house);
+            }, 0);
+        }
     }
 }
 
@@ -6927,7 +6951,8 @@ function showScoutingCompletion(house) {
             item.id &&
             item.returnedToGarrison !== true &&
             !handledScoutingReadyIds.has(item.id) &&
-            !scouting.dismissedReadyIds.includes(item.id);
+            !scouting.dismissedReadyIds.includes(item.id) &&
+            !scouting.returnedCompletionKeys.includes(getScoutingCompletionKey(item));
     });
     const overlay = document.getElementById("scoutingCompletionOverlay");
     const title = document.getElementById("scoutingCompletionTitle");
@@ -6963,7 +6988,8 @@ function resolveScoutingCompletion(action) {
             item.id &&
             item.returnedToGarrison !== true &&
             !handledScoutingReadyIds.has(item.id) &&
-            !scouting.dismissedReadyIds.includes(item.id);
+            !scouting.dismissedReadyIds.includes(item.id) &&
+            !scouting.returnedCompletionKeys.includes(getScoutingCompletionKey(item));
     });
 
     if (!ready) {
@@ -6974,6 +7000,14 @@ function resolveScoutingCompletion(action) {
     // Сразу фиксируем окончательное решение игрока.
     handledScoutingReadyIds.add(ready.id);
     ready.returnedToGarrison = true;
+
+    const completionKey = getScoutingCompletionKey(ready);
+    if (completionKey && !scouting.returnedCompletionKeys.includes(completionKey)) {
+        scouting.returnedCompletionKeys.push(completionKey);
+        if (scouting.returnedCompletionKeys.length > 100) {
+            scouting.returnedCompletionKeys = scouting.returnedCompletionKeys.slice(-100);
+        }
+    }
 
     if (!scouting.dismissedReadyIds.includes(ready.id)) {
         scouting.dismissedReadyIds.push(ready.id);

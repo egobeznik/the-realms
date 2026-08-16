@@ -6597,37 +6597,52 @@ function ensureScoutingState(house) {
     if (!house.scouting || typeof house.scouting !== "object") {
         house.scouting = { cells: {}, active: null, operations: [], ready: [] };
     }
-    if (!house.scouting.cells || typeof house.scouting.cells !== "object") {
-        house.scouting.cells = {};
-    }
-    if (!Array.isArray(house.scouting.operations)) {
-        house.scouting.operations = house.scouting.active ? [house.scouting.active] : [];
-    }
-    if (!Array.isArray(house.scouting.ready)) {
-        house.scouting.ready = [];
-    }
-    // Старые готовые экспедиции без id получают стабильный id один раз.
-    house.scouting.ready.forEach(function(item, index) {
-        if (item && !item.id) {
-            item.id = "scout_ready_legacy_" + String(item.completedAt || 0) + "_" + String(item.x) + "_" + String(item.y) + "_" + index;
-        }
-        if (item && !item.status) item.status = "pending";
-    });
+    if (!house.scouting.cells || typeof house.scouting.cells !== "object") house.scouting.cells = {};
+    if (!Array.isArray(house.scouting.operations)) house.scouting.operations = house.scouting.active ? [house.scouting.active] : [];
+    if (!Array.isArray(house.scouting.ready)) house.scouting.ready = [];
 
     house.scouting.operations = house.scouting.operations.filter(function(op) { return op && typeof op === "object"; });
     house.scouting.operations.forEach(function(op, index) {
-        if (!op.id) {
-            op.id = "scout_" + String(op.startedAt || 0) + "_" + String(op.x) + "_" + String(op.y) + "_" + index;
+        if (!op.id) op.id = "scout_" + String(op.startedAt || 0) + "_" + String(op.x) + "_" + String(op.y) + "_" + index;
+        if (!op.status) op.status = op.eventPending ? "event_pending" : "active";
+    });
+
+    // Миграция старых сохранений: ready больше не является отдельным состоянием.
+    house.scouting.ready.forEach(function(item, index) {
+        if (!item || typeof item !== "object") return;
+        if (!item.id) item.id = "scout_ready_legacy_" + String(item.completedAt || 0) + "_" + String(item.x) + "_" + String(item.y) + "_" + index;
+        const sourceId = item.operationId || item.id;
+        const exists = house.scouting.operations.some(function(op) { return op && String(op.id) === String(sourceId); });
+        if (!exists) {
+            house.scouting.operations.push({
+                id: sourceId,
+                x: Number(item.x), y: Number(item.y),
+                scouts: Math.max(1, Math.floor(Number(item.scouts) || 1)),
+                elapsedMs: SCOUTING_DURATION_MS,
+                lastTickAt: Number(item.completedAt) || Date.now(),
+                startedAt: Number(item.startedAt) || ((Number(item.completedAt) || Date.now()) - SCOUTING_DURATION_MS),
+                hasEvent: false, eventTriggered: false, eventPending: false,
+                eventType: null, eventPenalty: 0, eventAtMs: 0,
+                progress: Number(item.progress) || 0,
+                completedAt: Number(item.completedAt) || Date.now(),
+                status: "completed"
+            });
         }
     });
-    // active сохраняем для совместимости со старыми сохранениями и существующим UI.
-    house.scouting.active = house.scouting.operations[0] || null;
+    house.scouting.ready = [];
+
+    house.scouting.active = house.scouting.operations.find(function(op) {
+        return op.status === "active" || op.status === "event_pending";
+    }) || null;
     return house.scouting;
 }
 
 function getScoutingOperations(house) {
     const scouting = ensureScoutingState(house);
-    return scouting ? scouting.operations : [];
+    if (!scouting) return [];
+    return scouting.operations.filter(function(op) {
+        return op && (op.status === "active" || op.status === "event_pending");
+    });
 }
 
 function getActiveScoutingForCell(house, x, y) {
@@ -6895,13 +6910,13 @@ function getWildAnimalsEvent() {
     };
 }
 
-let activeScoutingEventIndex = null;
+let activeScoutingEventId = null;
 
 function resolveScoutingEvent(choice) {
     const house = getHouse();
     if (!house) return;
     const scouting = ensureScoutingState(house);
-    const index = Number.isInteger(activeScoutingEventIndex) ? activeScoutingEventIndex : scouting.operations.findIndex(function(op) { return op.eventPending; });
+    const index = activeScoutingEventId ? scouting.operations.findIndex(function(op) { return String(op.id) === String(activeScoutingEventId) && op.eventPending; }) : scouting.operations.findIndex(function(op) { return op.eventPending; });
     const active = index >= 0 ? scouting.operations[index] : null;
     if (!active || !active.eventPending) return;
 
@@ -6932,7 +6947,7 @@ function resolveScoutingEvent(choice) {
         scouting.operations.splice(index, 1);
     }
     scouting.active = scouting.operations[0] || null;
-    activeScoutingEventIndex = null;
+    activeScoutingEventId = null;
     saveHouseData(house);
     const overlay = document.getElementById("scoutingEventOverlay");
     if (overlay) overlay.style.display = "none";
@@ -6952,8 +6967,12 @@ function processScouting(house, nowOverride) {
 
     for (let i = operations.length - 1; i >= 0; i--) {
         const active = operations[i];
-        if (!active) { operations.splice(i, 1); continue; }
-        if (active.eventPending) continue;
+        if (!active) { operations.splice(i, 1); changed = true; continue; }
+        if (active.status === "completed") continue;
+        if (active.status === "returned") { operations.splice(i, 1); changed = true; continue; }
+        if (active.eventPending) { active.status = "event_pending"; continue; }
+
+        active.status = "active";
         if (typeof active.lastTickAt !== "number") active.lastTickAt = now;
         const delta = Math.max(0, now - active.lastTickAt);
         active.elapsedMs = Math.min(SCOUTING_DURATION_MS, Math.max(0, Number(active.elapsedMs) || 0) + delta);
@@ -6963,8 +6982,9 @@ function processScouting(house, nowOverride) {
         if (active.hasEvent && !active.eventTriggered && active.elapsedMs >= active.eventAtMs) {
             active.eventTriggered = true;
             active.eventPending = true;
+            active.status = "event_pending";
             active.eventType = "wild_animals";
-            activeScoutingEventIndex = i;
+            activeScoutingEventId = active.id;
             saveHouseData(house);
             if (document.visibilityState === "visible") showScoutingEvent(getWildAnimalsEvent());
             continue;
@@ -6976,44 +6996,26 @@ function processScouting(house, nowOverride) {
         const oldProgress = getScoutingProgress(house, active.x, active.y);
         const newProgress = Math.min(100, oldProgress + gain);
         setScoutingProgress(house, active.x, active.y, newProgress);
-        const completedX = active.x;
-        const completedY = active.y;
-        operations.splice(i, 1);
 
-        const readyId = "scout_ready_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
-        const completion = {
-            id: readyId,
-            operationId: active.id,
-            scouts: Math.max(1, Math.floor(Number(active.scouts) || 1)),
-            x: completedX,
-            y: completedY,
-            progress: newProgress,
-            completedAt: Date.now(),
-            status: "pending"
-        };
+        active.elapsedMs = SCOUTING_DURATION_MS;
+        active.progress = newProgress;
+        active.completedAt = now;
+        active.status = "completed";
+        active.eventPending = false;
+        active.eventType = null;
+        changed = true;
 
-        // Одна завершённая экспедиция создаёт только одно completion-событие.
-        const alreadyCompleted = scouting.ready.some(function(item) {
-            return item &&
-                item.operationId &&
-                String(item.operationId) === String(active.id);
-        });
-
-        if (!alreadyCompleted) {
-            scouting.ready.push(completion);
+        // Единственный переход active -> completed открывает окно.
+        if (document.visibilityState === "visible" && document.getElementById("realmScreen")?.style.display !== "none") {
+            showScoutingCompletion(house, active.id);
         }
 
-        // Окно принадлежит конкретно этой завершённой экспедиции.
-        // Оно открывается только в момент фактического завершения.
-        if (
-            !alreadyCompleted &&
-            document.visibilityState === "visible" &&
-            document.getElementById("realmScreen")?.style.display !== "none"
-        ) {
-            showScoutingCompletion(house, completion.id);
-        }
+        // Фиксируем переход active -> completed на сервере сразу.
+        // Это не создаёт новое событие — сервер получает то же самое состояние.
+        syncScoutingStateToServer(house);
 
         if (newProgress >= 100) {
+            const completedX = Number(active.x), completedY = Number(active.y);
             if (!isTerritoryCell(house, completedX, completedY)) {
                 house.territory.cells.push({ x: completedX, y: completedY });
                 house.territory.forest = house.territory.cells.some(function(cell) { return terrainAt(cell.x, cell.y) === "forest"; });
@@ -7024,103 +7026,63 @@ function processScouting(house, nowOverride) {
                 alert("Клетку не удалось присоединить к владениям.\n\n" + (error.message || "Она могла быть занята другим государством."));
             });
         }
-
     }
 
-    scouting.active = operations[0] || null;
+    scouting.active = operations.find(function(op) { return op.status === "active" || op.status === "event_pending"; }) || null;
     if (changed) saveHouseData(house);
-    return changed || operations.length > 0;
+    return changed || operations.some(function(op) { return op.status === "active" || op.status === "event_pending"; });
 }
 
 function showScoutingCompletion(house, completionId) {
     const realmScreen = document.getElementById("realmScreen");
     const activeDynastyId = getActiveDynastyId();
-
-    if (!house || !activeDynastyId || !realmScreen || realmScreen.style.display === "none") {
-        return;
-    }
+    if (!house || !activeDynastyId || !realmScreen || realmScreen.style.display === "none") return;
 
     const scouting = ensureScoutingState(house);
-    const completion = scouting.ready.find(function(item) {
-        return item &&
-            String(item.id) === String(completionId) &&
-            item.status === "pending";
+    const completion = scouting.operations.find(function(item) {
+        return item && String(item.id) === String(completionId) && item.status === "completed";
     });
-
     const overlay = document.getElementById("scoutingCompletionOverlay");
     const title = document.getElementById("scoutingCompletionTitle");
     const body = document.getElementById("scoutingCompletionText");
-
     if (!completion || !overlay || !title || !body) return;
 
-    // Запоминаем именно ту экспедицию, которую сейчас показывает окно.
     overlay.dataset.completionId = String(completion.id);
-
     title.textContent = "РАЗВЕДКА ЗАВЕРШЕНА";
-    body.textContent =
-        "Отряд из " + completion.scouts +
-        " разведчиков завершил разведку X:" + completion.x +
-        " Y:" + completion.y +
-        ".\n\nРазведчики возвращаются в гарнизон.";
-
+    body.textContent = "Отряд из " + completion.scouts + " разведчиков завершил разведку X:" + completion.x + " Y:" + completion.y + ".\n\nРазведчики возвращаются в гарнизон.";
     overlay.style.display = "flex";
 }
 function closeScoutingCompletion() {
     const overlay = document.getElementById("scoutingCompletionOverlay");
     if (overlay) overlay.style.display = "none";
 }
-
 function resolveScoutingCompletion(action, completionId) {
     const house = getHouse();
     if (!house) return;
-
     const scouting = ensureScoutingState(house);
     const overlay = document.getElementById("scoutingCompletionOverlay");
     const currentId = completionId || (overlay ? overlay.dataset.completionId : null);
+    if (!currentId) { closeScoutingCompletion(); return; }
 
-    if (!currentId) {
-        closeScoutingCompletion();
-        return;
-    }
-
-    // Обрабатываем только ту экспедицию, чьё окно сейчас открыто.
-    const readyIndex = scouting.ready.findIndex(function(item) {
-        return item &&
-            String(item.id) === String(currentId) &&
-            item.status === "pending";
+    const index = scouting.operations.findIndex(function(item) {
+        return item && String(item.id) === String(currentId) && item.status === "completed";
     });
+    if (index < 0) { closeScoutingCompletion(); return; }
 
-    if (readyIndex < 0) {
-        closeScoutingCompletion();
-        return;
-    }
-
-    const completion = scouting.ready[readyIndex];
-
-    // Единственное действие текущего UI — возврат в гарнизон.
-    completion.status = "returned";
-
-    // Отряд уже удалён из operations в момент завершения разведки.
-    // Поэтому после завершения он снова является свободным составом гарнизона.
-    scouting.ready.splice(readyIndex, 1);
-    scouting.active = scouting.operations[0] || null;
+    scouting.operations[index].status = "returned";
+    scouting.operations.splice(index, 1);
+    scouting.active = scouting.operations.find(function(op) { return op.status === "active" || op.status === "event_pending"; }) || null;
 
     mapState.pendingScoutCount = 0;
     mapState.pendingScoutReadyId = null;
-
-    if (overlay) {
-        delete overlay.dataset.completionId;
-        overlay.style.display = "none";
-    }
-
+    if (overlay) delete overlay.dataset.completionId;
     closeScoutingCompletion();
     saveHouseData(house);
     updateArmy();
     updateMap();
-
-    // Сохраняем уже окончательное состояние разведки на сервере.
     syncScoutingStateToServer(house);
 }
+
 function scoutingStateActive(house) {
     return getScoutingOperations(house).length > 0;
 }
@@ -13567,9 +13529,13 @@ function openRealm() {
 
     processOfflineEconomy(house);
     if (house.scouting) {
-        const pendingIndex = getScoutingOperations(house).findIndex(function(op) { return op.eventPending; });
-        if (pendingIndex >= 0) {
-            activeScoutingEventIndex = pendingIndex;
+        const completedIndex = house.scouting.operations.findIndex(function(op) { return op.status === "completed"; });
+        if (completedIndex >= 0) {
+            showScoutingCompletion(house, house.scouting.operations[completedIndex].id);
+        }
+        const pendingOperation = getScoutingOperations(house).find(function(op) { return op.eventPending; });
+        if (pendingOperation) {
+            activeScoutingEventId = pendingOperation.id;
             showScoutingEvent(getWildAnimalsEvent());
         }
     }

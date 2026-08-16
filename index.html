@@ -5926,6 +5926,12 @@ function getHouseWorldBuildings(house) {
     (house.huntingGrounds || []).forEach(function(b) {
         rows.push({ x: Number(b.x), y: Number(b.y), building_type: "hunting", building_data: { hunters: Number(b.hunters) || 0 } });
     });
+    (house.fields || []).forEach(function(b) {
+        rows.push({ x: Number(b.x), y: Number(b.y), building_type: "field", building_data: { farmers: Number(b.farmers) || 0 } });
+    });
+    (house.bakeries || []).forEach(function(b) {
+        rows.push({ x: Number(b.x), y: Number(b.y), building_type: "bakery", building_data: { bakers: Number(b.bakers) || 0 } });
+    });
     return rows.filter(function(b) {
         return Number.isFinite(b.x) && Number.isFinite(b.y);
     });
@@ -5938,6 +5944,8 @@ function buildServerGameState(house) {
     const soldiers = Math.max(0, Math.floor(Number(population.soldiers) || 0));
     const hunters = Math.max(0, Math.floor(Number(population.hunters) || 0));
     const foresters = Math.max(0, Math.floor(Number(population.foresters) || 0));
+    const farmers = Math.max(0, Math.floor(Number(population.farmers) || 0));
+    const bakers = Math.max(0, Math.floor(Number(population.bakers) || 0));
     const total = free + workers + soldiers;
 
     return {
@@ -5954,13 +5962,18 @@ function buildServerGameState(house) {
             soldiers: soldiers,
             hunters: hunters,
             foresters: foresters,
+            farmers: farmers,
+            bakers: bakers,
             total: total
         },
         crest: house && house.crest || "",
         resources: {
             meat: Math.max(0, Math.floor(Number(house?.resources?.meat) || 0)),
-            wood: Math.max(0, Math.floor(Number(house?.resources?.wood) || 0))
+            wood: Math.max(0, Math.floor(Number(house?.resources?.wood) || 0)),
+            grain: Math.max(0, Math.floor(Number(house?.resources?.grain) || 0)),
+            bread: Math.max(0, Math.floor(Number(house?.resources?.bread) || 0))
         },
+        research: house && house.research ? house.research : { grainUnlocked: false, grainStartedAt: null, grainCompletedAt: null },
         buildings: getHouseWorldBuildings(house),
         scouting: house && house.scouting ? house.scouting : { cells: {}, active: null },
         army: {
@@ -6032,12 +6045,16 @@ async function restoreResourcesFromServerIfMissing(house) {
         const serverResources = result.data.game_state.resources || {};
         const meat = Math.max(0, Math.floor(Number(serverResources.meat) || 0));
         const wood = Math.max(0, Math.floor(Number(serverResources.wood) || 0));
+        const grain = Math.max(0, Math.floor(Number(serverResources.grain) || 0));
+        const bread = Math.max(0, Math.floor(Number(serverResources.bread) || 0));
 
-        if (meat <= 0 && wood <= 0) return false;
+        if (meat <= 0 && wood <= 0 && grain <= 0 && bread <= 0) return false;
 
         house.resources = house.resources || {};
         house.resources.meat = meat;
         house.resources.wood = wood;
+        house.resources.grain = grain;
+        house.resources.bread = bread;
         saveHouseData(house);
         return true;
     } catch (error) {
@@ -6051,6 +6068,8 @@ function applyServerResourcesToHouse(house, resources) {
     house.resources = house.resources || {};
     house.resources.meat = Math.max(0, Math.floor(Number(resources.meat) || 0));
     house.resources.wood = Math.max(0, Math.floor(Number(resources.wood) || 0));
+    house.resources.grain = Math.max(0, Math.floor(Number(resources.grain) || 0));
+    house.resources.bread = Math.max(0, Math.floor(Number(resources.bread) || 0));
     saveHouseData(house);
     updateResources();
     return true;
@@ -8824,7 +8843,8 @@ function deleteBuildingAt(x, y) {
 
     house = prepareHouse(house);
 
-    if (house.city && house.city.x === x && house.city.y === y && !hasBakeryAt(house,x,y)) {
+    if (house.city &&
+        house.city.x === x && house.city.y === y) {
         return;
     }
 

@@ -1434,20 +1434,28 @@ textarea.input {
 }
 
 .mapCell.armyGuarded {
-    /* Красный цвет охраны рисуем отдельным полупрозрачным слоем,
-       чтобы не заменять фон типа местности и рамку территории Дома. */
-    border-color: rgba(210, 72, 72, .88);
-    box-shadow: inset 0 0 0 1px rgba(170, 36, 36, .36), 0 0 8px rgba(170, 36, 36, .16);
+    /* Охрана обозначается минималистично: территория и ландшафт
+       остаются полностью видимыми, а военное присутствие читается
+       по тонким красным угловым меткам и слабому свечению. */
+    box-shadow: inset 0 0 0 1px rgba(155, 32, 32, .08),
+                0 0 5px rgba(155, 32, 32, .07);
 }
 
 .mapCell.armyGuarded::before {
     content: "";
     position: absolute;
-    inset: 4px;
-    background: rgba(150, 28, 28, .20);
-    border: 1px solid rgba(235, 92, 92, .28);
+    inset: 5px;
     pointer-events: none;
-    z-index: 1;
+    z-index: 7;
+    background:
+        linear-gradient(rgba(190,55,55,.72), rgba(190,55,55,.72)) left top / 9px 1px no-repeat,
+        linear-gradient(rgba(190,55,55,.72), rgba(190,55,55,.72)) left top / 1px 9px no-repeat,
+        linear-gradient(rgba(190,55,55,.72), rgba(190,55,55,.72)) right top / 9px 1px no-repeat,
+        linear-gradient(rgba(190,55,55,.72), rgba(190,55,55,.72)) right top / 1px 9px no-repeat,
+        linear-gradient(rgba(190,55,55,.72), rgba(190,55,55,.72)) left bottom / 9px 1px no-repeat,
+        linear-gradient(rgba(190,55,55,.72), rgba(190,55,55,.72)) left bottom / 1px 9px no-repeat,
+        linear-gradient(rgba(190,55,55,.72), rgba(190,55,55,.72)) right bottom / 9px 1px no-repeat,
+        linear-gradient(rgba(190,55,55,.72), rgba(190,55,55,.72)) right bottom / 1px 9px no-repeat;
 }
 
 .mapCell.city {
@@ -1714,8 +1722,9 @@ textarea.input {
 }
 
 .armyMapMark.guarding {
-    border-color:rgba(120,155,102,.95);
-    box-shadow:0 0 12px rgba(120,155,102,.30);
+    border-color:rgba(178,48,48,.95);
+    box-shadow:0 0 10px rgba(178,48,48,.42), 0 0 18px rgba(178,48,48,.14);
+    color:#e2b0a8;
 }
 
 .armyCityDefense {
@@ -7639,7 +7648,8 @@ function renderMapCells(force) {
             ownArmies.forEach(function(ownArmy, armyIndex) {
                 const armyMark = document.createElement("span");
                 armyMark.className = "armyMapMark" +
-                    (ownArmy.move ? " moving" : "");
+                    (ownArmy.move ? " moving" : "") +
+                    (ownArmy.mode === "guard" ? " guarding" : "");
                 armyMark.style.left = (5 + armyIndex * 27) + "px";
                 armyMark.title = ownArmy.move
                     ? (ownArmy.name + " · в пути")

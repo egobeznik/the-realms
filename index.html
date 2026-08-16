@@ -5119,6 +5119,15 @@ function demoAdvanceTime() {
         }
 
     }
+
+    // Ускоряем и таймер естественного прироста населения.
+    // Он работает через populationGrowth.lastGrowthAt,
+    // поэтому без этого сдвига кнопка ускорения времени его не затрагивает.
+    if (house.populationGrowth &&
+        typeof house.populationGrowth.lastGrowthAt === "number") {
+        house.populationGrowth.lastGrowthAt -= DEMO_ONE_HOUR;
+    }
+
     /*
        Запускаем существующие производственные процессы.
        Никаких новых правил добычи здесь нет.

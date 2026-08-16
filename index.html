@@ -1645,6 +1645,89 @@ textarea.input {
     filter: none;
 }
 
+/* =====================================================
+   ПОЛЕВАЯ АРМИЯ НА КАРТЕ
+===================================================== */
+
+.armyMapMark {
+    position:absolute;
+    left:5px;
+    bottom:5px;
+    z-index:8;
+    width:25px;
+    height:25px;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    border:1px solid rgba(174,141,82,.78);
+    border-radius:50%;
+    background:rgba(17,13,9,.94);
+    box-shadow:0 2px 7px rgba(0,0,0,.55),0 0 9px rgba(174,141,82,.24);
+    font-size:13px;
+    line-height:1;
+    cursor:pointer;
+}
+
+.armyMapMark.moving {
+    border-color:rgba(191,157,92,.95);
+    box-shadow:0 0 12px rgba(191,157,92,.35);
+}
+
+.armyMapMark.guarding {
+    border-color:rgba(120,155,102,.95);
+    box-shadow:0 0 12px rgba(120,155,102,.30);
+}
+
+.mapArmyPanel {
+    display:none;
+    padding:9px 10px;
+    border:1px solid rgba(157,126,72,.48);
+    background:rgba(20,16,12,.94);
+    color:#b7a17a;
+    font-size:10px;
+    line-height:1.4;
+}
+
+.mapArmyTitle {
+    color:#d2bf9d;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:10px;
+    letter-spacing:1.5px;
+}
+
+.mapArmyStats {
+    margin-top:5px;
+    color:#8f806c;
+}
+
+.mapArmyActions {
+    display:flex;
+    gap:6px;
+    margin-top:8px;
+}
+
+.mapArmyButton {
+    flex:1;
+    min-height:38px;
+    border:1px solid rgba(174,141,82,.68);
+    background:rgba(30,25,19,.95);
+    color:#d5c4a5;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:8px;
+    letter-spacing:1px;
+    cursor:pointer;
+}
+
+.mapArmyButton:disabled { opacity:.35; cursor:default; }
+
+.mapArmyButton.cancel { border-color:rgba(126,78,64,.72); }
+
+.mapArmyHint {
+    margin-top:6px;
+    color:#766b5c;
+    font-size:9px;
+}
+
 .scoutingMark {
     position: absolute;
     top: 5px;
@@ -3796,7 +3879,7 @@ textarea.input {
         <section class="realmSection armySection" id="armySection">
 
             <div class="sectionHeader">
-                <div class="sectionTitle">АРМИЯ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Армия','Армия формируется из военнослужащих. Разные типы войск имеют собственные характеристики атаки и защиты.')">?</button></div>
+                <div class="sectionTitle">АРМИЯ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Армия','Военнослужащие формируют армию. На карте армию можно перемещать: 1 клетка занимает 1 час. Армия может находиться на своей или нейтральной территории. Чем дальше она от столицы, тем выше её содержание. На своей территории армию можно поставить на охрану клетки.')">?</button></div>
                 <div class="sectionTotal" id="armyTotalLabel">
                     ВСЕГО: 0
                 </div>
@@ -3819,6 +3902,7 @@ textarea.input {
                         <b id="armyReadiness">100%</b>
                     </div>
                     <div class="armyPersonnel">ВОЕННОСЛУЖАЩИЕ: <b id="armyPersonnel">0</b></div>
+                    <div style="margin-top:4px;color:#8f806c;font-size:10px;">ЛОГИСТИКА: <b id="armyLogistics">0 кл. · ×1.00</b></div>
                     <div style="margin-top:4px;color:#8f806c;font-size:10px;">В разведке: <b id="armyScoutingReserved">0</b></div>
                 </div>
 
@@ -4232,7 +4316,7 @@ textarea.input {
         <div class="mapCellInfoCoordinates" id="mapCellInfoCoordinates">—</div>
     </div>
 
-    <div class="mapNotice" id="mapNotice">МИР · 100 × 100 КЛЕТОК <button class="infoTipButton" type="button" onclick="showRealmTooltip('Карта мира','На карте расположены города и территории всех Домов. Ваши здания отображаются подробно, постройки других государств — как объекты на карте.')">?</button></div>
+    <div class="mapNotice" id="mapNotice">МИР · 100 × 100 КЛЕТОК <button class="infoTipButton" type="button" onclick="showRealmTooltip('Карта мира','Ваши территории отмечены рамкой. 🔎 показывает активную разведку, ⚔ — положение армии. Нажмите на свою армию, чтобы переместить её или поставить на охрану клетки. 1 клетка пути занимает 1 час. Нейтральные сухопутные клетки доступны для перемещения.')">?</button></div>
 
     <div class="mapLegend">
         <div><span>🌲</span> Лес</div>
@@ -4313,6 +4397,12 @@ textarea.input {
             <input class="mapScoutInput" id="mapScoutCountInput" type="number" min="1" max="1" value="1" inputmode="numeric" aria-label="Количество разведчиков">
             <button class="mapScoutButton" id="mapScoutButton" type="button" onclick="startCellScouting()">РАЗВЕДАТЬ КЛЕТКУ</button>
         </div>
+    </div>
+    <div id="mapArmyPanel" class="mapArmyPanel">
+        <div class="mapArmyTitle" id="mapArmyTitle">АРМИЯ I</div>
+        <div class="mapArmyStats" id="mapArmyStats"></div>
+        <div class="mapArmyActions" id="mapArmyActions"></div>
+        <div class="mapArmyHint" id="mapArmyHint"></div>
     </div>
     </div>
 
@@ -4572,6 +4662,14 @@ function demoAdvanceTime() {
         }
     }
 
+    if (house.army && Array.isArray(house.army.armies)) {
+        house.army.armies.forEach(function(army) {
+            if (army.move && typeof army.move.lastTickAt === "number") {
+                army.move.lastTickAt -= DEMO_ONE_HOUR;
+            }
+        });
+    }
+
     if (Array.isArray(house.forestryGrounds)) {
         house.forestryGrounds.forEach(function(ground) {
             if (typeof ground.lastProduction === "number") {
@@ -4615,6 +4713,7 @@ function demoAdvanceTime() {
     processForestry(house);
     processFoodConsumption(house);
     processScouting(house);
+    processArmyMovement(house);
 
     saveHouseData(house);
 
@@ -5202,8 +5301,18 @@ const SCOUTING_DURATION_MS = 2 * 60 * 60 * 1000;
 const SCOUTING_MAX_GAIN = 60;
 const SCOUTING_MIN_SCOUTS = 1;
 const SCOUTING_EVENT_CHANCE = 0.18;
+const ARMY_MOVE_HOUR_MS = 60 * 60 * 1000;
+const ARMY_LOGISTICS_ZONES = [
+    { max: 3, multiplier: 1.00 },
+    { max: 6, multiplier: 1.15 },
+    { max: 10, multiplier: 1.30 },
+    { max: 15, multiplier: 1.50 },
+    { max: 20, multiplier: 1.75 },
+    { max: Infinity, multiplier: 2.00 }
+];
 
 let scoutingUiTimer = null;
+let armyServerSyncPending = false;
 let scoutingServerSyncPending = false;
 
 /* =====================================================
@@ -5215,7 +5324,8 @@ let scoutingServerSyncPending = false;
 let sharedWorld = {
     cities: [],
     territories: [],
-    buildings: []
+    buildings: [],
+    armies: []
 };
 
 let sharedWorldChannel = null;
@@ -5347,7 +5457,13 @@ function buildServerGameState(house) {
             wood: Math.max(0, Math.floor(Number(house?.resources?.wood) || 0))
         },
         buildings: getHouseWorldBuildings(house),
-        scouting: house && house.scouting ? house.scouting : { cells: {}, active: null }
+        scouting: house && house.scouting ? house.scouting : { cells: {}, active: null },
+        army: {
+            scouts: Math.max(0, Math.floor(Number(house?.army?.scouts) || 0)),
+            archers: Math.max(0, Math.floor(Number(house?.army?.archers) || 0)),
+            morale: Math.max(0, Math.min(100, Number(house?.army?.morale) || 100)),
+            armies: Array.isArray(house?.army?.armies) ? house.army.armies : []
+        }
     };
 }
 
@@ -5491,6 +5607,12 @@ function isTooCloseToForeignCity(x, y, house) {
 function isOwnSharedCity(city, house) {
     return !!(city && house && house.serverDynastyId &&
         city.dynasty_id === house.serverDynastyId);
+}
+
+function getSharedArmyAt(x, y) {
+    return (sharedWorld.armies || []).find(function(army) {
+        return Number(army.x) === Number(x) && Number(army.y) === Number(y);
+    }) || null;
 }
 
 function getSharedBuildingAt(x, y) {
@@ -5697,6 +5819,27 @@ async function loadSharedWorld(forceRefresh) {
             });
 
             sharedWorld.buildings = Array.from(buildingMap.values());
+
+            const armyRows = [];
+            (dynastiesResult.data || []).forEach(function(dynasty) {
+                const state = dynasty && dynasty.game_state && typeof dynasty.game_state === "object"
+                    ? dynasty.game_state : {};
+                const armyState = state.army && typeof state.army === "object" ? state.army : {};
+                (Array.isArray(armyState.armies) ? armyState.armies : []).forEach(function(army) {
+                    if (!Number.isFinite(Number(army.x)) || !Number.isFinite(Number(army.y))) return;
+                    armyRows.push({
+                        id: army.id || ("army-" + String(dynasty.id)),
+                        dynasty_id: dynasty.id,
+                        name: army.name || "Армия I",
+                        x: Number(army.x),
+                        y: Number(army.y),
+                        mode: army.mode || "field",
+                        scouts: Math.max(0, Math.floor(Number(army.scouts) || 0)),
+                        archers: Math.max(0, Math.floor(Number(army.archers) || 0))
+                    });
+                });
+            });
+            sharedWorld.armies = armyRows;
             sharedWorldLastLoadedAt = Date.now();
 
             renderMapCells();
@@ -6131,6 +6274,12 @@ function setMapMode(mode) {
         document.querySelector(".mapInstructionTitle").textContent = "ВАШИ ЗЕМЛИ";
         document.querySelector(".mapInstructionText").textContent =
             "Ваш город находится в центре владений. Одна клетка вокруг города — первые земли Дома.";
+        foundButton.style.display = "none";
+    } else if (mode === "army_move") {
+        instruction.classList.remove("viewMode");
+        document.querySelector(".mapInstructionTitle").textContent = "ПЕРЕМЕЩЕНИЕ АРМИИ";
+        document.querySelector(".mapInstructionText").textContent =
+            "Выберите сухопутную клетку. 1 клетка пути занимает 1 час.";
         foundButton.style.display = "none";
     } else {
         instruction.classList.remove("viewMode");
@@ -6892,6 +7041,33 @@ function renderMapCells(force) {
                 cell.appendChild(scoutingMark);
             }
 
+            const ownArmy = house && house.army && Array.isArray(house.army.armies)
+                ? house.army.armies.find(function(army) { return Number(army.x) === x && Number(army.y) === y; })
+                : null;
+            const foreignArmy = getSharedArmyAt(x, y);
+            const armyToRender = ownArmy || foreignArmy;
+            if (armyToRender) {
+                const armyMark = document.createElement("span");
+                armyMark.className = "armyMapMark" +
+                    (armyToRender.move ? " moving" : "") +
+                    (armyToRender.mode === "guard" ? " guarding" : "");
+                armyMark.title = ownArmy
+                    ? (armyToRender.move ? "Армия в пути" : (armyToRender.mode === "guard" ? "Армия охраняет клетку" : "Ваша армия"))
+                    : "Армия другого государства";
+                armyMark.textContent = "⚔";
+                if (ownArmy) {
+                    armyMark.onclick = function(event) {
+                        event.stopPropagation();
+                        mapState.selectedX = x;
+                        mapState.selectedY = y;
+                        mapState.x = x;
+                        mapState.y = y;
+                        updateMap();
+                    };
+                }
+                cell.appendChild(armyMark);
+            }
+
             if (mapState.selectedX === x && mapState.selectedY === y) {
                 cell.classList.add("selected");
             }
@@ -7268,6 +7444,8 @@ function updateMap() {
 
     updateCellInfo(mapState.selectedX, mapState.selectedY);
 
+    renderArmyMapPanel(getHouse(), mapState.selectedX, mapState.selectedY);
+
     const huntingButton =
         document.getElementById("mapBuildHuntingButton");
 
@@ -7295,6 +7473,8 @@ function updateMap() {
 
         const foundationMode =
             mapState.mode === "foundation";
+        const armyMoveMode =
+            mapState.mode === "army_move";
 
         document.getElementById("mapSelectionInfo").textContent =
             "ВЫБРАНО · X: " + mapState.selectedX +
@@ -7463,11 +7643,22 @@ function updateMap() {
         }
 
         renderScoutingUI(house, mapState.selectedX, mapState.selectedY);
+        renderArmyMapPanel(house, mapState.selectedX, mapState.selectedY);
+
+        if (armyMoveMode) {
+            if (huntingButton) huntingButton.style.display = "none";
+            if (forestryButton) forestryButton.style.display = "none";
+            if (warehouseButton) warehouseButton.style.display = "none";
+            if (houseButton) houseButton.style.display = "none";
+            document.getElementById("mapFoundButton").style.display = "none";
+        }
 
     } else {
 
         const scoutPanel = document.getElementById("mapScoutPanel");
         if (scoutPanel) scoutPanel.style.display = "none";
+        const armyPanel = document.getElementById("mapArmyPanel");
+        if (armyPanel) armyPanel.style.display = "none";
 
         document.getElementById("mapSelectionInfo").textContent =
             mapState.mode === "view"
@@ -8209,6 +8400,22 @@ async function foundCity() {
         house.territory.forest = house.territory.cells.some(function(cell) {
             return terrainAt(cell.x, cell.y) === "forest";
         });
+
+        if (!house.army || typeof house.army !== "object") house.army = { scouts: 0, archers: 0, morale: 100, armies: [] };
+        if (!Array.isArray(house.army.armies)) house.army.armies = [];
+        if (!house.army.armies.length) {
+            house.army.armies.push({
+                id: "army_1",
+                name: "Армия I",
+                x: x,
+                y: y,
+                mode: "garrison",
+                guardX: null,
+                guardY: null,
+                move: null,
+                createdAt: new Date().toISOString()
+            });
+        }
 
         /* Сначала сервер, затем локальное сохранение. */
         await syncCurrentCityToServer(house);
@@ -9966,17 +10173,10 @@ function prepareHouse(house) {
     if (!house.army || typeof house.army !== "object") {
 
         house.army = {
-
-            scouts:
-                Math.max(
-                    0,
-                    Math.floor(
-                        house.population.soldiers || 0
-                    )
-                ),
-
-            archers: 0
-
+            scouts: Math.max(0, Math.floor(house.population.soldiers || 0)),
+            archers: 0,
+            morale: 100,
+            armies: []
         };
 
     }
@@ -9992,6 +10192,35 @@ function prepareHouse(house) {
 
     house.army.archers =
         Math.max(0, Math.floor(house.army.archers));
+
+    if (typeof house.army.morale !== "number") house.army.morale = 100;
+    house.army.morale = Math.max(0, Math.min(100, Math.floor(house.army.morale)));
+    if (!Array.isArray(house.army.armies)) house.army.armies = [];
+
+    if (house.city && house.army.armies.length === 0) {
+        house.army.armies.push({
+            id: "army_1",
+            name: "Армия I",
+            x: Number(house.city.x),
+            y: Number(house.city.y),
+            mode: "garrison",
+            guardX: null,
+            guardY: null,
+            move: null,
+            createdAt: new Date().toISOString()
+        });
+    }
+
+    house.army.armies.forEach(function(army, index) {
+        if (!army.id) army.id = "army_" + (index + 1);
+        if (!army.name) army.name = "Армия " + String.fromCharCode(73 + index);
+        if (!Number.isFinite(Number(army.x))) army.x = Number(house.city?.x) || 0;
+        if (!Number.isFinite(Number(army.y))) army.y = Number(house.city?.y) || 0;
+        if (!army.mode) army.mode = "field";
+        if (!Object.prototype.hasOwnProperty.call(army, "guardX")) army.guardX = null;
+        if (!Object.prototype.hasOwnProperty.call(army, "guardY")) army.guardY = null;
+        if (!Object.prototype.hasOwnProperty.call(army, "move")) army.move = null;
+    });
 
     house.population.soldiers =
         house.army.scouts +
@@ -11495,8 +11724,9 @@ function updateArmy() {
     const totalRecon =
         scouts * 5;
 
+    const logisticsMultiplier = getArmyLogisticsMultiplier(house);
     const totalUpkeep =
-        total * 4;
+        total * 4 * logisticsMultiplier;
 
     const readiness = 100;
 
@@ -11535,6 +11765,13 @@ function updateArmy() {
 
     if (personnelValue)
         personnelValue.textContent = total;
+
+    const armyLogisticsValue = document.getElementById("armyLogistics");
+    if (armyLogisticsValue) {
+        const army = getFieldArmy(house);
+        const distance = getArmyDistanceFromCapital(house, army);
+        armyLogisticsValue.textContent = distance + " кл. · ×" + logisticsMultiplier.toFixed(2);
+    }
 
     const scoutingReservedValue = document.getElementById("armyScoutingReserved");
     if (scoutingReservedValue) {
@@ -12050,6 +12287,302 @@ function updateHunting() {
 
 
 /* =====================================================
+   ПЕРЕМЕЩЕНИЕ АРМИИ И ЛОГИСТИКА
+===================================================== */
+
+function getFieldArmy(house) {
+    if (!house) return null;
+    prepareHouse(house);
+    return house.army.armies[0] || null;
+}
+
+function getArmyDistanceFromCapital(house, army) {
+    if (!house || !house.city || !army) return 0;
+    return Math.max(
+        Math.abs(Number(army.x) - Number(house.city.x)),
+        Math.abs(Number(army.y) - Number(house.city.y))
+    );
+}
+
+function getArmyLogisticsMultiplier(house) {
+    const army = getFieldArmy(house);
+    if (!army) return 1;
+    const distance = getArmyDistanceFromCapital(house, army);
+    const zone = ARMY_LOGISTICS_ZONES.find(function(item) { return distance <= item.max; });
+    return zone ? zone.multiplier : 2;
+}
+
+function formatArmyMode(army) {
+    if (!army) return "—";
+    if (army.move) return "В ПУТИ";
+    if (army.mode === "guard") return "ОХРАНА";
+    if (army.mode === "garrison") return "ГАРНИЗОН";
+    return "ПОЛЕВАЯ АРМИЯ";
+}
+
+function buildArmyPath(fromX, fromY, toX, toY) {
+    const path = [];
+    let x = Number(fromX);
+    let y = Number(fromY);
+    const tx = Number(toX);
+    const ty = Number(toY);
+    while (x !== tx || y !== ty) {
+        if (x !== tx) x += x < tx ? 1 : -1;
+        if (y !== ty) y += y < ty ? 1 : -1;
+        path.push({ x: x, y: y });
+    }
+    return path;
+}
+
+function isArmyTargetAllowed(house, x, y) {
+    if (!house || !isInsideWorld(x, y)) return { ok: false, reason: "Клетка находится за пределами мира." };
+    const terrain = terrainAt(x, y);
+    if (isWaterTerrain(terrain)) return { ok: false, reason: "Армия не может перемещаться по воде." };
+    const foreign = isForeignTerritoryAt(x, y, house);
+    if (foreign) return { ok: false, reason: "На текущем этапе армия не может входить на территорию другого государства." };
+    return { ok: true };
+}
+
+async function syncArmyStateToServer(house, refreshWorld) {
+    if (!window.theRealmsSupabase || !house) return;
+    if (armyServerSyncPending) return;
+    armyServerSyncPending = true;
+    try {
+        if (!house.serverDynastyId) await ensureCurrentServerDynasty(house);
+        else {
+            const result = await window.theRealmsSupabase
+                .from("dynasties")
+                .update({ game_state: buildServerGameState(house) })
+                .eq("id", house.serverDynastyId);
+            if (result.error) throw result.error;
+        }
+        if (refreshWorld) await loadSharedWorld(true);
+    } catch (error) {
+        console.error("The Realms: не удалось синхронизировать армию", error);
+    } finally {
+        armyServerSyncPending = false;
+    }
+}
+
+function processArmyMovement(house, nowOverride) {
+    if (!house) return false;
+    const army = getFieldArmy(house);
+    if (!army || !army.move) return false;
+
+    const now = typeof nowOverride === "number" ? nowOverride : Date.now();
+    const move = army.move;
+    if (typeof move.lastTickAt !== "number") move.lastTickAt = now;
+    const delta = Math.max(0, now - move.lastTickAt);
+    move.elapsedMs = Math.max(0, Number(move.elapsedMs) || 0) + delta;
+    move.lastTickAt = now;
+
+    const completedSteps = Math.min(
+        move.path.length,
+        Math.floor(move.elapsedMs / ARMY_MOVE_HOUR_MS)
+    );
+    const previousStepIndex = Number(move.stepIndex || 0);
+
+    if (completedSteps > previousStepIndex) {
+        const nextCell = move.path[completedSteps - 1];
+        army.x = nextCell.x;
+        army.y = nextCell.y;
+        move.stepIndex = completedSteps;
+        saveHouseData(house);
+        syncArmyStateToServer(house, true);
+    }
+
+    if (completedSteps >= move.path.length) {
+        army.x = Number(move.targetX);
+        army.y = Number(move.targetY);
+        army.move = null;
+        army.mode = "field";
+        army.guardX = null;
+        army.guardY = null;
+        addChronicleEvent(house, "Армия прибыла в X:" + army.x + " Y:" + army.y + ".");
+        saveHouseData(house);
+        syncArmyStateToServer(house, true);
+    }
+
+    return true;
+}
+
+function getArmyMoveRemaining(army) {
+    if (!army || !army.move) return 0;
+    return Math.max(0, army.move.path.length * ARMY_MOVE_HOUR_MS - (Number(army.move.elapsedMs) || 0));
+}
+
+function formatArmyMoveRemaining(ms) {
+    const minutes = Math.max(0, Math.ceil(ms / 60000));
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return hours > 0 ? hours + " ч. " + String(mins).padStart(2, "0") + " мин." : mins + " мин.";
+}
+
+function startArmyMoveToSelectedCell() {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+    const army = getFieldArmy(house);
+    const x = mapState.selectedX;
+    const y = mapState.selectedY;
+    if (!army || x === null || y === null) return;
+    if (army.move) return;
+
+    const allowed = isArmyTargetAllowed(house, x, y);
+    if (!allowed.ok) { alert(allowed.reason); return; }
+    const path = buildArmyPath(army.x, army.y, x, y);
+    if (!path.length) {
+        alert("Армия уже находится на этой клетке.");
+        return;
+    }
+
+    const blockedPathCell = path.find(function(cell) {
+        return !isArmyTargetAllowed(house, cell.x, cell.y).ok;
+    });
+    if (blockedPathCell) {
+        const blocked = isArmyTargetAllowed(house, blockedPathCell.x, blockedPathCell.y);
+        alert("Маршрут недоступен. " + (blocked.reason || "Выберите другой путь."));
+        return;
+    }
+
+    army.move = {
+        targetX: x,
+        targetY: y,
+        path: path,
+        stepIndex: 0,
+        elapsedMs: 0,
+        lastTickAt: Date.now()
+    };
+    army.mode = "field";
+    army.guardX = null;
+    army.guardY = null;
+    setMapMode("view");
+    addChronicleEvent(house, "Армия отправлена в поход к X:" + x + " Y:" + y + ". Время в пути: " + path.length + " ч.");
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateMap();
+}
+
+function beginArmyMoveMode() {
+    const house = getHouse();
+    const army = getFieldArmy(house);
+    if (!army || army.move) return;
+    mapState.mode = "army_move";
+    const title = document.querySelector(".mapInstructionTitle");
+    const text = document.querySelector(".mapInstructionText");
+    if (title) title.textContent = "ПЕРЕМЕЩЕНИЕ АРМИИ";
+    if (text) text.textContent = "Выберите сухопутную клетку. 1 клетка пути занимает 1 час.";
+    const instruction = document.getElementById("mapInstruction");
+    if (instruction) instruction.classList.remove("viewMode");
+    updateMap();
+}
+
+function guardArmyAtSelectedCell() {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+    const army = getFieldArmy(house);
+    const x = mapState.selectedX;
+    const y = mapState.selectedY;
+    if (!army || x === null || y === null || army.move) return;
+    if (!isTerritoryCell(house, x, y)) {
+        alert("Охранять можно только клетки вашей территории.");
+        return;
+    }
+    if (army.x !== x || army.y !== y) {
+        alert("Сначала переместите армию на выбранную клетку.");
+        return;
+    }
+    army.mode = "guard";
+    army.guardX = x;
+    army.guardY = y;
+    addChronicleEvent(house, "Армия поставлена на охрану территории X:" + x + " Y:" + y + ".");
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateMap();
+}
+
+function cancelArmyGuard() {
+    const house = getHouse();
+    const army = getFieldArmy(house);
+    if (!army || army.mode !== "guard") return;
+    army.mode = "field";
+    army.guardX = null;
+    army.guardY = null;
+    addChronicleEvent(house, "Армия снята с охраны территории.");
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateMap();
+}
+
+function renderArmyMapPanel(house, x, y) {
+    const panel = document.getElementById("mapArmyPanel");
+    const title = document.getElementById("mapArmyTitle");
+    const stats = document.getElementById("mapArmyStats");
+    const actions = document.getElementById("mapArmyActions");
+    const hint = document.getElementById("mapArmyHint");
+    if (!panel || !title || !stats || !actions || !hint) return;
+    panel.style.display = "none";
+    actions.innerHTML = "";
+
+    const army = getFieldArmy(house);
+    if (!army || x === null || y === null) return;
+
+    const isArmyCell = Number(army.x) === Number(x) && Number(army.y) === Number(y);
+    const isMoveTarget = mapState.mode === "army_move";
+    if (!isArmyCell && !isMoveTarget) return;
+
+    panel.style.display = "block";
+    title.textContent = army.name + " · " + formatArmyMode(army);
+    const distance = getArmyDistanceFromCapital(house, army);
+    const multiplier = getArmyLogisticsMultiplier(house);
+    const total = Math.max(0, Math.floor(Number(house.population.soldiers) || 0));
+    stats.textContent = "Воинов: " + total + " · Расстояние до столицы: " + distance + " кл. · Содержание: ×" + multiplier.toFixed(2);
+    hint.textContent = army.move
+        ? "Армия в пути. Осталось: " + formatArmyMoveRemaining(getArmyMoveRemaining(army))
+        : "Охрана пока действует только на выбранной клетке. Боевые действия подключим позже.";
+
+    if (army.move) {
+        const cancel = document.createElement("button");
+        cancel.className = "mapArmyButton cancel";
+        cancel.textContent = "В ПУТИ";
+        cancel.disabled = true;
+        actions.appendChild(cancel);
+        return;
+    }
+
+    if (isArmyCell) {
+        const move = document.createElement("button");
+        move.className = "mapArmyButton";
+        move.textContent = "ПЕРЕМЕСТИТЬ";
+        move.onclick = beginArmyMoveMode;
+        actions.appendChild(move);
+
+        if (army.mode === "guard") {
+            const release = document.createElement("button");
+            release.className = "mapArmyButton cancel";
+            release.textContent = "СНЯТЬ С ОХРАНЫ";
+            release.onclick = cancelArmyGuard;
+            actions.appendChild(release);
+        } else if (isTerritoryCell(house, x, y)) {
+            const guard = document.createElement("button");
+            guard.className = "mapArmyButton";
+            guard.textContent = "ОХРАНЯТЬ КЛЕТКУ";
+            guard.onclick = guardArmyAtSelectedCell;
+            actions.appendChild(guard);
+        }
+    } else if (isMoveTarget) {
+        const allowed = isArmyTargetAllowed(house, x, y);
+        const move = document.createElement("button");
+        move.className = "mapArmyButton";
+        move.textContent = "ОТПРАВИТЬ · " + Math.max(Math.abs(army.x - x), Math.abs(army.y - y)) + " Ч";
+        move.disabled = !allowed.ok;
+        move.onclick = startArmyMoveToSelectedCell;
+        actions.appendChild(move);
+    }
+}
+
+/* =====================================================
    РЕСУРСЫ
 ===================================================== */
 
@@ -12059,8 +12592,9 @@ function getHourlyFoodConsumption(house) {
     const free = Math.max(0, Math.floor(Number(house.population.free) || 0));
     const workers = Math.max(0, Math.floor(Number(house.population.workers) || 0));
     const soldiers = Math.max(0, Math.floor(Number(house.population.soldiers) || 0));
+    const soldierLogistics = getArmyLogisticsMultiplier(house);
 
-    return free + workers * 2 + soldiers * 4;
+    return free + workers * 2 + soldiers * 4 * soldierLogistics;
 }
 
 function getHourlyWoodUpkeep(house) {
@@ -12216,10 +12750,26 @@ const helpData = {
             "Те, кто взял оружие ради Дома. Они защищают его земли и готовы проливать кровь за её пределы.",
 
         influence:
-            "Оборона государства, захват земель, военные походы и конфликты.",
+            "Оборона государства, военные походы, охрана территории и будущие конфликты.",
 
         consumption:
-            "4 мяса / час."
+            "Базово 4 мяса / час. Чем дальше армия от столицы, тем выше логистическое содержание."
+
+    },
+
+    army: {
+
+        title:
+            "ПОЛЕВАЯ АРМИЯ",
+
+        description:
+            "Армия может перемещаться по суше. Одна клетка пути занимает один час.",
+
+        influence:
+            "Защищает территорию, может занимать нейтральные клетки и в будущем участвует в военных действиях.",
+
+        consumption:
+            "Чем дальше армия от столицы, тем выше расход мяса на её содержание."
 
     }
 
@@ -12804,6 +13354,7 @@ function processOfflineEconomy(house) {
         processForestry(house, cursor);
         processFoodConsumption(house, cursor);
         processScouting(house, cursor);
+        processArmyMovement(house, cursor);
         if (house.scouting && house.scouting.active && house.scouting.active.eventPending) break;
     }
 
@@ -12828,6 +13379,7 @@ setInterval(function() {
     processForestry(house);
     processFoodConsumption(house);
     processScouting(house);
+    processArmyMovement(house);
     house.economyLastOnlineAt = Date.now();
     if (mapState.selectedX !== null && mapState.selectedY !== null && document.getElementById("mapScreen")?.style.display !== "none") {
         renderScoutingUI(house, mapState.selectedX, mapState.selectedY);

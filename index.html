@@ -8368,9 +8368,22 @@ function selectMapCell(x, y) {
     if (!isInsideWorld(x, y)) return;
     if (mapState.mode === "foundation" && isWaterTerrain(terrainAt(x, y))) return;
 
+    const house = getHouse();
+    const selectedArmy = house ? getArmyById(house, mapState.selectedArmyId) : null;
+    const selectingOwnArmyCell = selectedArmy &&
+        Number(selectedArmy.x) === Number(x) &&
+        Number(selectedArmy.y) === Number(y);
+
     mapState.selectedX = x;
     mapState.selectedY = y;
-    mapState.selectedArmyId = null;
+
+    // Если конкретная армия уже выбрана, не сбрасываем её при выборе
+    // клетки назначения. Это позволяет отправить армию на клетку, где
+    // уже стоит другая армия, после чего объединить их.
+    if (!selectedArmy || selectingOwnArmyCell) {
+        mapState.selectedArmyId = null;
+    }
+
     mapState.actionsOpen = false;
     closeMapActions();
 
@@ -13203,57 +13216,6 @@ function updatePopulationSoldiersCount(house) {
         }, 0);
 }
 
-function reinforceArmy(armyId, count) {
-    const house = getHouse();
-    if (!house) return;
-    prepareHouse(house);
-
-    const army = getArmyById(house, armyId || mapState.selectedArmyId);
-    if (!army) return;
-
-    if (army.move) {
-        alert('Нельзя пополнять армию во время похода. Сначала остановите её в текущей позиции.');
-        return;
-    }
-
-    if (!isArmyAtCapital(house, army)) {
-        alert('Пополнять полевую армию из столичного резерва можно только в столице.');
-        return;
-    }
-
-    const reserve = Math.max(0, Math.floor(Number(house.army.archers) || 0));
-    const requested = Math.max(0, Math.floor(Number(count) || 0));
-    const amount = Math.min(requested, reserve);
-
-    if (amount < 1) {
-        alert('В военном резерве нет свободных лучников.');
-        return;
-    }
-
-    const previousCount = Math.max(0, Math.floor(Number(army.archers) || 0));
-    army.archers = previousCount + amount;
-    // Новобранцы из резерва не считаются полностью готовыми мгновенно.
-    // Смешиваем их готовность с текущей готовностью армии пропорционально численности.
-    const currentReadiness = getArmyReadiness(house, army);
-    army.readiness = previousCount > 0
-        ? ((currentReadiness * previousCount) +
-           (ARMY_READINESS_REINFORCEMENT * amount)) /
-          (previousCount + amount)
-        : ARMY_READINESS_REINFORCEMENT;
-    army.readinessLastTickAt = Date.now();
-    house.army.archers = reserve - amount;
-    updatePopulationSoldiersCount(house);
-
-    addChronicleEvent(house, army.name + ' получила ' + amount + ' лучников из столичного резерва.');
-    mapState.selectedArmyId = army.id;
-    saveHouseData(house);
-    syncArmyStateToServer(house, true);
-    updateArmy();
-    updatePopulation();
-    updateResources();
-    updateMap();
-}
-
 function splitArmy(armyId, count) {
     const house = getHouse();
     if (!house) return;
@@ -13830,19 +13792,6 @@ function renderArmyMapPanel(house, x, y) {
             readiness.style.width = "100%";
             readiness.textContent = "БОЕГОТОВНОСТЬ: " + getArmyReadiness(house, selectedArmy) + "%";
             actions.appendChild(readiness);
-
-            const reinforce = document.createElement("button");
-            reinforce.className = "mapArmyButton";
-            reinforce.textContent = isArmyAtCapital(house, selectedArmy)
-                ? "ПОПОЛНИТЬ ИЗ РЕЗЕРВА"
-                : "ПОПОЛНЕНИЕ — ТОЛЬКО В СТОЛИЦЕ";
-            reinforce.disabled = !isArmyAtCapital(house, selectedArmy) || reserveArchers < 1;
-            reinforce.onclick = function() {
-                const raw = window.prompt("Сколько лучников добавить в " + selectedArmy.name + "?", String(Math.min(5, reserveArchers)));
-                if (raw === null) return;
-                reinforceArmy(selectedArmy.id, raw);
-            };
-            actions.appendChild(reinforce);
 
             const split = document.createElement("button");
             split.className = "mapArmyButton";
@@ -14823,8 +14772,21 @@ setInterval(function() {
     processArmyMovement(house);
     house.economyLastOnlineAt = Date.now();
     if (mapState.selectedX !== null && mapState.selectedY !== null && document.getElementById("mapScreen")?.style.display !== "none") {
-        renderScoutingUI(house, mapState.selectedX, mapState.selectedY);
-        updateMap();
+        const activeElement = document.activeElement;
+        const mapActionsOverlay = document.getElementById("mapActionsOverlay");
+        const editingMapActionsInput = !!(
+            activeElement &&
+            mapActionsOverlay &&
+            mapActionsOverlay.contains(activeElement) &&
+            (activeElement.tagName === "INPUT" || activeElement.tagName === "TEXTAREA" || activeElement.tagName === "SELECT")
+        );
+
+        // Не пересоздаём DOM панели действий, пока игрок вводит число.
+        // Иначе мобильная клавиатура теряет focus из-за нового <input>.
+        if (!editingMapActionsInput) {
+            renderScoutingUI(house, mapState.selectedX, mapState.selectedY);
+            updateMap();
+        }
     }
 
     const selectedArmy = getSelectedArmy(house);

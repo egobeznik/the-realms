@@ -1680,8 +1680,16 @@ textarea.input {
 
 .mapArmyPanel {
     display:none;
-    padding:9px 10px;
-    border:1px solid rgba(157,126,72,.48);
+    position:absolute;
+    left:50%;
+    bottom:calc(92px + env(safe-area-inset-bottom));
+    transform:translateX(-50%);
+    z-index:32;
+    width:calc(100% - 28px);
+    max-width:390px;
+    box-sizing:border-box;
+    padding:11px 12px;
+    border:1px solid rgba(157,126,72,.62);
     background:rgba(20,16,12,.94);
     color:#b7a17a;
     font-size:10px;
@@ -1704,10 +1712,11 @@ textarea.input {
     display:flex;
     gap:6px;
     margin-top:8px;
+    flex-wrap:wrap;
 }
 
 .mapArmyButton {
-    flex:1;
+    flex:1 1 46%;
     min-height:38px;
     border:1px solid rgba(174,141,82,.68);
     background:rgba(30,25,19,.95);
@@ -3879,7 +3888,7 @@ textarea.input {
         <section class="realmSection armySection" id="armySection">
 
             <div class="sectionHeader">
-                <div class="sectionTitle">АРМИЯ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Армия','Военнослужащие формируют армию. На карте армию можно перемещать: 1 клетка занимает 1 час. Армия может находиться на своей или нейтральной территории. Чем дальше она от столицы, тем выше её содержание. На своей территории армию можно поставить на охрану клетки.')">?</button></div>
+                <div class="sectionTitle">АРМИЯ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Армия','Лучники формируют полевую армию. Разведчики — отдельная структура и не входят в армию. Армию можно перемещать: 1 клетка занимает 1 час. Чем дальше она от столицы, тем выше содержание. На своей территории армию можно поставить на охрану клетки. Состав армии меняется в столице.')">?</button></div>
                 <div class="sectionTotal" id="armyTotalLabel">
                     ВСЕГО: 0
                 </div>
@@ -7046,7 +7055,9 @@ function renderMapCells(force) {
                 : null;
             const foreignArmy = getSharedArmyAt(x, y);
             const armyToRender = ownArmy || foreignArmy;
-            if (armyToRender) {
+            const armyHasCombatPersonnel = armyToRender &&
+                Math.max(0, Math.floor(Number(armyToRender.archers) || 0)) > 0;
+            if (armyToRender && armyHasCombatPersonnel) {
                 const armyMark = document.createElement("span");
                 armyMark.className = "armyMapMark" +
                     (armyToRender.move ? " moving" : "") +
@@ -7645,6 +7656,19 @@ function updateMap() {
         renderScoutingUI(house, mapState.selectedX, mapState.selectedY);
         renderArmyMapPanel(house, mapState.selectedX, mapState.selectedY);
 
+        const armyPanel = document.getElementById("mapArmyPanel");
+        const armyPanelVisible = !!(armyPanel && armyPanel.style.display !== "none");
+        const buildStack = document.getElementById("mapBuildStack");
+        const scoutPanel = document.getElementById("mapScoutPanel");
+        const foundButton = document.getElementById("mapFoundButton");
+        if (armyPanelVisible) {
+            if (buildStack) buildStack.style.display = "none";
+            if (scoutPanel) scoutPanel.style.display = "none";
+            if (foundButton) foundButton.style.display = "none";
+        } else if (buildStack) {
+            buildStack.style.display = "";
+        }
+
         if (armyMoveMode) {
             if (huntingButton) huntingButton.style.display = "none";
             if (forestryButton) forestryButton.style.display = "none";
@@ -7659,6 +7683,8 @@ function updateMap() {
         if (scoutPanel) scoutPanel.style.display = "none";
         const armyPanel = document.getElementById("mapArmyPanel");
         if (armyPanel) armyPanel.style.display = "none";
+        const buildStack = document.getElementById("mapBuildStack");
+        if (buildStack) buildStack.style.display = "";
 
         document.getElementById("mapSelectionInfo").textContent =
             mapState.mode === "view"
@@ -11709,9 +11735,8 @@ function updateArmy() {
     const archers =
         house.army.archers;
 
-    const total =
-        scouts +
-        archers;
+    // Разведчики — отдельная структура и не входят в численность армии.
+    const total = archers;
 
     // Разведчики не являются боевым подразделением:
     // 0 атаки / 0 защиты / +5% разведки за одного.
@@ -11796,7 +11821,7 @@ function updateArmy() {
 
     if (totalLabel)
         totalLabel.textContent =
-            "ВСЕГО: " + total;
+            "БОЕВАЯ АРМИЯ: " + total;
 
     const free =
         house.population.free;
@@ -11913,6 +11938,12 @@ function addArcher() {
 
     house = prepareHouse(house);
 
+    const personnelCheck = canChangeCombatPersonnel(house);
+    if (!personnelCheck.ok) {
+        alert(personnelCheck.reason);
+        return;
+    }
+
     if (house.population.free <= 0)
         return;
 
@@ -11949,6 +11980,12 @@ function removeArcher() {
     if (!house) return;
 
     house = prepareHouse(house);
+
+    const personnelCheck = canChangeCombatPersonnel(house);
+    if (!personnelCheck.ok) {
+        alert(personnelCheck.reason);
+        return;
+    }
 
     if (house.army.archers <= 0)
         return;
@@ -12290,6 +12327,53 @@ function updateHunting() {
    ПЕРЕМЕЩЕНИЕ АРМИИ И ЛОГИСТИКА
 ===================================================== */
 
+function getAssignedCombatPersonnel(house) {
+    // Сейчас существует одна полевая армия, а боевым подразделением
+    // является только лучники. Разведчики никогда не входят в армию.
+    if (!house || !house.army) return 0;
+    return Math.max(0, Math.floor(Number(house.army.archers) || 0));
+}
+
+function isArmyAtCapital(house, army) {
+    if (!house || !house.city || !army) return false;
+    return Number(army.x) === Number(house.city.x) &&
+           Number(army.y) === Number(house.city.y);
+}
+
+function canChangeCombatPersonnel(house) {
+    const army = getFieldArmy(house);
+    if (!army) return { ok: true };
+    if (army.move) {
+        return { ok: false, reason: "Армия находится в походе. Сначала отмените поход или дождитесь прибытия." };
+    }
+    if (!isArmyAtCapital(house, army)) {
+        return { ok: false, reason: "Армия находится вне столицы. Верните армию в столицу, чтобы изменить состав войск." };
+    }
+    return { ok: true };
+}
+
+function cancelArmyMove() {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+    const army = getFieldArmy(house);
+    if (!army || !army.move) return;
+
+    const stoppedX = Number(army.x);
+    const stoppedY = Number(army.y);
+    army.move = null;
+    army.mode = "field";
+    army.guardX = null;
+    army.guardY = null;
+
+    addChronicleEvent(house, "Поход армии отменён. Армия остановилась на X:" + stoppedX + " Y:" + stoppedY + ".");
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    setMapMode("view");
+    updateArmy();
+    updateMap();
+}
+
 function getFieldArmy(house) {
     if (!house) return null;
     prepareHouse(house);
@@ -12427,6 +12511,10 @@ function startArmyMoveToSelectedCell() {
     const y = mapState.selectedY;
     if (!army || x === null || y === null) return;
     if (army.move) return;
+    if (getAssignedCombatPersonnel(house) < 1) {
+        alert("В армии нет боевых подразделений. Назначьте хотя бы одного лучника.");
+        return;
+    }
 
     const allowed = isArmyTargetAllowed(house, x, y);
     if (!allowed.ok) { alert(allowed.reason); return; }
@@ -12485,6 +12573,10 @@ function guardArmyAtSelectedCell() {
     const x = mapState.selectedX;
     const y = mapState.selectedY;
     if (!army || x === null || y === null || army.move) return;
+    if (getAssignedCombatPersonnel(house) < 1) {
+        alert("В армии нет боевых подразделений. Для охраны нужен хотя бы один лучник.");
+        return;
+    }
     if (!isTerritoryCell(house, x, y)) {
         alert("Охранять можно только клетки вашей территории.");
         return;
@@ -12536,17 +12628,21 @@ function renderArmyMapPanel(house, x, y) {
     title.textContent = army.name + " · " + formatArmyMode(army);
     const distance = getArmyDistanceFromCapital(house, army);
     const multiplier = getArmyLogisticsMultiplier(house);
-    const total = Math.max(0, Math.floor(Number(house.population.soldiers) || 0));
-    stats.textContent = "Воинов: " + total + " · Расстояние до столицы: " + distance + " кл. · Содержание: ×" + multiplier.toFixed(2);
+    const combatPersonnel = getAssignedCombatPersonnel(house);
+    const scoutsReserved = house.scouting && house.scouting.active
+        ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0))
+        : 0;
+    stats.textContent = "Лучников: " + combatPersonnel + " · Разведчиков в армии нет · В разведке: " + scoutsReserved +
+        " · Расстояние до столицы: " + distance + " кл. · Содержание: ×" + multiplier.toFixed(2);
     hint.textContent = army.move
-        ? "Армия в пути. Осталось: " + formatArmyMoveRemaining(getArmyMoveRemaining(army))
-        : "Охрана пока действует только на выбранной клетке. Боевые действия подключим позже.";
+        ? "Армия в пути. Осталось: " + formatArmyMoveRemaining(getArmyMoveRemaining(army)) + ". Поход можно отменить."
+        : "Лучники входят в армию. Разведчики — отдельная структура и в армию не входят. Состав армии можно менять только в столице.";
 
     if (army.move) {
         const cancel = document.createElement("button");
         cancel.className = "mapArmyButton cancel";
-        cancel.textContent = "В ПУТИ";
-        cancel.disabled = true;
+        cancel.textContent = "ОТМЕНИТЬ ПОХОД";
+        cancel.onclick = cancelArmyMove;
         actions.appendChild(cancel);
         return;
     }

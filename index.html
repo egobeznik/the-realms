@@ -1063,13 +1063,12 @@ function processPopulationGrowth(house, nowOverride) {
     transform: rotate(180deg);
 }
 
-.productionMenu {
-    display: none;
-    border-top: 1px solid rgba(117, 94, 56, 0.32);
-}
+.productionSection.collapsed .productionMenu { display:none; }
+.productionSection.collapsed #forestryCategory { display:none; }
 
-.productionSection.open .productionMenu {
+.productionMenu {
     display: block;
+    border-top: 1px solid rgba(117, 94, 56, 0.32);
 }
 
 
@@ -4484,6 +4483,7 @@ function processPopulationGrowth(house, nowOverride) {
                     >
                         <div id="huntingGroundList"></div>
                     </div>
+                </div>
                 </div>
 
                 <div
@@ -14807,21 +14807,21 @@ function updateProductionCountdowns() {
         house.forestryGrounds.forEach(function(ground, index) {
             const item = document.querySelector('[data-forestry-index="' + String(index) + '"]');
             if (!item) return;
+
             const status = item.querySelector('.huntingGroundItemStatus');
             if (!status) return;
 
-            let text;
             if (isStorageFull(house)) {
-                text = 'Производство приостановлено, склады заполнены.';
+                status.textContent = 'Производство приостановлено, склады заполнены.';
             } else if (ground.recoveryStartedAt !== null && ground.durability < FORESTRY_GROUND_DURABILITY_MAX) {
-                text = 'Восстановление леса. Осталось: ' + formatForestryGroundRecovery(getForestryGroundRecoveryLeft(ground, now)) + '.';
+                status.textContent = 'Восстановление леса. Осталось: ' + formatForestryGroundRecovery(getForestryGroundRecoveryLeft(ground, now)) + '.';
             } else if (ground.foresters < FORESTRY_MINIMUM) {
-                text = 'Недостаточно рабочих. Требуется минимум 4.';
+                status.textContent = 'Недостаточно рабочих. Требуется минимум 4.';
             } else {
-                const production = Math.floor(Math.floor(ground.foresters / FORESTRY_GROUP_SIZE) * WOOD_PER_GROUP * getProductionEfficiencyMultiplier(house));
-                text = 'Активная добыча: +' + production + ' 🌲 каждые 2 часа. До добычи: ' + formatProductionTimeLeft(getProductionTimeLeft(ground, FORESTRY_INTERVAL, now)) + '.';
+                const groups = Math.floor(ground.foresters / FORESTRY_GROUP_SIZE);
+                const production = Math.floor(groups * WOOD_PER_GROUP * getProductionEfficiencyMultiplier(house));
+                status.textContent = 'Активная добыча: +' + production + ' 🌲 каждые 2 часа. До добычи: ' + formatProductionTimeLeft(getProductionTimeLeft(ground, FORESTRY_INTERVAL, now)) + '.';
             }
-            status.textContent = text;
         });
     }
 
@@ -14829,23 +14829,23 @@ function updateProductionCountdowns() {
         house.huntingGrounds.forEach(function(ground, index) {
             const item = document.querySelector('[data-hunting-index="' + String(index) + '"]');
             if (!item) return;
+
             const status = item.querySelector('.huntingGroundItemStatus');
             if (!status) return;
 
-            let text;
             const hunterCount = Math.max(0, Math.min(HUNTING_MAXIMUM, Math.floor(ground.hunters || 0)));
+
             if (isStorageFull(house)) {
-                text = 'Производство приостановлено, склады заполнены.';
+                status.textContent = 'Производство приостановлено, склады заполнены.';
             } else if (ground.recoveryStartedAt !== null && ground.gameLife < HUNTING_GROUND_GAME_MAX) {
-                text = 'Восстановление угодья. Осталось: ' + formatHuntingGroundRecovery(getHuntingGroundRecoveryLeft(ground, now)) + '.';
+                status.textContent = 'Восстановление угодья. Осталось: ' + formatHuntingGroundRecovery(getHuntingGroundRecoveryLeft(ground, now)) + '.';
             } else if (ground.hunters < HUNTING_MINIMUM) {
-                text = 'Недостаточно охотников. Требуется минимум 2.';
+                status.textContent = 'Недостаточно охотников. Требуется минимум 2.';
             } else {
                 const groups = Math.floor(hunterCount / HUNTING_GROUP_SIZE);
                 const production = Math.floor((HUNTING_PRODUCTION_BY_GROUPS[Math.min(groups, HUNTING_PRODUCTION_BY_GROUPS.length - 1)] || 0) * getProductionEfficiencyMultiplier(house));
-                text = 'Активная охота: +' + production + ' 🍖 каждые 2 часа. ' + (hunterCount % HUNTING_GROUP_SIZE === 1 ? 'Лишний охотник ожидает формирования следующей пары. ' : '') + 'До добычи: ' + formatProductionTimeLeft(getProductionTimeLeft(ground, HUNTING_INTERVAL, now)) + '.';
+                status.textContent = 'Активная охота: +' + production + ' 🍖 каждые 2 часа. ' + (hunterCount % HUNTING_GROUP_SIZE === 1 ? 'Лишний охотник ожидает формирования следующей пары. ' : '') + 'До добычи: ' + formatProductionTimeLeft(getProductionTimeLeft(ground, HUNTING_INTERVAL, now)) + '.';
             }
-            status.textContent = text;
         });
     }
 }
@@ -14895,7 +14895,8 @@ setInterval(function() {
     const realmScreen = document.getElementById("realmScreen");
     if (realmScreen && realmScreen.style.display !== "none") {
         updatePopulation();
-        updateResources();
+        updateHunting();
+        updateForestry();
         updateProductionCountdowns();
     }
 

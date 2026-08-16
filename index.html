@@ -6887,6 +6887,9 @@ function processScouting(house, nowOverride) {
         operations.splice(i, 1);
 
         const readyId = "scout_ready_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+        const completionOverlay = document.getElementById("scoutingCompletionOverlay");
+        if (completionOverlay) completionOverlay.dataset.dismissed = "0";
+
         scouting.ready.push({
             id: readyId,
             scouts: Math.max(1, Math.floor(Number(active.scouts) || 1)),
@@ -6926,6 +6929,11 @@ function processScouting(house, nowOverride) {
 const handledScoutingReadyIds = new Set();
 
 function showScoutingCompletion(house) {
+    const completionOverlay = document.getElementById("scoutingCompletionOverlay");
+    if (completionOverlay && completionOverlay.dataset.dismissed === "1") {
+        return;
+    }
+
     /*
        ХИРУРГИЧЕСКАЯ ЗАЩИТА:
        окно завершённой разведки показываем только после выбора
@@ -6993,6 +7001,8 @@ function resolveScoutingCompletion(action) {
     });
 
     if (!ready) {
+        const completionOverlay = document.getElementById("scoutingCompletionOverlay");
+        if (completionOverlay) completionOverlay.dataset.dismissed = "1";
         closeScoutingCompletion();
         return;
     }
@@ -7029,8 +7039,12 @@ function resolveScoutingCompletion(action) {
     mapState.pendingScoutCount = 0;
     mapState.pendingScoutReadyId = null;
 
-    // Сохраняем локально ДО перерисовки и сразу отправляем актуальное
-    // состояние на Supabase, чтобы старая ready-запись не вернулась.
+    // Жёстко блокируем повторное открытие этого окна ДО любых перерисовок,
+    // сохранений и синхронизаций. Это закрывает конкретный баг, когда
+    // уже поставленный setTimeout/showScoutingCompletion открывал его снова.
+    const completionOverlay = document.getElementById("scoutingCompletionOverlay");
+    if (completionOverlay) completionOverlay.dataset.dismissed = "1";
+
     saveHouseData(house);
     closeScoutingCompletion();
 

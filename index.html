@@ -7229,6 +7229,7 @@ function renderScoutingUI(house, x, y) {
     const adjacent = isAdjacentToOwnTerritory(house, x, y);
     const foreign = isForeignTerritoryAt(x, y, house);
     const active = getActiveScoutingForCell(house, x, y);
+    const available = getAvailableScoutsForScouting(house);
 
     if (isTerritoryCell(house, x, y) || foreign || !adjacent) return;
 
@@ -7239,36 +7240,57 @@ function renderScoutingUI(house, x, y) {
         if (active.x === x && active.y === y) {
             const remaining = Math.max(0, SCOUTING_DURATION_MS - Number(active.elapsedMs || 0));
             const operationProgress = Math.max(0, Math.min(100, Math.floor((Number(active.elapsedMs || 0) / SCOUTING_DURATION_MS) * 100)));
-            progressEl.textContent = "РАЗВЕДАННОСТЬ: " + activeProgress + "% · ЭКСПЕДИЦИЯ: " + operationProgress + "% · РАЗВЕДЧИКОВ: " + active.scouts + " · ОСТАЛОСЬ: " + formatScoutingRemaining(remaining);
+
+            progressEl.textContent =
+                "ДОСТУПНО: " + available + " РАЗВЕДЧИКОВ · " +
+                "РАЗВЕДАННОСТЬ: " + activeProgress + "% · " +
+                "ЭКСПЕДИЦИЯ: " + operationProgress + "% · " +
+                "В ОПЕРАЦИИ: " + active.scouts + " · " +
+                "ОСТАЛОСЬ: " + formatScoutingRemaining(remaining);
+
             input.value = active.scouts;
             input.disabled = true;
             button.disabled = true;
             button.textContent = "РАЗВЕДКА ИДЁТ";
             return;
         }
-        // Другие экспедиции не блокируют запуск новой: свободные разведчики
-        // могут быть отправлены на несколько клеток одновременно.
+
+        // Другая экспедиция не блокирует эту клетку:
+        // available уже учитывает разведчиков, занятых в других операциях.
     }
 
-    const available = getAvailableScoutsForScouting(house);
     if (mapState.mode === "scouting_continue" && mapState.pendingScoutCount > 0) {
         input.value = String(Math.min(available, mapState.pendingScoutCount));
         input.disabled = true;
         button.textContent = "ПРОДОЛЖИТЬ РАЗВЕДКУ";
         button.disabled = available < mapState.pendingScoutCount || progress >= 100;
-        progressEl.textContent = "ГОТОВО ПРОДОЛЖИТЬ: " + mapState.pendingScoutCount + " РАЗВЕДЧИКОВ · КЛЕТКА ДОЛЖНА БЫТЬ РЯДОМ С ВАШЕЙ ТЕРРИТОРИЕЙ";
+        progressEl.textContent =
+            "ДОСТУПНО: " + available + " РАЗВЕДЧИКОВ · " +
+            "ГОТОВО ПРОДОЛЖИТЬ: " + mapState.pendingScoutCount +
+            " · КЛЕТКА ДОЛЖНА БЫТЬ РЯДОМ С ВАШЕЙ ТЕРРИТОРИЕЙ";
         return;
     }
+
     input.max = String(Math.max(1, available));
-    input.value = String(Math.min(Math.max(1, available), Math.max(1, Number(input.value) || 1)));
+    input.value = String(
+        Math.min(
+            Math.max(1, available),
+            Math.max(1, Number(input.value) || 1)
+        )
+    );
     input.disabled = available < 1;
     button.disabled = available < 1 || progress >= 100;
-    button.textContent = progress > 0 ? "ПРОДОЛЖИТЬ РАЗВЕДКУ" : "РАЗВЕДАТЬ КЛЕТКУ";
-    progressEl.textContent = available < 1
-        ? "РАЗВЕДАННОСТЬ: " + progress + "% · НУЖЕН ХОТЯ БЫ 1 РАЗВЕДЧИК"
-        : "РАЗВЕДАННОСТЬ: " + progress + "% · ЗА ОПЕРАЦИЮ: до " + SCOUTING_MAX_GAIN + "% · ДЛИТЕЛЬНОСТЬ: 2 ЧАСА";
-}
+    button.textContent = progress > 0
+        ? "ПРОДОЛЖИТЬ РАЗВЕДКУ"
+        : "РАЗВЕДАТЬ КЛЕТКУ";
 
+    progressEl.textContent = available < 1
+        ? "ДОСТУПНО: 0 РАЗВЕДЧИКОВ · РАЗВЕДАННОСТЬ: " + progress + "% · НУЖЕН ХОТЯ БЫ 1 РАЗВЕДЧИК"
+        : "ДОСТУПНО: " + available + " РАЗВЕДЧИКОВ · " +
+          "РАЗВЕДАННОСТЬ: " + progress + "% · " +
+          "ЗА ОПЕРАЦИЮ: до " + SCOUTING_MAX_GAIN + "% · " +
+          "ДЛИТЕЛЬНОСТЬ: 2 ЧАСА";
+}
 function getCellDescription(type) {
     switch (type) {
         case "forest":
@@ -8074,7 +8096,10 @@ function updateMap() {
         if (armyEmpty) {
             const armyVisible = document.getElementById("mapArmyPanel")?.style.display !== "none";
             armyEmpty.style.display = armyVisible ? "none" : "block";
-            armyEmpty.textContent = "Армия для этой клетки сейчас недоступна.";
+            const armyTarget = isArmyTargetAllowed(house, mapState.selectedX, mapState.selectedY);
+            armyEmpty.textContent = armyTarget.ok
+                ? "Армия для этой клетки сейчас недоступна."
+                : (armyTarget.reason || "Армия для этой клетки недоступна.");
         }
 
         if (armyMoveMode) {
@@ -13191,17 +13216,26 @@ function renderArmyMapPanel(house, x, y) {
 
     if (!house || x === null || y === null) return;
 
+    const targetX = Number(x);
+    const targetY = Number(y);
     const reserveArchers = Math.max(0, Math.floor(Number(house.army?.archers) || 0));
     const army = getFieldArmy(house);
+    const armyArchers = army
+        ? Math.max(0, Math.floor(Number(army.archers) || 0))
+        : 0;
 
-    // Карточка армии должна быть доступна на выбранной сухопутной клетке
-    // даже тогда, когда разведка для этой клетки недоступна.
+    // Разведка и армия используют разные условия доступа.
+    // Поэтому армейная карточка не должна исчезать только потому,
+    // что выбранная клетка не подходит для разведки.
     const scoutPanel = document.getElementById("mapScoutPanel");
     const scoutProgress = document.getElementById("mapScoutProgress");
     const scoutControls = document.querySelector("#mapScoutPanel .mapScoutControls");
-    const adjacent = isAdjacentToOwnTerritory(house, Number(x), Number(y));
-    const foreign = isForeignTerritoryAt(Number(x), Number(y), house);
-    const scoutingAllowed = !isTerritoryCell(house, Number(x), Number(y)) && !foreign && adjacent;
+    const adjacent = isAdjacentToOwnTerritory(house, targetX, targetY);
+    const foreign = isForeignTerritoryAt(targetX, targetY, house);
+    const scoutingAllowed =
+        !isTerritoryCell(house, targetX, targetY) &&
+        !foreign &&
+        adjacent;
 
     if (!scoutingAllowed && scoutPanel) {
         scoutPanel.style.display = "block";
@@ -13213,51 +13247,97 @@ function renderArmyMapPanel(house, x, y) {
 
     const isCapitalCell = !!(
         house.city &&
-        Number(house.city.x) === Number(x) &&
-        Number(house.city.y) === Number(y)
+        Number(house.city.x) === targetX &&
+        Number(house.city.y) === targetY
     );
 
-    // В столице нельзя сформировать НОВУЮ полевую армию,
-    // но уже существующая армия, вернувшаяся/остановившаяся
-    // в столице, должна оставаться доступной для управления.
-    if (isCapitalCell && !army) {
-        panel.style.display = "none";
+    const allowed = isArmyTargetAllowed(house, targetX, targetY);
+
+    // Если клетка недоступна для армии, теперь показываем причину,
+    // а не безликое "армия недоступна".
+    if (!allowed.ok) {
+        panel.style.display = "block";
+        title.textContent = "АРМИЯ НЕДОСТУПНА";
+        stats.textContent = armyArchers > 0
+            ? "В армии: " + armyArchers + " лучн. · В резерве: " + reserveArchers
+            : "Военный резерв: " + reserveArchers + " лучн.";
+        hint.textContent = allowed.reason || "Эта клетка недоступна для перемещения армии.";
         return;
     }
 
-    const allowed = isArmyTargetAllowed(house, Number(x), Number(y));
-    if (!allowed.ok) return;
+    // В столице нельзя сформировать новую полевую армию.
+    // Но существующая полевая армия в столице должна быть управляемой.
+    if (isCapitalCell && armyArchers <= 0) {
+        return;
+    }
 
     panel.style.display = "block";
 
-    // Если полевая армия уже существует, показываем её состояние,
-    // но не создаём второй независимый интерфейс поверх карты.
-    if (army && Number(army.archers || 0) > 0) {
+    if (armyArchers > 0) {
+        const armyIsHere =
+            Number(army.x) === targetX &&
+            Number(army.y) === targetY;
+
         title.textContent = army.name + " · " + formatArmyMode(army);
         stats.textContent =
-            "В армии: " + Math.floor(Number(army.archers) || 0) +
+            "В армии: " + armyArchers +
             " лучн. · В резерве: " + reserveArchers;
 
-        hint.textContent = army.move
-            ? "Армия уже находится в походе. Новая отправка с этой клетки недоступна."
-            : (
-                isCapitalCell
-                    ? "Армия находится в столице. Выберите клетку назначения на карте, чтобы продолжить поход."
-                    : "Армия уже сформирована. Чтобы отправить её в другое место, выберите клетку назначения на карте."
-            );
+        // Выбрана именно клетка, где сейчас находится армия.
+        if (armyIsHere) {
+            hint.textContent = army.move
+                ? "Армия уже находится в походе. Новая отправка с этой клетки недоступна."
+                : (
+                    isCapitalCell
+                        ? "Армия находится в столице. Выберите клетку назначения на карте, чтобы продолжить поход."
+                        : "Армия находится на этой клетке."
+                );
 
-        if (army.move) {
-            const cancel = document.createElement("button");
-            cancel.className = "mapArmyButton cancel";
-            cancel.textContent = "ОТМЕНИТЬ ПОХОД";
-            cancel.onclick = cancelArmyMove;
-            actions.appendChild(cancel);
+            if (army.move) {
+                const cancel = document.createElement("button");
+                cancel.className = "mapArmyButton cancel";
+                cancel.textContent = "ОТМЕНИТЬ ПОХОД";
+                cancel.onclick = cancelArmyMove;
+                actions.appendChild(cancel);
+            } else if (!isCapitalCell) {
+                const guard = document.createElement("button");
+                guard.className = "mapArmyButton";
+                guard.textContent = "ОХРАНЯТЬ КЛЕТКУ";
+                guard.onclick = guardArmyAtSelectedCell;
+                actions.appendChild(guard);
+            }
+
+            return;
         }
+
+        // Выбрана ДРУГАЯ клетка. Это как раз тот сценарий,
+        // который раньше был заблокирован: существующая армия
+        // должна получить кнопку перемещения на выбранную клетку.
+        if (army.move) {
+            hint.textContent =
+                "Армия уже находится в походе. Дождитесь завершения похода или отмените его, выбрав клетку армии на карте.";
+            return;
+        }
+
+        hint.textContent =
+            "Армия готова к перемещению. Отправить её на X:" +
+            targetX + " Y:" + targetY + ".";
+
+        const send = document.createElement("button");
+        send.className = "mapArmyButton";
+        send.textContent = "ОТПРАВИТЬ АРМИЮ СЮДА";
+        send.onclick = function() {
+            mapState.pendingArmyCount = 0;
+            startArmyMoveToSelectedCell();
+        };
+        actions.appendChild(send);
+
         return;
     }
 
-    // Свободного боевого подразделения нет — формируем его прямо здесь,
-    // полностью по аналогии с выбором количества разведчиков.
+    // Полевая армия отсутствует — формируем новую из военного резерва.
+    if (isCapitalCell) return;
+
     title.textContent = "ОТПРАВИТЬ АРМИЮ";
     stats.textContent = "Военный резерв: " + reserveArchers + " лучн.";
 
@@ -13267,7 +13347,8 @@ function renderArmyMapPanel(house, x, y) {
     }
 
     hint.textContent =
-        "Выберите количество лучников для похода на X:" + x + " Y:" + y + ".";
+        "Выберите количество лучников для похода на X:" +
+        targetX + " Y:" + targetY + ".";
 
     const formation = document.createElement("div");
     formation.className = "mapArmyFormation";

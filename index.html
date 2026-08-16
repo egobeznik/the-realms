@@ -5607,6 +5607,13 @@ const SCOUTING_MAX_GAIN = 60;
 const SCOUTING_MIN_SCOUTS = 1;
 const SCOUTING_EVENT_CHANCE = 0.18;
 const ARMY_MOVE_HOUR_MS = 60 * 60 * 1000;
+const ARMY_READINESS_MAX = 100;
+const ARMY_READINESS_MIN = 0;
+const ARMY_READINESS_NEW_ARMY = 75;
+const ARMY_READINESS_REINFORCEMENT = 60;
+const ARMY_READINESS_MOVE_LOSS_PER_HOUR = 4;
+const ARMY_READINESS_REST_PER_HOUR = 3;
+const ARMY_READINESS_CAPITAL_REST_BONUS = 2;
 const ARMY_LOGISTICS_ZONES = [
     { max: 3, multiplier: 1.00 },
     { max: 6, multiplier: 1.15 },
@@ -10862,6 +10869,23 @@ function prepareHouse(house) {
         if (!Object.prototype.hasOwnProperty.call(army, "guardX")) army.guardX = null;
         if (!Object.prototype.hasOwnProperty.call(army, "guardY")) army.guardY = null;
         if (!Object.prototype.hasOwnProperty.call(army, "move")) army.move = null;
+
+        // v95: боеготовность становится реальным состоянием армии.
+        // Старые армии один раз получают прежнее расчётное значение,
+        // после чего показатель живёт самостоятельно и сохраняется.
+        if (!Number.isFinite(Number(army.readiness))) {
+            army.readiness = calculateLegacyArmyReadiness(house, army);
+        }
+        army.readiness = Math.max(
+            ARMY_READINESS_MIN,
+            Math.min(ARMY_READINESS_MAX, Number(army.readiness))
+        );
+        if (!Number.isFinite(Number(army.readinessLastTickAt))) {
+            const replayStart = Number(house.economyLastOnlineAt);
+            army.readinessLastTickAt = Number.isFinite(replayStart) && replayStart > 0
+                ? replayStart
+                : Date.now();
+        }
     });
 
     const fieldArchers = house.army.armies.reduce(function(total, army) {
@@ -12391,7 +12415,7 @@ function updateArmy() {
     });
 
     const totalUpkeep = reserveArchers * 4 + fieldUpkeep;
-    const readiness = 100;
+    const readiness = getAverageArmyReadiness(house, fieldArmies);
 
     const attackValue = document.getElementById("armyAttack");
     const defenseValue = document.getElementById("armyDefense");
@@ -12465,6 +12489,11 @@ function updateArmy() {
 
                 item.appendChild(name);
                 item.appendChild(location);
+
+                const readiness = document.createElement("div");
+                readiness.className = "armyFieldTimer";
+                readiness.textContent = "БОЕГОТОВНОСТЬ: " + getArmyReadiness(house, army) + "%";
+                item.appendChild(readiness);
 
                 if (army.move) {
                     const timer = document.createElement("div");
@@ -13023,6 +13052,310 @@ function canChangeCombatPersonnel(house) {
     return { ok: true };
 }
 
+
+function calculateLegacyArmyReadiness(house, army) {
+    if (!house || !army) return ARMY_READINESS_MAX;
+
+    let readiness = ARMY_READINESS_MAX;
+    const distance = getArmyDistanceFromCapital(house, army);
+    const logistics = getArmyLogisticsMultiplierForArmy(house, army);
+    const morale = Math.max(0, Math.min(100, Number(house.army?.morale) || 100));
+
+    readiness -= Math.min(24, Math.floor(distance / 4) * 4);
+    readiness -= Math.round((logistics - 1) * 12);
+    if (army.move) readiness -= 8;
+    readiness -= Math.round((100 - morale) * 0.25);
+
+    const hungerStage = getHungerStage(house, Date.now());
+    if (hungerStage === 1) readiness -= 10;
+    if (hungerStage === 2) readiness -= 25;
+    if (hungerStage >= 3) readiness -= 40;
+
+    return Math.max(20, Math.min(100, Math.round(readiness)));
+}
+
+function getArmyReadiness(house, army) {
+    if (!house || !army) return ARMY_READINESS_MAX;
+    if (!Number.isFinite(Number(army.readiness))) {
+        army.readiness = calculateLegacyArmyReadiness(house, army);
+    }
+    return Math.max(
+        ARMY_READINESS_MIN,
+        Math.min(ARMY_READINESS_MAX, Math.round(Number(army.readiness)))
+    );
+}
+
+function getAverageArmyReadiness(house, armies) {
+    const list = Array.isArray(armies) ? armies : getFieldArmies(house);
+    if (!list.length) return ARMY_READINESS_MAX;
+
+    let personnel = 0;
+    let weighted = 0;
+    list.forEach(function(army) {
+        const count = Math.max(0, Math.floor(Number(army.archers) || 0));
+        if (!count) return;
+        personnel += count;
+        weighted += count * getArmyReadiness(house, army);
+    });
+
+    return personnel > 0
+        ? Math.round(weighted / personnel)
+        : ARMY_READINESS_MAX;
+}
+
+function getArmyReadinessHungerMultiplier(house, now) {
+    const stage = getHungerStage(house, now);
+    if (stage >= 3) return 3;
+    if (stage === 2) return 2;
+    if (stage === 1) return 1.5;
+    return 1;
+}
+
+function processArmyReadiness(house, nowOverride) {
+    if (!house) return false;
+
+    const armies = getFieldArmies(house);
+    if (!armies.length) return false;
+
+    const now = typeof nowOverride === "number" ? nowOverride : Date.now();
+    let changed = false;
+    let syncNeeded = false;
+
+    armies.forEach(function(army) {
+        if (!Number.isFinite(Number(army.readiness))) {
+            army.readiness = calculateLegacyArmyReadiness(house, army);
+            changed = true;
+        }
+
+        if (!Number.isFinite(Number(army.readinessLastTickAt))) {
+            army.readinessLastTickAt = now;
+            changed = true;
+            return;
+        }
+
+        const deltaMs = Math.max(0, now - Number(army.readinessLastTickAt));
+        if (deltaMs <= 0) return;
+
+        army.readinessLastTickAt = now;
+        const hours = deltaMs / ARMY_MOVE_HOUR_MS;
+        const oldReadiness = Number(army.readiness);
+        const logistics = getArmyLogisticsMultiplierForArmy(house, army);
+        const hungerMultiplier = getArmyReadinessHungerMultiplier(house, now);
+        let delta;
+
+        if (army.move) {
+            // Поход истощает войска; чем дальше снабжение, тем быстрее падает готовность.
+            delta = -ARMY_READINESS_MOVE_LOSS_PER_HOUR * logistics * hungerMultiplier * hours;
+        } else {
+            // Стоящая армия восстанавливается. В столице восстановление быстрее.
+            const capitalBonus = isArmyAtCapital(house, army)
+                ? ARMY_READINESS_CAPITAL_REST_BONUS
+                : 0;
+            const morale = Math.max(0, Math.min(100, Number(house.army?.morale) || 100));
+            const moraleFactor = 0.5 + morale / 200;
+            delta = (ARMY_READINESS_REST_PER_HOUR + capitalBonus) *
+                moraleFactor / logistics * hours;
+            if (hungerMultiplier > 1) {
+                delta /= hungerMultiplier;
+            }
+        }
+
+        const nextReadiness = Math.max(
+            ARMY_READINESS_MIN,
+            Math.min(ARMY_READINESS_MAX, oldReadiness + delta)
+        );
+
+        if (Math.abs(nextReadiness - oldReadiness) > 0.0001) {
+            army.readiness = nextReadiness;
+            changed = true;
+            if (Math.round(nextReadiness) !== Math.round(oldReadiness)) {
+                syncNeeded = true;
+            }
+        }
+    });
+
+    return { changed: changed, syncNeeded: syncNeeded };
+}
+
+function getNextArmyName(house) {
+    const used = new Set((house?.army?.armies || []).map(function(army) {
+        return String(army?.name || '').trim();
+    }).filter(Boolean));
+
+    for (let number = 1; number <= 399; number++) {
+        const roman = number <= 20
+            ? ['I','II','III','IV','V','VI','VII','VIII','IX','X','XI','XII','XIII','XIV','XV','XVI','XVII','XVIII','XIX','XX'][number - 1]
+            : String(number);
+        const name = 'Армия ' + roman;
+        if (!used.has(name)) return name;
+    }
+
+    return 'Армия ' + Date.now();
+}
+
+function updatePopulationSoldiersCount(house) {
+    if (!house) return;
+    house.population.soldiers =
+        Math.max(0, Math.floor(Number(house.army?.scouts) || 0)) +
+        Math.max(0, Math.floor(Number(house.army?.archers) || 0)) +
+        getFieldArmies(house).reduce(function(total, army) {
+            return total + Math.max(0, Math.floor(Number(army.archers) || 0));
+        }, 0);
+}
+
+function reinforceArmy(armyId, count) {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+
+    const army = getArmyById(house, armyId || mapState.selectedArmyId);
+    if (!army) return;
+
+    if (army.move) {
+        alert('Нельзя пополнять армию во время похода. Сначала остановите её в текущей позиции.');
+        return;
+    }
+
+    if (!isArmyAtCapital(house, army)) {
+        alert('Пополнять полевую армию из столичного резерва можно только в столице.');
+        return;
+    }
+
+    const reserve = Math.max(0, Math.floor(Number(house.army.archers) || 0));
+    const requested = Math.max(0, Math.floor(Number(count) || 0));
+    const amount = Math.min(requested, reserve);
+
+    if (amount < 1) {
+        alert('В военном резерве нет свободных лучников.');
+        return;
+    }
+
+    const previousCount = Math.max(0, Math.floor(Number(army.archers) || 0));
+    army.archers = previousCount + amount;
+    // Новобранцы из резерва не считаются полностью готовыми мгновенно.
+    // Смешиваем их готовность с текущей готовностью армии пропорционально численности.
+    const currentReadiness = getArmyReadiness(house, army);
+    army.readiness = previousCount > 0
+        ? ((currentReadiness * previousCount) +
+           (ARMY_READINESS_REINFORCEMENT * amount)) /
+          (previousCount + amount)
+        : ARMY_READINESS_REINFORCEMENT;
+    army.readinessLastTickAt = Date.now();
+    house.army.archers = reserve - amount;
+    updatePopulationSoldiersCount(house);
+
+    addChronicleEvent(house, army.name + ' получила ' + amount + ' лучников из столичного резерва.');
+    mapState.selectedArmyId = army.id;
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateArmy();
+    updatePopulation();
+    updateResources();
+    updateMap();
+}
+
+function splitArmy(armyId, count) {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+
+    const army = getArmyById(house, armyId || mapState.selectedArmyId);
+    if (!army) return;
+
+    if (army.move) {
+        alert('Нельзя разделить армию во время похода.');
+        return;
+    }
+
+    const total = Math.max(0, Math.floor(Number(army.archers) || 0));
+    const amount = Math.max(0, Math.floor(Number(count) || 0));
+
+    if (total < 2) {
+        alert('Для разделения в армии должно быть минимум 2 лучника.');
+        return;
+    }
+
+    if (amount < 1 || amount >= total) {
+        alert('В новую армию можно передать от 1 до ' + (total - 1) + ' лучников.');
+        return;
+    }
+
+    const newArmy = {
+        id: 'army_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+        name: getNextArmyName(house),
+        x: Number(army.x),
+        y: Number(army.y),
+        archers: amount,
+        mode: 'field',
+        guardX: null,
+        guardY: null,
+        move: null,
+        readiness: ARMY_READINESS_NEW_ARMY,
+        readinessLastTickAt: Date.now(),
+        createdAt: new Date().toISOString()
+    };
+
+    army.archers = total - amount;
+    house.army.armies.push(newArmy);
+    updatePopulationSoldiersCount(house);
+
+    addChronicleEvent(house, army.name + ' разделена: ' + newArmy.name + ' получила ' + amount + ' лучников.');
+    mapState.selectedArmyId = newArmy.id;
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateArmy();
+    updatePopulation();
+    updateResources();
+    updateMap();
+}
+
+function mergeArmy(armyId, targetArmyId) {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+
+    const source = getArmyById(house, armyId || mapState.selectedArmyId);
+    const target = getArmyById(house, targetArmyId);
+    if (!source || !target || String(source.id) === String(target.id)) return;
+
+    if (source.move || target.move) {
+        alert('Объединять можно только остановившиеся армии.');
+        return;
+    }
+
+    if (Number(source.x) !== Number(target.x) || Number(source.y) !== Number(target.y)) {
+        alert('Армии можно объединить только на одной клетке.');
+        return;
+    }
+
+    const sourceCount = Math.max(0, Math.floor(Number(source.archers) || 0));
+    const targetCount = Math.max(0, Math.floor(Number(target.archers) || 0));
+    const sourceReadiness = getArmyReadiness(house, source);
+    const targetReadiness = getArmyReadiness(house, target);
+    target.archers = sourceCount + targetCount;
+    target.readiness = (
+        sourceReadiness * sourceCount +
+        targetReadiness * targetCount
+    ) / Math.max(1, sourceCount + targetCount);
+    target.readinessLastTickAt = Date.now();
+
+    const sourceIndex = house.army.armies.findIndex(function(item) {
+        return item && String(item.id) === String(source.id);
+    });
+    if (sourceIndex >= 0) house.army.armies.splice(sourceIndex, 1);
+
+    updatePopulationSoldiersCount(house);
+
+    addChronicleEvent(house, source.name + ' объединена с ' + target.name + '. Общая численность: ' + target.archers + ' лучн.');
+    mapState.selectedArmyId = target.id;
+    saveHouseData(house);
+    syncArmyStateToServer(house, true);
+    updateArmy();
+    updatePopulation();
+    updateResources();
+    updateMap();
+}
+
 function cancelArmyMove(armyId) {
     const house = getHouse();
     if (!house) return;
@@ -13199,6 +13532,14 @@ function processArmyMovement(house, nowOverride) {
 
     const now = typeof nowOverride === "number" ? nowOverride : Date.now();
     let changed = false;
+    let positionChanged = false;
+    let readinessSyncNeeded = false;
+
+    // Сначала обновляем реальную боеготовность. Она работает и для
+    // стоящих армий, и для армий в походе, включая офлайн-догон.
+    const readinessResult = processArmyReadiness(house, now);
+    if (readinessResult && readinessResult.changed) changed = true;
+    if (readinessResult && readinessResult.syncNeeded) readinessSyncNeeded = true;
 
     armies.forEach(function(army) {
         if (!army.move) return;
@@ -13223,6 +13564,7 @@ function processArmyMovement(house, nowOverride) {
             army.y = nextCell.y;
             move.stepIndex = completedSteps;
             changed = true;
+            positionChanged = true;
         }
 
         if (completedSteps >= move.path.length) {
@@ -13231,6 +13573,7 @@ function processArmyMovement(house, nowOverride) {
             army.move = null;
             army.mode = "field";
             changed = true;
+            positionChanged = true;
 
             addChronicleEvent(
                 house,
@@ -13240,20 +13583,21 @@ function processArmyMovement(house, nowOverride) {
     });
 
     if (changed) {
-        house.population.soldiers =
-            house.army.scouts +
-            house.army.archers +
-            getFieldArmies(house).reduce(function(total, item) {
-                return total + Math.max(0, Math.floor(Number(item.archers) || 0));
-            }, 0);
-
+        updatePopulationSoldiersCount(house);
         saveHouseData(house);
-        syncArmyStateToServer(house, true);
+
+        // Движение требует обновления общего мира сразу.
+        // Одно лишь изменение боеготовности синхронизируем без
+        // лишней полной перезагрузки карты.
+        if (positionChanged) {
+            syncArmyStateToServer(house, true);
+        } else if (readinessSyncNeeded) {
+            syncArmyStateToServer(house, false);
+        }
     }
 
     return changed;
 }
-
 function getArmyMoveRemaining(army) {
     if (!army || !army.move) return 0;
 
@@ -13368,6 +13712,8 @@ function startArmyMoveToSelectedCell(armyId) {
             guardX: null,
             guardY: null,
             move: null,
+            readiness: ARMY_READINESS_NEW_ARMY,
+            readinessLastTickAt: Date.now(),
             createdAt: new Date().toISOString()
         };
 
@@ -13453,7 +13799,8 @@ function renderArmyMapPanel(house, x, y) {
         title.textContent = selectedArmy.name + " · " + formatArmyMode(selectedArmy);
         stats.textContent =
             "В армии: " + Math.max(0, Math.floor(Number(selectedArmy.archers) || 0)) +
-            " лучн. · В резерве: " + reserveArchers;
+            " лучн. · В резерве: " + reserveArchers +
+            " · БОЕГОТОВНОСТЬ: " + getArmyReadiness(house, selectedArmy) + "%";
 
         if (selectedArmy.move) {
             hint.innerHTML =
@@ -13478,6 +13825,50 @@ function renderArmyMapPanel(house, x, y) {
         } else {
             hint.textContent =
                 "Армия находится на этой клетке. Выберите другую клетку, чтобы переместить её.";
+
+            const readiness = document.createElement("div");
+            readiness.style.width = "100%";
+            readiness.textContent = "БОЕГОТОВНОСТЬ: " + getArmyReadiness(house, selectedArmy) + "%";
+            actions.appendChild(readiness);
+
+            const reinforce = document.createElement("button");
+            reinforce.className = "mapArmyButton";
+            reinforce.textContent = isArmyAtCapital(house, selectedArmy)
+                ? "ПОПОЛНИТЬ ИЗ РЕЗЕРВА"
+                : "ПОПОЛНЕНИЕ — ТОЛЬКО В СТОЛИЦЕ";
+            reinforce.disabled = !isArmyAtCapital(house, selectedArmy) || reserveArchers < 1;
+            reinforce.onclick = function() {
+                const raw = window.prompt("Сколько лучников добавить в " + selectedArmy.name + "?", String(Math.min(5, reserveArchers)));
+                if (raw === null) return;
+                reinforceArmy(selectedArmy.id, raw);
+            };
+            actions.appendChild(reinforce);
+
+            const split = document.createElement("button");
+            split.className = "mapArmyButton";
+            split.textContent = "РАЗДЕЛИТЬ АРМИЮ";
+            split.disabled = Math.max(0, Math.floor(Number(selectedArmy.archers) || 0)) < 2;
+            split.onclick = function() {
+                const max = Math.max(1, Math.floor(Number(selectedArmy.archers) || 0) - 1);
+                const raw = window.prompt("Сколько лучников передать в новую армию? (1–" + max + ")", String(Math.max(1, Math.floor(max / 2))));
+                if (raw === null) return;
+                splitArmy(selectedArmy.id, raw);
+            };
+            actions.appendChild(split);
+
+            const sameCellOthers = armiesAtCell.filter(function(item) {
+                return String(item.id) !== String(selectedArmy.id) && !item.move;
+            });
+
+            sameCellOthers.forEach(function(other) {
+                const merge = document.createElement("button");
+                merge.className = "mapArmyButton";
+                merge.textContent = "ОБЪЕДИНИТЬ С " + other.name;
+                merge.onclick = function() {
+                    mergeArmy(selectedArmy.id, other.id);
+                };
+                actions.appendChild(merge);
+            });
 
             const disband = document.createElement("button");
             disband.className = "mapArmyButton mapArmyDisband";

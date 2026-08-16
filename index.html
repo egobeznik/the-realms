@@ -6238,30 +6238,17 @@ function openAfterCreation(house) {
         }
     } catch (error) {
         console.error("The Realms: ошибка открытия сохранённой династии", error);
-
-        // Критическая защита: ошибка миграции никогда не должна оставлять
-        // игрока между экранами с полностью чёрным интерфейсом.
+        // Не оставляем игрока на пустом экране даже при повреждённой записи.
         const selector = document.getElementById("dynastySelectScreen");
         const intro = document.getElementById("introScreen");
         const creation = document.getElementById("creationScreen");
         const map = document.getElementById("mapScreen");
         const realm = document.getElementById("realmScreen");
-
         if (selector) selector.style.display = "none";
         if (intro) intro.style.display = "none";
         if (creation) creation.style.display = "none";
         if (map) map.style.display = "none";
         if (realm) realm.style.display = "block";
-
-        if (house) {
-            try {
-                if (document.getElementById("realmHouse")) document.getElementById("realmHouse").textContent = house.houseName || "Дом";
-                if (document.getElementById("realmCountry")) document.getElementById("realmCountry").textContent = house.realmName || "Государство";
-                if (document.getElementById("realmMotto")) document.getElementById("realmMotto").textContent = "«" + (house.motto || "") + "»";
-            } catch (fallbackError) {
-                console.error("The Realms: ошибка безопасного отображения", fallbackError);
-            }
-        }
     }
 }
 
@@ -10247,6 +10234,14 @@ function prepareHouse(house) {
 
     ensureChronicleHistory(house);
 
+    // Безопасная миграция: старые/пустые записи армий не должны
+    // ломать загрузку дома. При этом сама механика армии сохраняется.
+    if (house.army && typeof house.army === "object" && Array.isArray(house.army.armies)) {
+        house.army.armies = house.army.armies.filter(function(army) {
+            return army && typeof army === "object";
+        });
+    }
+
     if (!house.population) {
 
         house.population = {
@@ -10323,10 +10318,6 @@ function prepareHouse(house) {
             createdAt: new Date().toISOString()
         });
     }
-
-    house.army.armies = house.army.armies.filter(function(army) {
-        return army && typeof army === "object";
-    });
 
     house.army.armies.forEach(function(army, index) {
         if (!army.id) army.id = "army_" + (index + 1);
@@ -13173,30 +13164,9 @@ function openRealm() {
         return;
     }
 
-    // Показываем экран государства до тяжёлых фоновых расчётов.
-    // Ошибка в офлайн-расчёте не должна оставлять игрока на чёрном экране.
-    document.getElementById("introScreen").style.display = "none";
-    document.getElementById("mapScreen").style.display = "none";
-    document.getElementById("creationScreen").style.display = "none";
-    document.getElementById("realmScreen").style.display = "block";
 
-
-    try {
-        house = prepareHouse(house);
-    } catch (error) {
-        console.error("The Realms: ошибка подготовки сохранения", error);
-        // Безопасная миграция старого состояния армии.
-        if (!house.army || typeof house.army !== "object") {
-            house.army = { scouts: 0, archers: 0, morale: 100, armies: [] };
-        }
-        if (!Array.isArray(house.army.armies)) house.army.armies = [];
-        if (typeof house.army.scouts !== "number") house.army.scouts = 0;
-        if (typeof house.army.archers !== "number") house.army.archers = 0;
-        if (typeof house.army.morale !== "number") house.army.morale = 100;
-        house.population = house.population || { free: 100, workers: 0, soldiers: 0, hunters: 0, foresters: 0 };
-        house.population.soldiers = Math.max(0, Math.floor(Number(house.army.scouts) || 0)) + Math.max(0, Math.floor(Number(house.army.archers) || 0));
-        saveHouseData(house);
-    }
+    house =
+        prepareHouse(house);
 
     if (window.theRealmsSupabase && house.city) {
         if (!house.serverDynastyId) {
@@ -13212,9 +13182,6 @@ function openRealm() {
         }
     }
 
-    // Фоновые расчёты не должны блокировать открытие государства.
-    // Если старое сохранение содержит несовместимое состояние, продолжаем
-    // загрузку интерфейса и сохраняем дом после безопасной миграции.
     try {
         processOfflineEconomy(house);
     } catch (error) {
@@ -13222,10 +13189,10 @@ function openRealm() {
         house.economyLastOnlineAt = Date.now();
         saveHouseData(house);
     }
+    if (house.scouting && house.scouting.active && house.scouting.active.eventPending) {
+        showScoutingEvent(getWildAnimalsEvent());
+    }
     try {
-        if (house.scouting && house.scouting.active && house.scouting.active.eventPending) {
-            showScoutingEvent(getWildAnimalsEvent());
-        }
         processHunting(house);
         processBuildingUpkeep(house);
         processForestry(house);
@@ -13320,6 +13287,27 @@ function openRealm() {
     updateResources();
 
 
+    document
+        .getElementById("introScreen")
+        .style.display =
+        "none";
+
+    document
+        .getElementById("mapScreen")
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById("creationScreen")
+        .style.display =
+        "none";
+
+
+    document
+        .getElementById("realmScreen")
+        .style.display =
+        "block";
 
 
     window.scrollTo(0, 0);

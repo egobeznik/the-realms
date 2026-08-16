@@ -5067,7 +5067,9 @@ function formatProductionTimeLeft(ms) {
     if (hours > 0) {
         return hours + " ч. " +
             String(minutes).padStart(2, "0") +
-            " мин.";
+            " мин. " +
+            String(seconds).padStart(2, "0") +
+            " сек.";
     }
 
     if (minutes > 0) {
@@ -6613,6 +6615,11 @@ function ensureScoutingState(house) {
     });
 
     house.scouting.operations = house.scouting.operations.filter(function(op) { return op && typeof op === "object"; });
+    house.scouting.operations.forEach(function(op, index) {
+        if (!op.id) {
+            op.id = "scout_" + String(op.startedAt || 0) + "_" + String(op.x) + "_" + String(op.y) + "_" + index;
+        }
+    });
     // active сохраняем для совместимости со старыми сохранениями и существующим UI.
     house.scouting.active = house.scouting.operations[0] || null;
     return house.scouting;
@@ -6820,6 +6827,7 @@ async function startCellScouting() {
 
     const operation = {
         id: "scout_" + now + "_" + Math.random().toString(36).slice(2, 8),
+        startedAt: now,
         x: x,
         y: y,
         scouts: scoutCount,
@@ -6973,11 +6981,9 @@ function processScouting(house, nowOverride) {
         operations.splice(i, 1);
 
         const readyId = "scout_ready_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
-        const completionOverlay = document.getElementById("scoutingCompletionOverlay");
-        if (completionOverlay) completionOverlay.dataset.dismissed = "0";
-
         const completion = {
             id: readyId,
+            operationId: active.id,
             scouts: Math.max(1, Math.floor(Number(active.scouts) || 1)),
             x: completedX,
             y: completedY,
@@ -6985,11 +6991,22 @@ function processScouting(house, nowOverride) {
             completedAt: Date.now(),
             status: "pending"
         };
-        scouting.ready.push(completion);
+
+        // Одна завершённая экспедиция создаёт только одно completion-событие.
+        const alreadyCompleted = scouting.ready.some(function(item) {
+            return item &&
+                item.operationId &&
+                String(item.operationId) === String(active.id);
+        });
+
+        if (!alreadyCompleted) {
+            scouting.ready.push(completion);
+        }
 
         // Окно принадлежит конкретно этой завершённой экспедиции.
-        // Оно открывается только здесь — в момент её завершения.
+        // Оно открывается только в момент фактического завершения.
         if (
+            !alreadyCompleted &&
             document.visibilityState === "visible" &&
             document.getElementById("realmScreen")?.style.display !== "none"
         ) {
@@ -7091,7 +7108,10 @@ function resolveScoutingCompletion(action, completionId) {
     mapState.pendingScoutCount = 0;
     mapState.pendingScoutReadyId = null;
 
-    if (overlay) delete overlay.dataset.completionId;
+    if (overlay) {
+        delete overlay.dataset.completionId;
+        overlay.style.display = "none";
+    }
 
     closeScoutingCompletion();
     saveHouseData(house);
@@ -12035,8 +12055,10 @@ function updateArmy() {
         return total + Math.max(0, Math.floor(Number(army.archers) || 0));
     }, 0);
 
-    // Разведчики и резерв не входят в численность полевой армии.
+    // Полевая армия — только лучники, уже назначенные в подразделение.
+    // Общее число военнослужащих отдельно включает разведчиков, резерв и поле.
     const total = fieldArchers;
+    const totalMilitaryPersonnel = scouts + reserveArchers + fieldArchers;
 
     // Разведчики не являются боевым подразделением:
     // 0 атаки / 0 защиты / +5% разведки за одного.
@@ -12089,7 +12111,7 @@ function updateArmy() {
         readinessValue.textContent = readiness + "%";
 
     if (personnelValue)
-        personnelValue.textContent = total;
+        personnelValue.textContent = totalMilitaryPersonnel;
 
     const reserveValue = document.getElementById("armyReserve");
     if (reserveValue) reserveValue.textContent = reserveArchers;
@@ -12643,14 +12665,36 @@ function isArmyAtCapital(house, army) {
 }
 
 function canChangeCombatPersonnel(house) {
+    if (!house || !house.army) return { ok: true };
+
     const army = getFieldArmy(house);
-    if (!army) return { ok: true };
-    if (army.move) {
+    if (army && army.move) {
         return { ok: false, reason: "Армия находится в походе. Сначала отмените поход или дождитесь прибытия." };
     }
-    if (!isArmyAtCapital(house, army)) {
+    if (army && !isArmyAtCapital(house, army)) {
         return { ok: false, reason: "Армия находится вне столицы. Верните армию в столицу, чтобы изменить состав войск." };
     }
+
+    const scoutsInRecon = getScoutingOperations(house).reduce(function(sum, op) {
+        return sum + Math.max(0, Math.floor(Number(op.scouts) || 0));
+    }, 0);
+
+    const scoutsInGarrison = Math.max(
+        0,
+        Math.floor(Number(house.army.scouts) || 0) - scoutsInRecon
+    );
+    const reserveArchers = Math.max(
+        0,
+        Math.floor(Number(house.army.archers) || 0)
+    );
+
+    if (scoutsInGarrison + reserveArchers <= 0) {
+        return {
+            ok: false,
+            reason: "Все военнослужащие сейчас заняты: разведчики находятся в разведке или войска находятся в полевой армии."
+        };
+    }
+
     return { ok: true };
 }
 

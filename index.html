@@ -6568,17 +6568,6 @@ function isTerritoryCell(house, x, y) {
     });
 }
 
-function getScoutingReadyKey(item) {
-    if (!item) return "";
-    if (item.readyKey) return String(item.readyKey);
-    return [
-        Number(item.completedAt) || 0,
-        Number(item.x) || 0,
-        Number(item.y) || 0,
-        Number(item.scouts) || 0
-    ].join(":");
-}
-
 function ensureScoutingState(house) {
     if (!house) return null;
     if (!house.scouting || typeof house.scouting !== "object") {
@@ -6597,23 +6586,14 @@ function ensureScoutingState(house) {
         house.scouting.dismissedReadyIds = [];
     }
 
-    // У каждой завершённой экспедиции есть стабильный ключ.
-    // Он не зависит от случайного id и переживает повторную загрузку
-    // состояния из Supabase/localStorage.
-    house.scouting.ready.forEach(function(item) {
-        if (!item) return;
-        if (!item.id) {
-            item.id = "scout_ready_" + String(item.completedAt || Date.now()) + "_" + Math.random().toString(36).slice(2, 7);
+    // Старые готовые экспедиции без id получают стабильный id один раз.
+    house.scouting.ready.forEach(function(item, index) {
+        if (item && !item.id) {
+            item.id = "scout_ready_legacy_" + String(item.completedAt || 0) + "_" + String(item.x) + "_" + String(item.y) + "_" + index;
         }
-        if (!item.readyKey) item.readyKey = getScoutingReadyKey(item);
     });
 
-    // Миграция старого списка dismissedReadyIds:
-    // считаем его также списком стабильных ключей.
-    house.scouting.dismissedReadyIds = house.scouting.dismissedReadyIds
-        .map(function(value) { return String(value); })
-        .filter(Boolean);
-
+    // Держим список отклонённых карточек компактным.
     if (house.scouting.dismissedReadyIds.length > 100) {
         house.scouting.dismissedReadyIds = house.scouting.dismissedReadyIds.slice(-100);
     }
@@ -6883,16 +6863,14 @@ function processScouting(house, nowOverride) {
         operations.splice(i, 1);
 
         const readyId = "scout_ready_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
-        const completedAt = Date.now();
-        const completedScouts = Math.max(1, Math.floor(Number(active.scouts) || 1));
         scouting.ready.push({
             id: readyId,
-            readyKey: [completedAt, completedX, completedY, completedScouts].join(":"),
-            scouts: completedScouts,
+            scouts: Math.max(1, Math.floor(Number(active.scouts) || 1)),
             x: completedX,
             y: completedY,
             progress: newProgress,
-            completedAt: completedAt
+            completedAt: Date.now(),
+            returnedToGarrison: false
         });
 
         if (newProgress >= 100) {
@@ -6945,11 +6923,11 @@ function showScoutingCompletion(house) {
 
     const scouting = ensureScoutingState(house);
     const ready = scouting.ready.find(function(item) {
-        const key = getScoutingReadyKey(item);
         return item &&
-            key &&
-            !handledScoutingReadyIds.has(key) &&
-            !scouting.dismissedReadyIds.includes(key);
+            item.id &&
+            item.returnedToGarrison !== true &&
+            !handledScoutingReadyIds.has(item.id) &&
+            !scouting.dismissedReadyIds.includes(item.id);
     });
     const overlay = document.getElementById("scoutingCompletionOverlay");
     const title = document.getElementById("scoutingCompletionTitle");
@@ -6975,40 +6953,59 @@ function closeScoutingCompletion() {
 function resolveScoutingCompletion(action) {
     const house = getHouse();
     if (!house) return;
+
     const scouting = ensureScoutingState(house);
+
+    // Берём только незавершённую обработку. После возврата запись
+    // становится terminal и больше никогда не попадёт в очередь.
     const ready = scouting.ready.find(function(item) {
-        const key = getScoutingReadyKey(item);
         return item &&
-            key &&
-            !handledScoutingReadyIds.has(key) &&
-            !scouting.dismissedReadyIds.includes(key);
+            item.id &&
+            item.returnedToGarrison !== true &&
+            !handledScoutingReadyIds.has(item.id) &&
+            !scouting.dismissedReadyIds.includes(item.id);
     });
-    if (!ready) { closeScoutingCompletion(); return; }
 
-    // Используем стабильный ключ, а не случайный id.
-    // Именно здесь была причина повторов: при повторной загрузке состояния
-    // одна и та же экспедиция могла получить другой id.
-    const readyKey = getScoutingReadyKey(ready);
-    handledScoutingReadyIds.add(readyKey);
+    if (!ready) {
+        closeScoutingCompletion();
+        return;
+    }
 
-    // Решение игрока сохраняется в состоянии Дома.
-    if (!scouting.dismissedReadyIds.includes(readyKey)) {
-        scouting.dismissedReadyIds.push(readyKey);
+    // Сразу фиксируем окончательное решение игрока.
+    handledScoutingReadyIds.add(ready.id);
+    ready.returnedToGarrison = true;
+
+    if (!scouting.dismissedReadyIds.includes(ready.id)) {
+        scouting.dismissedReadyIds.push(ready.id);
         if (scouting.dismissedReadyIds.length > 100) {
             scouting.dismissedReadyIds = scouting.dismissedReadyIds.slice(-100);
         }
     }
 
+    // Для возврата в гарнизон никаких новых операций не создаём.
+    // Отряд уже снят с operations в момент завершения разведки,
+    // поэтому разведчики снова считаются свободными в army.scouts.
     const readyIndex = scouting.ready.findIndex(function(item) {
         return item && item.id === ready.id;
     });
-    if (readyIndex >= 0) scouting.ready.splice(readyIndex, 1);
+    if (readyIndex >= 0) {
+        scouting.ready.splice(readyIndex, 1);
+    }
 
     mapState.pendingScoutCount = 0;
     mapState.pendingScoutReadyId = null;
+
+    // Сохраняем локально ДО перерисовки и сразу отправляем актуальное
+    // состояние на Supabase, чтобы старая ready-запись не вернулась.
     saveHouseData(house);
     closeScoutingCompletion();
 
+    updateArmy();
+    updateMap();
+
+    // В текущем UI единственное действие — возврат в гарнизон.
+    // Ветка continue оставлена только для совместимости со старыми
+    // сохранениями/вызовами и не используется кнопкой.
     if (action === "continue") {
         mapState.pendingScoutCount = Math.max(1, Math.floor(Number(ready.scouts) || 1));
         openWorldMap();
@@ -7020,19 +7017,11 @@ function resolveScoutingCompletion(action) {
         const instruction = document.getElementById("mapInstruction");
         if (instruction) instruction.classList.remove("viewMode");
         updateMap();
-    } else {
-        updateArmy();
-        updateMap();
-
-        /*
-           Не открываем следующую карточку автоматически.
-           Если завершилось несколько экспедиций одновременно,
-           игрок должен сам выбрать, когда разбирать следующую.
-           Это исключает цепочку неожиданных окон.
-        */
     }
-}
 
+    // Важно: синхронизация выполняется и при возврате в гарнизон.
+    syncScoutingStateToServer(house);
+}
 function startCellScouting() {
     const house = getHouse();
     if (!house) return;

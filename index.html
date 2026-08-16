@@ -2331,6 +2331,27 @@ textarea.input {
     font-size: 12px;
     letter-spacing: .5px;
 }
+.diplomacyReputation {
+    margin-top: 9px;
+    text-align: center;
+    color: #a99472;
+    font-size: 8px;
+    letter-spacing: 1.2px;
+}
+.diplomacyReputationBar {
+    width: 78%;
+    height: 4px;
+    margin: 6px auto 0;
+    background: rgba(139,112,67,.12);
+    border: 1px solid rgba(139,112,67,.16);
+    overflow: hidden;
+}
+.diplomacyReputationFill {
+    width: 50%;
+    height: 100%;
+    background: #9c8051;
+    transition: width .2s ease;
+}
 .diplomacyActions {
     display: grid;
     gap: 7px;
@@ -4182,6 +4203,7 @@ textarea.input {
         <div class="diplomacyBlock" id="diplomacyBlock" style="display:none;">
             <div class="diplomacyLabel">ОТНОШЕНИЯ <button class="infoTipButton" type="button" onclick="showRealmTooltip('Дипломатические отношения','⚖️ Нейтралитет — между Домами нет особых договорённостей.\n\n🕊️ Дружба — мирные отношения между Домами.\n\n🤝 Союз — особые отношения, открывающие дополнительные возможности, включая торговлю.\n\n⚔️ Война — военный конфликт. Торговля и мирные взаимодействия недоступны.')">?</button></div>
             <div class="diplomacyStatus" id="diplomacyStatus">НЕЙТРАЛИТЕТ</div>
+            <div class="diplomacyReputation" id="diplomacyReputation">РЕПУТАЦИЯ В ОТНОШЕНИЯХ · 50 / 100<div class="diplomacyReputationBar"><div class="diplomacyReputationFill" id="diplomacyReputationFill"></div></div></div>
             <div class="diplomacyActions" id="diplomacyActions"></div>
             <div class="diplomacyHint" id="diplomacyHint"></div>
         </div>
@@ -7618,12 +7640,20 @@ function diplomacyStatusLabel(status, proposedBy, ownId) {
     return "НЕЙТРАЛИТЕТ";
 }
 
-function setDiplomacyUi(status, proposedBy, ownId, targetId) {
+function setDiplomacyUi(status, proposedBy, ownId, targetId, reputation) {
     const block = document.getElementById("diplomacyBlock");
     const statusEl = document.getElementById("diplomacyStatus");
     const actions = document.getElementById("diplomacyActions");
     const hint = document.getElementById("diplomacyHint");
+    const reputationEl = document.getElementById("diplomacyReputation");
+    const reputationFill = document.getElementById("diplomacyReputationFill");
     if (!block || !statusEl || !actions || !hint) return;
+
+    const safeReputation = Math.max(0, Math.min(100, Number(reputation) || 50));
+    if (reputationEl) {
+        reputationEl.childNodes[0].nodeValue = "РЕПУТАЦИЯ В ОТНОШЕНИЯХ · " + safeReputation + " / 100";
+    }
+    if (reputationFill) reputationFill.style.width = safeReputation + "%";
 
     block.style.display = "block";
     statusEl.textContent = diplomacyStatusLabel(status, proposedBy, ownId);
@@ -7697,9 +7727,9 @@ async function loadDiplomacyForTarget(targetDynastyId) {
     if (cachedRelation && Date.now() - cachedRelation.loadedAt < DIPLOMACY_CACHE_MS) {
         diplomacyState.status = cachedRelation.status || "neutral";
         diplomacyState.proposedBy = cachedRelation.proposedBy || null;
-        setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, ownHouse.serverDynastyId, targetDynastyId);
+        setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, ownHouse.serverDynastyId, targetDynastyId, cachedRelation.reputation);
     } else {
-        setDiplomacyUi("neutral", null, ownHouse.serverDynastyId, targetDynastyId);
+        setDiplomacyUi("neutral", null, ownHouse.serverDynastyId, targetDynastyId, 50);
     }
 
     try {
@@ -7712,17 +7742,38 @@ async function loadDiplomacyForTarget(targetDynastyId) {
         if (error) throw error;
         if (diplomacyState.targetDynastyId !== targetDynastyId) return;
 
+        let reputation = 50;
+        try {
+            const socialRows = await socialRpc("the_realms_get_social_relations", {
+                p_external_id: getServerExternalId(),
+                p_slot: getCurrentDynastySlotNumber()
+            });
+            const socialRelation = (socialRows || []).find(function(r) {
+                return (String(r.dynasty_a) === String(ownHouse.serverDynastyId) && String(r.dynasty_b) === String(targetDynastyId)) ||
+                       (String(r.dynasty_b) === String(ownHouse.serverDynastyId) && String(r.dynasty_a) === String(targetDynastyId));
+            });
+            if (socialRelation) {
+                reputation = String(socialRelation.dynasty_a) === String(ownHouse.serverDynastyId)
+                    ? Number(socialRelation.reputation_a)
+                    : Number(socialRelation.reputation_b);
+                if (!Number.isFinite(reputation)) reputation = 50;
+            }
+        } catch (socialError) {
+            console.warn("The Realms: не удалось загрузить репутацию, используется 50", socialError);
+        }
+
         diplomacyState.status = data ? data.status : "neutral";
         diplomacyState.proposedBy = data ? data.proposed_by : null;
         diplomacyRelationCache.set(String(targetDynastyId), {
             status: diplomacyState.status,
             proposedBy: diplomacyState.proposedBy,
+            reputation: Math.max(0, Math.min(100, reputation)),
             loadedAt: Date.now()
         });
-        setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, ownHouse.serverDynastyId, targetDynastyId);
+        setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, ownHouse.serverDynastyId, targetDynastyId, reputation);
     } catch (error) {
         console.error("The Realms: не удалось загрузить дипломатию", error);
-        setDiplomacyUi("neutral", null, ownHouse.serverDynastyId, targetDynastyId);
+        setDiplomacyUi("neutral", null, ownHouse.serverDynastyId, targetDynastyId, 50);
         const hint = document.getElementById("diplomacyHint");
         if (hint) hint.textContent = "Дипломатия временно недоступна.";
     } finally {
@@ -7763,12 +7814,33 @@ async function performDiplomacyAction(action, targetDynastyId) {
         const result = data || {};
         diplomacyState.status = result.status || "neutral";
         diplomacyState.proposedBy = result.proposed_by || null;
+        let reputation = 50;
+        try {
+            const socialRows = await socialRpc("the_realms_get_social_relations", {
+                p_external_id: getServerExternalId(),
+                p_slot: getCurrentDynastySlotNumber()
+            });
+            const socialRelation = (socialRows || []).find(function(r) {
+                return (String(r.dynasty_a) === String(house.serverDynastyId) && String(r.dynasty_b) === String(targetDynastyId)) ||
+                       (String(r.dynasty_b) === String(house.serverDynastyId) && String(r.dynasty_a) === String(targetDynastyId));
+            });
+            if (socialRelation) {
+                reputation = String(socialRelation.dynasty_a) === String(house.serverDynastyId)
+                    ? Number(socialRelation.reputation_a)
+                    : Number(socialRelation.reputation_b);
+                if (!Number.isFinite(reputation)) reputation = 50;
+            }
+        } catch (socialError) {
+            console.warn("The Realms: не удалось обновить отображение репутации", socialError);
+        }
+        reputation = Math.max(0, Math.min(100, reputation));
         diplomacyRelationCache.set(String(targetDynastyId), {
             status: diplomacyState.status,
             proposedBy: diplomacyState.proposedBy,
+            reputation: reputation,
             loadedAt: Date.now()
         });
-        setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, house.serverDynastyId, targetDynastyId);
+        setDiplomacyUi(diplomacyState.status, diplomacyState.proposedBy, house.serverDynastyId, targetDynastyId, reputation);
 
         if (action === "accept_alliance" || action === "break_alliance" || action === "declare_war" || action === "make_peace") {
             const chronicleText = {

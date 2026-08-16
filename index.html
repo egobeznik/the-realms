@@ -261,6 +261,13 @@ textarea.input {
     object-fit: cover;
 }
 
+.cityMark img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
 .uploadArea {
     flex: 1;
 }
@@ -6131,15 +6138,18 @@ async function loadSharedWorld(forceRefresh) {
             sharedWorld.cities = (citiesResult.data || []).map(function(city) {
                 const dynasty = dynastyMap.get(String(city.dynasty_id));
                 const cachedDetails = sharedDynastyDetailsCache.get(String(city.dynasty_id));
+                const dynastyState = dynasty && dynasty.game_state && typeof dynasty.game_state === "object"
+                    ? dynasty.game_state
+                    : {};
                 return Object.assign({}, city, {
                     dynastyName: dynasty ? dynasty.name : city.name,
-                    realmName: cachedDetails?.realmName || "Безымянное государство",
-                    rulerName: cachedDetails?.rulerName || "Неизвестный правитель",
-                    motto: cachedDetails?.motto || "",
-                    population: cachedDetails ? cachedDetails.population : 0,
-                    populationState: cachedDetails ? cachedDetails.populationState : null,
-                    crest: cachedDetails?.crest || "",
-                    buildings: cachedDetails?.buildings || []
+                    realmName: cachedDetails?.realmName || dynastyState.realmName || "Безымянное государство",
+                    rulerName: cachedDetails?.rulerName || dynastyState.rulerName || "Неизвестный правитель",
+                    motto: cachedDetails?.motto || dynastyState.motto || "",
+                    population: cachedDetails ? cachedDetails.population : getSharedStatePopulation(dynastyState),
+                    populationState: cachedDetails ? cachedDetails.populationState : dynastyState,
+                    crest: cachedDetails?.crest || dynastyState.crest || "",
+                    buildings: cachedDetails?.buildings || (Array.isArray(dynastyState.buildings) ? dynastyState.buildings : [])
                 });
             });
             sharedWorld.territories = territoriesResult.data || [];
@@ -7557,8 +7567,11 @@ function renderMapCells(force) {
                     `<span>${escapeHtml(house.realmName)}</span></span>`;
             } else if (sharedCity && !isOwnSharedCity(sharedCity, house)) {
                 cell.classList.add("foreignCity");
+                const foreignCrest = sharedCity.crest
+                    ? `<img src="${escapeHtml(sharedCity.crest)}" alt="Герб Дома">`
+                    : "♜";
                 cell.innerHTML =
-                    `<span class="cityMark">♜</span>` +
+                    `<span class="cityMark">${foreignCrest}</span>` +
                     `<span class="cityLabel">${escapeHtml(sharedCity.name || "Город")}` +
                     `<span>Чужие земли</span></span>`;
             } else if (sharedBuilding && (!house || sharedBuilding.dynasty_id !== house.serverDynastyId)) {

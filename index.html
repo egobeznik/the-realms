@@ -6880,15 +6880,40 @@ function processScouting(house, nowOverride) {
 }
 
 function showScoutingCompletion(house) {
+    /*
+       ХИРУРГИЧЕСКАЯ ЗАЩИТА:
+       окно завершённой разведки показываем только после выбора
+       конкретной Династии и только когда открыт экран Дома.
+       Ранее оно могло появляться прямо поверх выбора Династии,
+       потому что фоновый таймер уже видел сохранённую экспедицию.
+    */
+    const realmScreen = document.getElementById("realmScreen");
+    const activeDynastyId = getActiveDynastyId();
+
+    if (
+        !house ||
+        !activeDynastyId ||
+        !realmScreen ||
+        realmScreen.style.display === "none"
+    ) {
+        return;
+    }
+
     const scouting = ensureScoutingState(house);
     const ready = scouting.ready[0];
     const overlay = document.getElementById("scoutingCompletionOverlay");
     const title = document.getElementById("scoutingCompletionTitle");
     const text = document.getElementById("scoutingCompletionText");
+
     if (!ready || !overlay || !title || !text) return;
 
-    title.textContent = ready.progress >= 100 ? "РАЗВЕДКА ЗАВЕРШЕНА" : "РАЗВЕДКА ЗАВЕРШЕНА";
-    text.textContent = "Отряд из " + ready.scouts + " разведчиков завершил разведку X:" + ready.x + " Y:" + ready.y + ".\n\nЧто сделать дальше?";
+    title.textContent = "РАЗВЕДКА ЗАВЕРШЕНА";
+    text.textContent =
+        "Отряд из " + ready.scouts +
+        " разведчиков завершил разведку X:" + ready.x +
+        " Y:" + ready.y +
+        ".\n\nЧто сделать дальше?";
+
     overlay.style.display = "flex";
 }
 
@@ -6924,7 +6949,13 @@ function resolveScoutingCompletion(action) {
     } else {
         updateArmy();
         updateMap();
-        if (scouting.ready.length) setTimeout(function() { showScoutingCompletion(house); }, 0);
+
+        /*
+           Не открываем следующую карточку автоматически.
+           Если завершилось несколько экспедиций одновременно,
+           игрок должен сам выбрать, когда разбирать следующую.
+           Это исключает цепочку неожиданных окон.
+        */
     }
 }
 
@@ -13426,7 +13457,7 @@ function openRealm() {
 
 
     renderChronicleHistory(house);
-    if (document.visibilityState === "visible") setTimeout(function() { showScoutingCompletion(house); }, 0);
+    if (document.visibilityState === "visible" && document.getElementById("realmScreen")?.style.display !== "none") setTimeout(function() { showScoutingCompletion(house); }, 0);
 
 
     const crest =

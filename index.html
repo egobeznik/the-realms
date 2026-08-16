@@ -10481,19 +10481,26 @@ function prepareHouse(house) {
     house.army.morale = Math.max(0, Math.min(100, Math.floor(house.army.morale)));
     if (!Array.isArray(house.army.armies)) house.army.armies = [];
 
-    if (house.city && house.army.armies.length === 0) {
-        house.army.armies.push({
-            id: "army_1",
-            name: "Армия I",
-            x: Number(house.city.x),
-            y: Number(house.city.y),
-            mode: "garrison",
-            guardX: null,
-            guardY: null,
-            move: null,
-            createdAt: new Date().toISOString()
+    // Army 3.0: гарнизон больше не является отдельной армией.
+    // Старые пустые гарнизонные объекты удаляем. Если в старом сохранении
+    // в "гарнизонной армии" были лучники, возвращаем их в военный резерв.
+    if (house.city) {
+        house.army.armies.forEach(function(legacyArmy) {
+            if (
+                legacyArmy &&
+                legacyArmy.mode === "garrison" &&
+                Number(legacyArmy.x) === Number(house.city.x) &&
+                Number(legacyArmy.y) === Number(house.city.y)
+            ) {
+                house.army.archers += Math.max(0, Math.floor(Number(legacyArmy.archers) || 0));
+                legacyArmy.archers = 0;
+            }
         });
     }
+
+    house.army.armies = house.army.armies.filter(function(army) {
+        return army && !(army.mode === "garrison" && Math.max(0, Math.floor(Number(army.archers) || 0)) <= 0);
+    });
 
     house.army.armies.forEach(function(army, index) {
         if (!army.id) army.id = "army_" + (index + 1);
@@ -11968,13 +11975,20 @@ function moveSoldierToFree() {
         return;
     }
 
-    if (house.population.soldiers <= 0)
-        return;
+    const scoutsInRecon = getScoutingOperations(house).reduce(function(sum, op) {
+        return sum + Math.max(0, Math.floor(Number(op.scouts) || 0));
+    }, 0);
 
-    if (house.army.archers > 0) {
+    const reserveScouts = Math.max(0, Math.floor(Number(house.army.scouts) || 0)) - scoutsInRecon;
+    const reserveArchers = Math.max(0, Math.floor(Number(house.army.archers) || 0));
+
+    if (reserveArchers > 0) {
         house.army.archers -= 1;
-    } else if (house.army.scouts > 0) {
+    } else if (reserveScouts > 0) {
         house.army.scouts -= 1;
+    } else {
+        alert("Свободных военнослужащих в резерве нет. Разведчики в разведке и войска в полевых армиях не могут быть переведены в свободное население.");
+        return;
     }
 
     const fieldArchers = house.army.armies.reduce(function(total, army) {
@@ -12366,10 +12380,18 @@ function updatePopulation() {
         ordinaryWorkers <= 0;
 
 
+    const freeScoutingReserved = getScoutingOperations(house).reduce(function(sum, op) {
+        return sum + Math.max(0, Math.floor(Number(op.scouts) || 0));
+    }, 0);
+
+    const freeMilitaryReserve =
+        Math.max(0, Math.floor(Number(house.army.scouts) || 0)) - freeScoutingReserved +
+        Math.max(0, Math.floor(Number(house.army.archers) || 0));
+
     document
         .getElementById("soldierToFreeButton")
         .disabled =
-        soldiers <= 0;
+        freeMilitaryReserve <= 0;
 
 
     updateResources();
@@ -12708,7 +12730,6 @@ function formatArmyMode(army) {
     if (!army) return "—";
     if (army.move) return "В ПУТИ";
     if (army.mode === "guard") return "ОХРАНА";
-    if (army.mode === "garrison") return "ГАРНИЗОН";
     return "ПОЛЕВАЯ АРМИЯ";
 }
 
@@ -12822,112 +12843,190 @@ function startArmyMoveToSelectedCell() {
     const house = getHouse();
     if (!house) return;
     prepareHouse(house);
-    const army = getFieldArmy(house);
-    const x = mapState.selectedX;
-    const y = mapState.selectedY;
-    if (!army || x === null || y === null) return;
-    if (army.move) return;
 
-    const selectedCount = Math.max(0, Math.floor(Number(mapState.pendingArmyCount) || 0));
-    if (selectedCount < 1) {
-        alert("Сначала выберите количество лучников для похода.");
-        return;
-    }
-    if (house.army.archers < selectedCount) {
-        alert("В столице недостаточно лучников для этого подразделения.");
-        return;
-    }
+    const x = Number(mapState.selectedX);
+    const y = Number(mapState.selectedY);
+    if (!Number.isFinite(x) || !Number.isFinite(y)) return;
 
     const allowed = isArmyTargetAllowed(house, x, y);
-    if (!allowed.ok) { alert(allowed.reason); return; }
-    const path = buildArmyPath(army.x, army.y, x, y);
-    if (!path.length) {
-        alert("Армия уже находится на этой клетке.");
+    if (!allowed.ok) {
+        alert(allowed.reason);
         return;
     }
 
-    const blockedPathCell = path.find(function(cell) {
-        return !isArmyTargetAllowed(house, cell.x, cell.y).ok;
-    });
-    if (blockedPathCell) {
-        const blocked = isArmyTargetAllowed(house, blockedPathCell.x, blockedPathCell.y);
-        alert("Маршрут недоступен. " + (blocked.reason || "Выберите другой путь."));
+    const existingArmy = getFieldArmy(house);
+    if (existingArmy && existingArmy.move) {
+        alert("Армия уже находится в походе.");
         return;
     }
 
-    house.army.archers -= selectedCount;
-    army.archers = selectedCount;
-    house.population.soldiers = house.army.scouts + house.army.archers + house.army.armies.reduce(function(total, item) { return total + Math.max(0, Math.floor(Number(item.archers) || 0)); }, 0);
+    let army = existingArmy;
+    let selectedCount = Math.max(0, Math.floor(Number(mapState.pendingArmyCount) || 0));
 
-    army.move = {
-        targetX: x,
-        targetY: y,
-        path: path,
-        stepIndex: 0,
-        elapsedMs: 0,
-        lastTickAt: Date.now()
-    };
-    army.mode = "field";
-    army.guardX = null;
-    army.guardY = null;
+    // Если существующей полевой армии нет — формируем новую прямо на
+    // выбранной клетке, как отдельное подразделение.
+    if (!army) {
+        if (selectedCount < 1) {
+            alert("Выберите количество лучников для похода.");
+            return;
+        }
+
+        if (house.army.archers < selectedCount) {
+            alert("В военном резерве недостаточно лучников.");
+            return;
+        }
+
+        const startX = Number(house.city?.x || 0);
+        const startY = Number(house.city?.y || 0);
+        const path = buildArmyPath(startX, startY, x, y);
+
+        if (!path.length) {
+            alert("Армия уже находится в столице. Выберите другую клетку.");
+            return;
+        }
+
+        const blockedPathCell = path.find(function(cell) {
+            return !isArmyTargetAllowed(house, cell.x, cell.y).ok;
+        });
+        if (blockedPathCell) {
+            const blocked = isArmyTargetAllowed(house, blockedPathCell.x, blockedPathCell.y);
+            alert("Маршрут недоступен. " + (blocked.reason || "Выберите другой путь."));
+            return;
+        }
+
+        house.army.archers -= selectedCount;
+
+        army = {
+            id: "army_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7),
+            name: "Армия " + String.fromCharCode(73 + house.army.armies.length),
+            x: startX,
+            y: startY,
+            archers: selectedCount,
+            mode: "field",
+            guardX: null,
+            guardY: null,
+            move: {
+                targetX: x,
+                targetY: y,
+                path: path,
+                stepIndex: 0,
+                elapsedMs: 0,
+                lastTickAt: Date.now()
+            },
+            createdAt: new Date().toISOString()
+        };
+
+        house.army.armies.push(army);
+    } else {
+        // Уже существующая полевая армия перемещается своим полным составом.
+        selectedCount = getAssignedCombatPersonnel(house);
+        if (selectedCount < 1) {
+            alert("В армии нет боевых подразделений.");
+            return;
+        }
+
+        const path = buildArmyPath(army.x, army.y, x, y);
+        if (!path.length) {
+            alert("Армия уже находится на этой клетке.");
+            return;
+        }
+
+        const blockedPathCell = path.find(function(cell) {
+            return !isArmyTargetAllowed(house, cell.x, cell.y).ok;
+        });
+        if (blockedPathCell) {
+            const blocked = isArmyTargetAllowed(house, blockedPathCell.x, blockedPathCell.y);
+            alert("Маршрут недоступен. " + (blocked.reason || "Выберите другой путь."));
+            return;
+        }
+
+        army.move = {
+            targetX: x,
+            targetY: y,
+            path: path,
+            stepIndex: 0,
+            elapsedMs: 0,
+            lastTickAt: Date.now()
+        };
+        army.mode = "field";
+        army.guardX = null;
+        army.guardY = null;
+    }
+
+    house.population.soldiers =
+        house.army.scouts +
+        house.army.archers +
+        house.army.armies.reduce(function(total, item) {
+            return total + Math.max(0, Math.floor(Number(item.archers) || 0));
+        }, 0);
+
     mapState.pendingArmyCount = 0;
     setMapMode("view");
-    addChronicleEvent(house, "Армия отправлена в поход к X:" + x + " Y:" + y + ". Время в пути: " + path.length + " ч.");
+    addChronicleEvent(
+        house,
+        army.name + " отправлена в поход к X:" + x + " Y:" + y +
+        ". Время в пути: " + buildArmyPath(
+            Number(army.x), Number(army.y), x, y
+        ).length + " ч."
+    );
+
     saveHouseData(house);
     syncArmyStateToServer(house, true);
+    updateArmy();
     updateMap();
 }
-
 function openArmyFormationFromRealm() {
     const house = getHouse();
     if (!house || !house.city) return;
+
     const reserve = Math.max(0, Math.floor(Number(house.army?.archers) || 0));
     if (reserve < 1) {
-        alert("В столице нет свободных лучников для формирования подразделения.");
+        alert("В военном резерве нет свободных лучников для формирования армии.");
         return;
     }
+
     openWorldMap();
-    mapState.selectedX = Number(house.city.x);
-    mapState.selectedY = Number(house.city.y);
+    mapState.selectedX = null;
+    mapState.selectedY = null;
     mapState.x = Number(house.city.x);
     mapState.y = Number(house.city.y);
-    beginArmyMoveMode();
+    mapState.pendingArmyCount = 0;
+    mapState.mode = "army_move";
+
+    const title = document.querySelector(".mapInstructionTitle");
+    const instructionText = document.querySelector(".mapInstructionText");
+    if (title) title.textContent = "ФОРМИРОВАНИЕ АРМИИ";
+    if (instructionText) instructionText.textContent = "Выберите клетку назначения. После выбора укажите, сколько лучников отправить из военного резерва.";
+    const instruction = document.getElementById("mapInstruction");
+    if (instruction) instruction.classList.remove("viewMode");
+
+    updateMap();
 }
 
 function beginArmyMoveMode() {
     const house = getHouse();
     if (!house) return;
     prepareHouse(house);
-    let army = getFieldArmy(house);
-    if (!army) {
-        const reserve = Math.max(0, Math.floor(Number(house.army.archers) || 0));
-        if (reserve < 1) { alert("В столице нет лучников для формирования армии."); return; }
-        army = {
-            id: "army_" + Date.now(),
-            name: "Армия I",
-            x: Number(house.city?.x || 0),
-            y: Number(house.city?.y || 0),
-            archers: 0,
-            mode: "garrison",
-            guardX: null,
-            guardY: null,
-            move: null
-        };
-        house.army.armies.push(army);
-        saveHouseData(house);
-    }
-    if (army.move) return;
-    if (!isArmyAtCapital(house, army)) {
-        if (getAssignedCombatPersonnel(house) < 1) { alert("В армии нет воинов."); return; }
-        // Для уже сформированной полевой армии состав похода фиксирован.
+    const army = getFieldArmy(house);
+
+    // Если есть уже существующая полевая армия, команда "переместить"
+    // относится к ней. Новая армия создаётся только после выбора клетки
+    // и количества войск.
+    if (army) {
+        if (army.move) return;
+        if (getAssignedCombatPersonnel(house) < 1) {
+            alert("В армии нет боевых подразделений.");
+            return;
+        }
         mapState.pendingArmyCount = getAssignedCombatPersonnel(house);
     } else {
         if (Math.max(0, Math.floor(Number(house.army.archers) || 0)) < 1) {
-            alert("В столице нет лучников для формирования похода.");
+            alert("В военном резерве нет лучников для формирования армии.");
             return;
         }
         mapState.pendingArmyCount = 0;
     }
+
     mapState.mode = "army_move";
     const title = document.querySelector(".mapInstructionTitle");
     const text = document.querySelector(".mapInstructionText");
@@ -12995,21 +13094,72 @@ function renderArmyMapPanel(house, x, y) {
 
     const reserveArchers = Math.max(0, Math.floor(Number(house.army.archers) || 0));
 
-    // Если полевая армия ещё не создана, показываем точечную точку входа
-    // в формирование армии только на клетке столицы. Остальной интерфейс карты
-    // и существующая логика выбора клеток не изменяются.
+    // Army 3.0: если полевой армии ещё нет, клетка сама становится точкой
+    // формирования. Количество войск выбирается прямо в карточке выбранной клетки.
     if (!army) {
-        if (house.city && Number(house.city.x) === Number(x) && Number(house.city.y) === Number(y) && reserveArchers > 0) {
+        if (reserveArchers <= 0 || mapState.mode !== "army_move") return;
+
+        const allowed = isArmyTargetAllowed(house, Number(x), Number(y));
+        if (!allowed.ok) {
             panel.style.display = "block";
-            title.textContent = "АРМИЯ · СТОЛИЦА";
-            stats.textContent = "В столице: " + reserveArchers + " лучн. · Разведчики — отдельная структура.";
-            hint.textContent = "Сформируйте полевую армию, выбрав количество лучников. Разведчики в армию не входят.";
-            const button = document.createElement("button");
-            button.className = "mapArmyButton";
-            button.textContent = "СФОРМИРОВАТЬ АРМИЮ";
-            button.onclick = beginArmyMoveMode;
-            actions.appendChild(button);
+            title.textContent = "ФОРМИРОВАНИЕ АРМИИ";
+            stats.textContent = "В военном резерве: " + reserveArchers + " лучн.";
+            hint.textContent = allowed.reason;
+            return;
         }
+
+        if (house.city &&
+            Number(house.city.x) === Number(x) &&
+            Number(house.city.y) === Number(y)) {
+            panel.style.display = "block";
+            title.textContent = "ФОРМИРОВАНИЕ АРМИИ";
+            stats.textContent = "Военный резерв: " + reserveArchers + " лучн.";
+            hint.textContent = "Выберите клетку назначения, затем укажите количество лучников.";
+            return;
+        }
+
+        panel.style.display = "block";
+        title.textContent = "НОВАЯ ПОЛЕВАЯ АРМИЯ";
+        stats.textContent = "В военном резерве: " + reserveArchers + " лучн.";
+        hint.textContent = "Выберите, сколько лучников отправить на эту клетку. Разведчики — отдельная структура.";
+
+        const formation = document.createElement("div");
+        formation.className = "mapArmyFormation";
+
+        const input = document.createElement("input");
+        input.type = "number";
+        input.min = "1";
+        input.max = String(reserveArchers);
+        input.value = String(Math.min(1, reserveArchers));
+        input.id = "mapArmyFormationCount";
+        input.setAttribute("aria-label", "Количество лучников для армии");
+
+        const confirm = document.createElement("button");
+        confirm.className = "mapArmyButton";
+        confirm.textContent = "ОТПРАВИТЬ АРМИЮ";
+        confirm.onclick = function() {
+            const count = Math.max(0, Math.min(reserveArchers, Math.floor(Number(input.value) || 0)));
+            if (count < 1) {
+                alert("Выберите хотя бы одного лучника.");
+                return;
+            }
+            mapState.pendingArmyCount = count;
+            startArmyMoveToSelectedCell();
+        };
+
+        formation.appendChild(input);
+        formation.appendChild(confirm);
+        actions.appendChild(formation);
+
+        const cancel = document.createElement("button");
+        cancel.className = "mapArmyButton cancel";
+        cancel.textContent = "ОТМЕНИТЬ";
+        cancel.onclick = function() {
+            mapState.mode = "view";
+            mapState.pendingArmyCount = 0;
+            updateMap();
+        };
+        actions.appendChild(cancel);
         return;
     }
 

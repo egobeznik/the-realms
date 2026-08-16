@@ -3954,7 +3954,7 @@ textarea.input {
 
     <div class="mapNotice" id="mapNotice">МИР · 100 × 100 КЛЕТОК <button class="infoTipButton" type="button" onclick="showRealmTooltip('Карта мира','На карте расположены города и территории всех Домов. Ваши здания отображаются подробно, постройки других государств — как объекты на карте.')">?</button></div>
 
-    <div class="mapLegend"><button class="infoTipButton" type="button" onclick="showRealmTooltip('Типы земель','Равнина — единственный тип земли, на котором можно основать город.\n\n🌲 Лес — подходит для охоты и лесного хозяйства.\n🪨 Холмы — особый тип территории.\n⛰ Горы — город основать нельзя.\n💧 Озеро — город основать нельзя.\n≋ Море — город основать нельзя.')">?</button>
+    <div class="mapLegend">
         <div><span>🌲</span> Лес</div>
         <div><span>·</span> Равнина</div>
         <div><span>🪨</span> Холмы</div>
@@ -5259,15 +5259,23 @@ function getSharedStatePopulation(state) {
         const free = Math.max(0, Math.floor(Number(breakdown.free) || 0));
         const workers = Math.max(0, Math.floor(Number(breakdown.workers) || 0));
         const soldiers = Math.max(0, Math.floor(Number(breakdown.soldiers) || 0));
-        return free + workers + soldiers;
+        const totalFromBreakdown = free + workers + soldiers;
+
+        // Если разбивка в старой/неполностью сохранённой записи состоит
+        // из нулей, не показываем чужой город как население 0, если в
+        // самом game_state уже есть корректное агрегированное значение.
+        if (totalFromBreakdown > 0) return totalFromBreakdown;
+
+        if (typeof state.population === "number" && state.population > 0) {
+            return Math.floor(state.population);
+        }
     }
 
-    // Старые династии до v51 хранили только одно число population.
-    // В текущей версии стартовое население Дома — 100, поэтому для
-    // старой записи не доверяем устаревшему агрегату, если разбивки нет.
+    // Совместимость со старыми записями, где сохранялось только population.
     if (typeof state.population === "number" && state.population >= 0 && state.population <= 100) {
         return Math.floor(state.population);
     }
+
     return 100;
 }
 

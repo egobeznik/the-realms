@@ -2559,6 +2559,77 @@ textarea.input {
     font-size: 8px;
     letter-spacing: 1px;
 }
+
+.tradeManagement {
+    margin-top: 10px;
+    border-top: 1px solid rgba(139,112,67,.16);
+    padding-top: 10px;
+}
+.tradeLimits {
+    margin-top: 8px;
+    padding: 8px;
+    border: 1px solid rgba(139,112,67,.18);
+    background: rgba(20,17,13,.45);
+    color: #817567;
+    font-size: 7px;
+    line-height: 1.5;
+    text-align: center;
+}
+.tradeLimits b { color: #cdb98f; }
+.tradeOfferList {
+    margin-top: 8px;
+    display: grid;
+    gap: 6px;
+}
+.tradeOfferCard {
+    border: 1px solid rgba(139,112,67,.18);
+    background: rgba(20,17,13,.5);
+    padding: 8px;
+}
+.tradeOfferCardTitle {
+    color: #bca984;
+    font-size: 8px;
+    letter-spacing: .5px;
+}
+.tradeOfferCardText {
+    margin-top: 4px;
+    color: #756b5d;
+    font-size: 7px;
+    line-height: 1.45;
+    white-space: pre-line;
+}
+.tradeOfferCardStatus {
+    margin-top: 5px;
+    color: #9a8769;
+    font-size: 7px;
+}
+.tradeOfferCardActions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    margin-top: 6px;
+}
+.tradeOfferCardActions button {
+    min-height: 30px;
+    border: 1px solid rgba(139,112,67,.28);
+    background: rgba(8,7,5,.65);
+    color: #cdb98f;
+    font-family: inherit;
+    font-size: 7px;
+}
+.tradeOfferEmpty {
+    color: #625a4e;
+    font-size: 7px;
+    text-align: center;
+    padding: 5px 0;
+}
+.tradeOfferCounter {
+    margin-top: 7px;
+    color: #756b5d;
+    font-size: 7px;
+    text-align: center;
+}
+.tradeOfferAvailable b { color: #bca984; }
 .cityInfoCoordinates {
     margin-top: 9px;
     color: #6f6659;
@@ -4137,12 +4208,14 @@ textarea.input {
             </div>
         </div>
         <div class="tradeOfferAvailable" id="tradeOfferAvailable">На складе: мясо 0 · дерево 0</div>
+        <div class="tradeOfferAvailable" id="tradeOfferReserved">В резерве: мясо 0 · дерево 0</div>
+        <div class="tradeLimits" id="tradeOfferLimits">Отправлено: <b>0 / 5</b> · Принято: <b>0 / 5</b></div>
 
         <div class="tradeOfferHint">Торговля доступна только между государствами, состоящими в союзе.</div>
 
         <div class="tradeOfferActions">
             <button type="button" onclick="closeTradeOffer()">ОТМЕНА</button>
-            <button type="button" onclick="sendTradeOffer()">ОТПРАВИТЬ</button>
+            <button id="tradeSendButton" type="button" onclick="sendTradeOffer()">ОТПРАВИТЬ</button>
         </div>
     </div>
 </div>
@@ -7708,11 +7781,12 @@ function setDiplomacyUi(status, proposedBy, ownId, targetId, reputation) {
         const trade = document.createElement("div");
         trade.id = "tradeBlock";
         trade.className = "tradeBlock";
-        trade.innerHTML = '<div class="tradeLabel">ТОРГОВЛЯ</div><button class="tradeButton" type="button">ПРЕДЛОЖИТЬ ОБМЕН</button>';
+        trade.innerHTML = '<div class="tradeLabel">ТОРГОВЛЯ</div><button class="tradeButton" type="button">ПРЕДЛОЖИТЬ ОБМЕН</button><div class="tradeManagement"><div class="tradeLabel">ТОРГОВЫЕ ПРЕДЛОЖЕНИЯ</div><div class="tradeOfferCounter" id="tradeLimitSummary">Загрузка лимитов...</div><div class="tradeOfferList" id="tradeIncomingList"><div class="tradeOfferEmpty">Входящих предложений нет</div></div><div class="tradeOfferList" id="tradeOutgoingList"><div class="tradeOfferEmpty">Моих предложений нет</div></div></div>';
         trade.querySelector("button").onclick = function() {
             openTradeOffer(targetId, document.getElementById("cityInfoHouse")?.textContent || "Союзнику");
         };
         parent.appendChild(trade);
+        refreshTradeManagement();
     }
 }
 
@@ -7860,6 +7934,123 @@ async function performDiplomacyAction(action, targetDynastyId) {
     }
 }
 
+function formatTradeResourceLines(giveWood, giveMeat, getWood, getMeat) {
+    const give = [];
+    const get = [];
+    if ((Number(giveWood) || 0) > 0) give.push("🌲 " + Number(giveWood) + " дерева");
+    if ((Number(giveMeat) || 0) > 0) give.push("🍖 " + Number(giveMeat) + " мяса");
+    if ((Number(getWood) || 0) > 0) get.push("🌲 " + Number(getWood) + " дерева");
+    if ((Number(getMeat) || 0) > 0) get.push("🍖 " + Number(getMeat) + " мяса");
+    return {
+        give: give.length ? give.join(" · ") : "ничего",
+        get: get.length ? get.join(" · ") : "ничего"
+    };
+}
+
+function formatTradeCountdown(iso) {
+    if (!iso) return "";
+    const diff = Math.max(0, new Date(iso).getTime() + 24 * 60 * 60 * 1000 - Date.now());
+    if (!diff) return "сейчас";
+    const h = Math.floor(diff / 3600000);
+    const m = Math.floor((diff % 3600000) / 60000);
+    return h > 0 ? h + " ч " + m + " мин" : m + " мин";
+}
+
+async function getTradeLimits() {
+    const house = getHouse();
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return null;
+    const { data, error } = await window.theRealmsSupabase.rpc("the_realms_get_trade_limits", {
+        p_external_id: getServerExternalId(),
+        p_slot: getCurrentDynastySlotNumber()
+    });
+    if (error) throw error;
+    return data || null;
+}
+
+async function refreshTradeManagement() {
+    const house = getHouse();
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return;
+
+    const summary = document.getElementById("tradeLimitSummary");
+    const incoming = document.getElementById("tradeIncomingList");
+    const outgoing = document.getElementById("tradeOutgoingList");
+    if (!summary || !incoming || !outgoing) return;
+
+    try {
+        const limits = await getTradeLimits();
+        if (limits) {
+            const sent = Number(limits.sent_count) || 0;
+            const accepted = Number(limits.accepted_count) || 0;
+            const active = Number(limits.active_count) || 0;
+            summary.innerHTML = "Отправлено <b>" + sent + " / 5</b> · Принято <b>" + accepted + " / 5</b> · Активных <b>" + active + " / 5</b>";
+        }
+
+        const { data: incomingRows, error: incomingError } = await window.theRealmsSupabase
+            .from("trade_offers")
+            .select("id,sender_dynasty_id,give_wood,give_meat,get_wood,get_meat,created_at")
+            .eq("receiver_dynasty_id", house.serverDynastyId)
+            .eq("status", "pending")
+            .order("created_at", { ascending: false })
+            .limit(5);
+        if (incomingError) throw incomingError;
+
+        const { data: outgoingRows, error: outgoingError } = await window.theRealmsSupabase
+            .from("trade_offers")
+            .select("id,receiver_dynasty_id,give_wood,give_meat,get_wood,get_meat,status,created_at,updated_at,accepted_at")
+            .eq("sender_dynasty_id", house.serverDynastyId)
+            .order("created_at", { ascending: false })
+            .limit(10);
+        if (outgoingError) throw outgoingError;
+
+        const senderIds = [...new Set((incomingRows || []).map(r => r.sender_dynasty_id))];
+        const receiverIds = [...new Set((outgoingRows || []).map(r => r.receiver_dynasty_id))];
+        const ids = [...new Set(senderIds.concat(receiverIds))];
+        let names = {};
+        if (ids.length) {
+            const { data: dynasties } = await window.theRealmsSupabase.from("dynasties").select("id,name").in("id", ids);
+            (dynasties || []).forEach(d => names[String(d.id)] = d.name || "Дом");
+        }
+
+        incoming.innerHTML = '<div class="tradeOfferCardTitle">ВХОДЯЩИЕ ПРЕДЛОЖЕНИЯ</div>';
+        if (!incomingRows || !incomingRows.length) {
+            incoming.innerHTML += '<div class="tradeOfferEmpty">Нет входящих предложений</div>';
+        } else {
+            incomingRows.forEach(row => {
+                const lines = formatTradeResourceLines(row.give_wood, row.give_meat, row.get_wood, row.get_meat);
+                const card = document.createElement("div");
+                card.className = "tradeOfferCard";
+                card.innerHTML = '<div class="tradeOfferCardTitle">' + escapeHtml(names[String(row.sender_dynasty_id)] || "Союзник") + '</div>' +
+                    '<div class="tradeOfferCardText">Отдаёт: ' + escapeHtml(lines.give) + '\nПолучает: ' + escapeHtml(lines.get) + '</div>' +
+                    '<div class="tradeOfferCardStatus">Ожидает ответа</div>' +
+                    '<div class="tradeOfferCardActions"><button type="button" data-trade-action="reject">ОТКЛОНИТЬ</button><button type="button" data-trade-action="accept">ПРИНЯТЬ</button></div>';
+                card.querySelectorAll("button").forEach(btn => btn.onclick = function() { respondTradeOfferById(row.id, btn.dataset.tradeAction); });
+                incoming.appendChild(card);
+            });
+        }
+
+        outgoing.innerHTML = '<div class="tradeOfferCardTitle">МОИ ПРЕДЛОЖЕНИЯ</div>';
+        if (!outgoingRows || !outgoingRows.length) {
+            outgoing.innerHTML += '<div class="tradeOfferEmpty">Моих предложений нет</div>';
+        } else {
+            outgoingRows.slice(0, 5).forEach(row => {
+                const lines = formatTradeResourceLines(row.give_wood, row.give_meat, row.get_wood, row.get_meat);
+                const statusMap = { pending: "Ожидает ответа", accepted: "Принято", rejected: "Отклонено", cancelled: "Отменено" };
+                const card = document.createElement("div");
+                card.className = "tradeOfferCard";
+                card.innerHTML = '<div class="tradeOfferCardTitle">' + escapeHtml(names[String(row.receiver_dynasty_id)] || "Союзник") + '</div>' +
+                    '<div class="tradeOfferCardText">Отдаёте: ' + escapeHtml(lines.give) + '\nПолучаете: ' + escapeHtml(lines.get) + '</div>' +
+                    '<div class="tradeOfferCardStatus">' + statusMap[row.status] + '</div>' +
+                    (row.status === "pending" ? '<div class="tradeOfferCardActions"><button type="button">ОТМЕНИТЬ</button></div>' : '');
+                const cancel = card.querySelector("button");
+                if (cancel) cancel.onclick = function() { respondTradeOfferById(row.id, "cancel"); };
+                outgoing.appendChild(card);
+            });
+        }
+    } catch (error) {
+        console.warn("The Realms: не удалось обновить торговые предложения", error);
+    }
+}
+
 function openTradeOffer(targetDynastyId, targetName) {
     if (!targetDynastyId || diplomacyState.status !== "allied") {
         alert("Торговля доступна только между союзниками.");
@@ -7876,14 +8067,59 @@ function openTradeOffer(targetDynastyId, targetName) {
     document.getElementById("tradeGetMeat").value = 0;
 
     const available = document.getElementById("tradeOfferAvailable");
-    if (available) {
+    const reservedEl = document.getElementById("tradeOfferReserved");
+    if (available || reservedEl) {
         const house = getHouse();
         const wood = Math.max(0, Number(house?.resources?.wood) || 0);
         const meat = Math.max(0, Number(house?.resources?.meat) || 0);
-        available.textContent = "На складе: мясо " + meat + " · дерево " + wood;
+        if (available) available.innerHTML = "Доступно: <b>🍖 " + meat + "</b> · <b>🌲 " + wood + "</b>";
+        if (reservedEl) reservedEl.textContent = "В резерве: загружается...";
     }
 
     document.getElementById("tradeOfferOverlay").style.display = "flex";
+    refreshTradeModalLimits();
+}
+
+async function refreshTradeModalLimits() {
+    const limitsEl = document.getElementById("tradeOfferLimits");
+    if (!limitsEl) return;
+    try {
+        const house = getHouse();
+        const limits = await getTradeLimits();
+        if (!limits) return;
+        const sent = Number(limits.sent_count) || 0;
+        const accepted = Number(limits.accepted_count) || 0;
+        const active = Number(limits.active_count) || 0;
+        const sentReset = formatTradeCountdown(limits.next_sent_at);
+        const acceptedReset = formatTradeCountdown(limits.next_accepted_at);
+        limitsEl.innerHTML = "Отправлено: <b>" + sent + " / 5</b>" + (sentReset ? " · след. слот через " + sentReset : "") +
+            "<br>Принято: <b>" + accepted + " / 5</b>" + (acceptedReset ? " · след. слот через " + acceptedReset : "") +
+            "<br>Активных исходящих: <b>" + active + " / 5</b>";
+        const sendButton = document.getElementById("tradeSendButton");
+        if (sendButton) sendButton.disabled = sent >= 5 || active >= 5;
+
+        if (house && house.serverDynastyId) {
+            const { data: pending } = await window.theRealmsSupabase
+                .from("trade_offers")
+                .select("give_wood,give_meat")
+                .eq("sender_dynasty_id", house.serverDynastyId)
+                .eq("status", "pending");
+            let reservedWood = 0;
+            let reservedMeat = 0;
+            (pending || []).forEach(function(row) {
+                reservedWood += Number(row.give_wood) || 0;
+                reservedMeat += Number(row.give_meat) || 0;
+            });
+            const availableWood = Math.max(0, Number(house.resources?.wood) || 0);
+            const availableMeat = Math.max(0, Number(house.resources?.meat) || 0);
+            const reservedEl = document.getElementById("tradeOfferReserved");
+            const availableEl = document.getElementById("tradeOfferAvailable");
+            if (availableEl) availableEl.innerHTML = "Доступно: <b>🍖 " + availableMeat + "</b> · <b>🌲 " + availableWood + "</b>";
+            if (reservedEl) reservedEl.innerHTML = "В резерве: <b>🍖 " + reservedMeat + "</b> · <b>🌲 " + reservedWood + "</b>";
+        }
+    } catch (error) {
+        limitsEl.textContent = "Лимиты временно недоступны";
+    }
 }
 
 function closeTradeOffer() {
@@ -7899,7 +8135,6 @@ async function sendTradeOffer() {
         alert("Не удалось определить государство для торговли.");
         return;
     }
-
     if (diplomacyState.status !== "allied") {
         alert("Торговля доступна только между союзниками.");
         return;
@@ -7912,27 +8147,20 @@ async function sendTradeOffer() {
 
     const localWood = Math.max(0, Math.floor(Number(house.resources?.wood) || 0));
     const localMeat = Math.max(0, Math.floor(Number(house.resources?.meat) || 0));
-
     if (giveWood > localWood || giveMeat > localMeat) {
         alert("Недостаточно ресурсов на складе.");
         return;
     }
-
     if (giveWood === 0 && giveMeat === 0 && getWood === 0 && getMeat === 0) {
         alert("Укажите хотя бы один ресурс для обмена.");
         return;
     }
 
-    const chronicleTradeTargetName = getChronicleTargetName(
-        tradeState.targetDynastyId,
-        tradeState.targetName
-    );
-
+    const chronicleTradeTargetName = getChronicleTargetName(tradeState.targetDynastyId, tradeState.targetName);
     tradeState.loading = true;
-
     try {
-        await ensureCurrentServerDynasty(house);
-
+        // Сервер сам проверяет лимиты, союз и актуальный склад. Не перезаписываем
+        // сервер старым локальным game_state перед торговой операцией.
         const result = await window.theRealmsSupabase.rpc("the_realms_create_trade_offer", {
             p_external_id: getServerExternalId(),
             p_slot: getCurrentDynastySlotNumber(),
@@ -7942,25 +8170,72 @@ async function sendTradeOffer() {
             p_get_wood: getWood,
             p_get_meat: getMeat
         });
-
         if (result.error) throw result.error;
 
-        // Отдаваемые ресурсы резервируются сразу. Если союзник отклонит
-        // предложение, сервер вернёт их обратно.
-        house.resources.wood = Math.max(0, localWood - giveWood);
-        house.resources.meat = Math.max(0, localMeat - giveMeat);
+        const serverResources = result.data && result.data.sender_resources;
+        if (serverResources) applyServerResourcesToHouse(house, serverResources);
         house.lastTradeChronicleTargetName = chronicleTradeTargetName;
         saveHouseData(house);
         updateResources();
         addChronicleEvent(house, "Отправлено торговое предложение Дому «" + chronicleTradeTargetName + "»");
-
         closeTradeOffer();
+        await refreshTradeManagement();
         alert("Торговое предложение отправлено. Отданные ресурсы зарезервированы до ответа союзника.");
     } catch (error) {
         console.error("The Realms: ошибка отправки торговли", error);
         alert(error.message || "Не удалось отправить торговое предложение.");
     } finally {
         tradeState.loading = false;
+    }
+}
+
+async function respondTradeOfferById(offerId, action) {
+    if (!offerId) return;
+    const house = getHouse();
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return;
+    try {
+        const { data: offerMeta, error: metaError } = await window.theRealmsSupabase
+            .from("trade_offers")
+            .select("id,sender_dynasty_id,receiver_dynasty_id")
+            .eq("id", offerId)
+            .maybeSingle();
+        if (metaError) throw metaError;
+        if (!offerMeta) throw new Error("Торговое предложение не найдено.");
+
+        const otherDynastyId = String(offerMeta.sender_dynasty_id) === String(house.serverDynastyId)
+            ? offerMeta.receiver_dynasty_id
+            : offerMeta.sender_dynasty_id;
+        const { data: otherDynasty } = await window.theRealmsSupabase
+            .from("dynasties")
+            .select("name")
+            .eq("id", otherDynastyId)
+            .maybeSingle();
+        const otherName = otherDynasty?.name || "Союзник";
+
+        const result = await window.theRealmsSupabase.rpc("the_realms_respond_trade_offer", {
+            p_external_id: getServerExternalId(),
+            p_slot: getCurrentDynastySlotNumber(),
+            p_offer_id: offerId,
+            p_action: action
+        });
+        if (result.error) throw result.error;
+
+        if (action === "accept" && result.data && result.data.receiver_resources) {
+            applyServerResourcesToHouse(house, result.data.receiver_resources);
+            saveHouseData(house);
+            updateResources();
+            addChronicleEvent(house, "Принято торговое предложение от Дома «" + otherName + "»");
+        } else if (action === "reject") {
+            addChronicleEvent(house, "Отклонено торговое предложение от Дома «" + otherName + "»");
+        }
+        if (action === "cancel") {
+            addChronicleEvent(house, "Отменено торговое предложение Дому «" + otherName + "»");
+        }
+
+        await refreshTradeManagement();
+    } catch (error) {
+        console.error("The Realms: ошибка обработки торгового предложения", error);
+        alert(error.message || "Не удалось обработать торговое предложение.");
     }
 }
 
@@ -8012,46 +8287,13 @@ async function checkIncomingTradeOffers() {
 
 async function respondTradeNotification(action) {
     if (tradeNotificationState.loading || !tradeNotificationState.offerId) return;
-
-    const house = getHouse();
-    if (!window.theRealmsSupabase || !house) return;
-
     tradeNotificationState.loading = true;
-
+    const offerId = tradeNotificationState.offerId;
     try {
-        // Не вызываем ensureCurrentServerDynasty здесь: он может перезаписать
-        // сервер старым локальным кэшем перед атомарной торговой операцией.
-        const result = await window.theRealmsSupabase.rpc("the_realms_respond_trade_offer", {
-            p_external_id: getServerExternalId(),
-            p_slot: getCurrentDynastySlotNumber(),
-            p_offer_id: tradeNotificationState.offerId,
-            p_action: action
-        });
-
-        if (result.error) throw result.error;
-
-        if (action === "accept" && result.data && result.data.receiver_resources) {
-            applyServerResourcesToHouse(house, result.data.receiver_resources);
-        }
-
+        await respondTradeOfferById(offerId, action);
         document.getElementById("tradeNotificationOverlay").style.display = "none";
         tradeNotificationState.offerId = null;
-
-        const chronicleTradeTargetName = house.pendingTradeChronicleTargetName || "Союзник";
-        delete house.pendingTradeChronicleTargetName;
-
-        if (action === "accept") {
-            addChronicleEvent(house, "Принято торговое предложение от Дома «" + chronicleTradeTargetName + "»");
-            alert("Торговый обмен заключён.");
-        } else {
-            addChronicleEvent(house, "Отклонено торговое предложение от Дома «" + chronicleTradeTargetName + "»");
-            alert("Торговое предложение отклонено.");
-        }
-
-        openRealm();
-    } catch (error) {
-        console.error("The Realms: ошибка обработки торговли", error);
-        alert(error.message || "Не удалось обработать торговое предложение.");
+        tradeNotificationState.shownThisSession = false;
     } finally {
         tradeNotificationState.loading = false;
     }
@@ -8111,6 +8353,7 @@ async function processTradeRealtimeRow(row) {
 
     saveHouseData(house);
     updateResources();
+    refreshTradeManagement();
 }
 
 function subscribeTradeUpdates(house) {

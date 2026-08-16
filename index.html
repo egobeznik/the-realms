@@ -2091,6 +2091,110 @@ textarea.input {
     font-size: 9px;
 }
 
+
+/* =====================================================
+   РАЗВЕДКА ТЕРРИТОРИИ
+===================================================== */
+
+.mapScoutControls {
+    display:flex;
+    gap:8px;
+    align-items:center;
+    margin-top:8px;
+}
+
+.mapScoutInput {
+    flex:0 0 78px;
+    height:42px;
+    box-sizing:border-box;
+    border:1px solid rgba(157,126,72,.58);
+    background:rgba(18,14,10,.94);
+    color:#d5c4a5;
+    text-align:center;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:12px;
+}
+
+.mapScoutButton {
+    flex:1;
+    min-height:42px;
+    border:1px solid rgba(174,141,82,.78);
+    background:rgba(30,25,19,.95);
+    color:#d5c4a5;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:9px;
+    letter-spacing:2px;
+    cursor:pointer;
+}
+
+.mapScoutButton:disabled { opacity:.38; cursor:default; }
+
+.mapScoutProgress {
+    margin-top:8px;
+    padding:8px 10px;
+    border:1px solid rgba(157,126,72,.38);
+    background:rgba(20,16,12,.72);
+    color:#b7a17a;
+    font-size:11px;
+    line-height:1.4;
+}
+
+.scoutingEventOverlay {
+    position:fixed;
+    inset:0;
+    z-index:900;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+    background:rgba(0,0,0,.78);
+}
+
+.scoutingEventWindow {
+    width:100%;
+    max-width:390px;
+    max-height:78vh;
+    overflow-y:auto;
+    box-sizing:border-box;
+    padding:24px 18px 18px;
+    border:1px solid rgba(174,141,82,.68);
+    background:#110e0a;
+    box-shadow:0 12px 45px rgba(0,0,0,.65);
+    text-align:center;
+}
+
+.scoutingEventTitle {
+    color:#d3c2a3;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:15px;
+    letter-spacing:2px;
+}
+
+.scoutingEventText {
+    margin-top:14px;
+    color:#a99b86;
+    font-size:13px;
+    line-height:1.5;
+    white-space:pre-line;
+}
+
+.scoutingEventButtons {
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    margin-top:18px;
+}
+
+.scoutingEventButton {
+    min-height:44px;
+    border:1px solid rgba(157,126,72,.58);
+    background:rgba(36,29,21,.9);
+    color:#c9b895;
+    font-family:"Cinzel",Georgia,serif;
+    font-size:9px;
+    letter-spacing:2px;
+    cursor:pointer;
+}
 /* =====================================================
    ДОПОЛНИТЕЛЬНАЯ ИНФОРМАЦИЯ КАРТЫ
 ===================================================== */
@@ -3694,6 +3798,7 @@ textarea.input {
                         <b id="armyReadiness">100%</b>
                     </div>
                     <div class="armyPersonnel">ВОЕННОСЛУЖАЩИЕ: <b id="armyPersonnel">0</b></div>
+                    <div style="margin-top:4px;color:#8f806c;font-size:10px;">В разведке: <b id="armyScoutingReserved">0</b></div>
                 </div>
 
                 <div class="armyUnit">
@@ -4180,9 +4285,25 @@ textarea.input {
         <span class="forestryBuildIcon">🪵</span>
         <span class="forestryBuildText">ПОСТРОИТЬ ЛЕСНИЧЕСТВО · 15 🌲</span>
     </button>
+
+    <div id="mapScoutPanel" style="display:none;">
+        <div class="mapScoutProgress" id="mapScoutProgress"></div>
+        <div class="mapScoutControls">
+            <input class="mapScoutInput" id="mapScoutCountInput" type="number" min="1" max="1" value="1" inputmode="numeric" aria-label="Количество разведчиков">
+            <button class="mapScoutButton" id="mapScoutButton" type="button" onclick="startCellScouting()">РАЗВЕДАТЬ КЛЕТКУ</button>
+        </div>
+    </div>
     </div>
 
 </main>
+
+<div id="scoutingEventOverlay" class="scoutingEventOverlay">
+    <div class="scoutingEventWindow">
+        <div class="scoutingEventTitle" id="scoutingEventTitle">СОБЫТИЕ РАЗВЕДКИ</div>
+        <div class="scoutingEventText" id="scoutingEventText"></div>
+        <div class="scoutingEventButtons" id="scoutingEventButtons"></div>
+    </div>
+</div>
 
 <div id="realmTooltipOverlay" onclick="if(event.target===this)closeRealmTooltip()"><div class="realmTooltipWindow"><div class="realmTooltipTitle" id="realmTooltipTitle"></div><div class="realmTooltipText" id="realmTooltipText"></div><button class="realmTooltipClose" type="button" onclick="closeRealmTooltip()">ПОНЯТНО</button></div></div>
 
@@ -5041,6 +5162,15 @@ let mapState = {
     renderedCenterX: null,
     renderedCenterY: null
 };
+
+const SCOUTING_DURATION_MS = 2 * 60 * 60 * 1000;
+const SCOUTING_MAX_GAIN = 60;
+const SCOUTING_MIN_SCOUTS = 1;
+const SCOUTING_EVENT_CHANCE = 0.18;
+
+let scoutingUiTimer = null;
+let scoutingServerSyncPending = false;
+
 /* =====================================================
    ОБЩИЙ ОНЛАЙН-МИР — ЭТАП 1
    Города и территории. Локальная игровая механика не
@@ -5181,7 +5311,8 @@ function buildServerGameState(house) {
             meat: Math.max(0, Math.floor(Number(house?.resources?.meat) || 0)),
             wood: Math.max(0, Math.floor(Number(house?.resources?.wood) || 0))
         },
-        buildings: getHouseWorldBuildings(house)
+        buildings: getHouseWorldBuildings(house),
+        scouting: house && house.scouting ? house.scouting : { cells: {}, active: null }
     };
 }
 
@@ -6182,6 +6313,390 @@ function isTerritoryCell(house, x, y) {
     });
 }
 
+function ensureScoutingState(house) {
+    if (!house) return null;
+    if (!house.scouting || typeof house.scouting !== "object") {
+        house.scouting = { cells: {}, active: null };
+    }
+    if (!house.scouting.cells || typeof house.scouting.cells !== "object") {
+        house.scouting.cells = {};
+    }
+    if (!Object.prototype.hasOwnProperty.call(house.scouting, "active")) {
+        house.scouting.active = null;
+    }
+    return house.scouting;
+}
+
+function scoutingCellKey(x, y) {
+    return String(x) + "," + String(y);
+}
+
+function getScoutingProgress(house, x, y) {
+    const scouting = ensureScoutingState(house);
+    if (!scouting) return 0;
+    return Math.max(0, Math.min(100, Number(scouting.cells[scoutingCellKey(x, y)]) || 0));
+}
+
+function setScoutingProgress(house, x, y, value) {
+    const scouting = ensureScoutingState(house);
+    if (!scouting) return;
+    const key = scoutingCellKey(x, y);
+    const progress = Math.max(0, Math.min(100, Number(value) || 0));
+    if (progress >= 100) {
+        delete scouting.cells[key];
+    } else {
+        scouting.cells[key] = progress;
+    }
+}
+
+function isAdjacentToOwnTerritory(house, x, y) {
+    if (!house || !house.territory || !Array.isArray(house.territory.cells)) return false;
+    return house.territory.cells.some(function(cell) {
+        const dx = Math.abs(Number(cell.x) - x);
+        const dy = Math.abs(Number(cell.y) - y);
+        return Math.max(dx, dy) === 1;
+    });
+}
+
+function getAvailableScoutsForScouting(house) {
+    const scouting = ensureScoutingState(house);
+    const total = Math.max(0, Math.floor(Number(house?.army?.scouts) || 0));
+    const reserved = scouting && scouting.active ? Math.max(0, Math.floor(Number(scouting.active.scouts) || 0)) : 0;
+    return Math.max(0, total - reserved);
+}
+
+function calculateScoutingGain(house, x, y, scoutCount) {
+    const morale = Math.max(0, Math.min(100, Number(house?.army?.morale) || 100));
+    const terrain = terrainAt(x, y);
+    const terrainModifier = {
+        plain: 0,
+        forest: -8,
+        hill: -12,
+        mountain: -18,
+        lake: -10,
+        sea: -14
+    }[terrain] || 0;
+    const scoutContribution = Math.min(40, scoutCount * 4);
+    const moraleContribution = morale * 0.2;
+    const randomFactor = 0.85 + Math.random() * 0.15;
+    const raw = (10 + scoutContribution + moraleContribution + terrainModifier) * randomFactor;
+    return Math.max(5, Math.min(SCOUTING_MAX_GAIN, Math.round(raw)));
+}
+
+function formatScoutingRemaining(ms) {
+    const totalMinutes = Math.max(0, Math.ceil(ms / 60000));
+    const hours = Math.floor(totalMinutes / 60);
+    const minutes = totalMinutes % 60;
+    if (hours > 0) return hours + " ч. " + String(minutes).padStart(2, "0") + " мин.";
+    return minutes + " мин.";
+}
+
+async function syncScoutingStateToServer(house) {
+    if (!window.theRealmsSupabase || !house) return;
+    if (scoutingServerSyncPending) return;
+    scoutingServerSyncPending = true;
+    try {
+        if (!house.serverDynastyId) await ensureCurrentServerDynasty(house);
+        else {
+            await window.theRealmsSupabase
+                .from("dynasties")
+                .update({ game_state: buildServerGameState(house) })
+                .eq("id", house.serverDynastyId);
+        }
+    } catch (error) {
+        console.error("The Realms: не удалось синхронизировать разведку", error);
+    } finally {
+        scoutingServerSyncPending = false;
+    }
+}
+
+async function syncExpandedTerritoryCell(house, x, y) {
+    if (!window.theRealmsSupabase || !house || !house.serverDynastyId) return;
+    const supabase = window.theRealmsSupabase;
+    const externalId = getServerExternalId();
+    const slot = getCurrentDynastySlotNumber();
+
+    try {
+        const rpc = await supabase.rpc("the_realms_expand_territory", {
+            p_external_id: externalId,
+            p_slot: slot,
+            p_x: Number(x),
+            p_y: Number(y)
+        });
+
+        if (!rpc.error) {
+            await loadSharedWorld(true);
+            return;
+        }
+
+        // Совместимость до установки SQL-миграции: пробуем обычную запись.
+        const existing = await supabase
+            .from("territories")
+            .select("dynasty_id")
+            .eq("x", x)
+            .eq("y", y)
+            .maybeSingle();
+        if (existing.error) throw existing.error;
+        if (existing.data && String(existing.data.dynasty_id) !== String(house.serverDynastyId)) {
+            throw new Error("Эта клетка уже занята другим государством.");
+        }
+        if (!existing.data) {
+            const result = await supabase
+                .from("territories")
+                .insert({ dynasty_id: house.serverDynastyId, x: x, y: y, city_id: null });
+            if (result.error) throw result.error;
+        }
+        await loadSharedWorld(true);
+    } catch (error) {
+        console.error("The Realms: не удалось сохранить новую территорию", error);
+        throw error;
+    }
+}
+
+function showScoutingEvent(event) {
+    const overlay = document.getElementById("scoutingEventOverlay");
+    const title = document.getElementById("scoutingEventTitle");
+    const text = document.getElementById("scoutingEventText");
+    const buttons = document.getElementById("scoutingEventButtons");
+    if (!overlay || !title || !text || !buttons) return;
+
+    title.textContent = event.title;
+    text.textContent = event.text;
+    buttons.innerHTML = "";
+
+    event.options.forEach(function(option) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "scoutingEventButton";
+        button.textContent = option.label;
+        button.onclick = function() { resolveScoutingEvent(option.id); };
+        buttons.appendChild(button);
+    });
+
+    overlay.style.display = "flex";
+}
+
+function getWildAnimalsEvent() {
+    return {
+        type: "wild_animals",
+        title: "ДИКИЕ ЗВЕРИ",
+        text: "Разведчики наткнулись на стаю диких зверей. Отряд может попытаться пройти через опасную территорию или отступить.",
+        options: [
+            { id: "retreat", label: "ОТСТУПИТЬ" },
+            { id: "fight", label: "СРАЖАТЬСЯ" }
+        ]
+    };
+}
+
+function resolveScoutingEvent(choice) {
+    const house = getHouse();
+    if (!house) return;
+    const scouting = ensureScoutingState(house);
+    if (!scouting.active || !scouting.active.eventPending) return;
+
+    const active = scouting.active;
+    const scoutCount = Math.max(1, Math.floor(Number(active.scouts) || 1));
+    const morale = Math.max(0, Math.min(100, Number(house.army?.morale) || 100));
+    let penalty = 0;
+    let lost = 0;
+
+    if (choice === "fight") {
+        const survivalChance = Math.max(0.45, Math.min(0.95, 0.55 + scoutCount * 0.02 + (morale - 50) * 0.003));
+        if (Math.random() > survivalChance) {
+            lost = Math.max(1, Math.min(scoutCount, Math.ceil(scoutCount * (0.1 + Math.random() * 0.15))));
+            house.army.scouts = Math.max(0, house.army.scouts - lost);
+            active.scouts = Math.max(0, scoutCount - lost);
+            house.population.soldiers = house.army.scouts + house.army.archers;
+            penalty = 8;
+            addChronicleEvent(house, "Разведчики столкнулись с дикими зверями: потеряно " + lost + " разведчиков.");
+        } else {
+            penalty = 0;
+            addChronicleEvent(house, "Разведчики столкнулись с дикими зверями и продолжили разведку.");
+        }
+    } else {
+        penalty = 10;
+        addChronicleEvent(house, "Разведчики отступили после встречи с дикими зверями.");
+    }
+
+    active.eventPending = false;
+    active.eventType = null;
+    active.eventPenalty = Math.max(0, Math.floor(Number(active.eventPenalty) || 0) + penalty);
+    active.lastTickAt = Date.now();
+    if (active.scouts <= 0) {
+        scouting.active = null;
+        addChronicleEvent(house, "Разведывательная экспедиция прервана: все разведчики потеряны.");
+    }
+    saveHouseData(house);
+    document.getElementById("scoutingEventOverlay").style.display = "none";
+    updateArmy();
+    updateMap();
+    syncScoutingStateToServer(house);
+}
+
+function processScouting(house, nowOverride) {
+    if (!house) return false;
+    const scouting = ensureScoutingState(house);
+    const active = scouting.active;
+    if (!active) return false;
+
+    const now = typeof nowOverride === "number" ? nowOverride : Date.now();
+    if (active.eventPending) return false;
+
+    if (typeof active.lastTickAt !== "number") active.lastTickAt = now;
+    const delta = Math.max(0, now - active.lastTickAt);
+    active.elapsedMs = Math.min(SCOUTING_DURATION_MS, Math.max(0, Number(active.elapsedMs) || 0) + delta);
+    active.lastTickAt = now;
+
+    if (active.hasEvent && !active.eventTriggered && active.elapsedMs >= active.eventAtMs) {
+        active.eventTriggered = true;
+        active.eventPending = true;
+        active.eventType = "wild_animals";
+        saveHouseData(house);
+        if (document.visibilityState === "visible") showScoutingEvent(getWildAnimalsEvent());
+        return true;
+    }
+
+    if (active.elapsedMs < SCOUTING_DURATION_MS) return true;
+
+    const gain = Math.max(1, calculateScoutingGain(house, active.x, active.y, Math.max(1, Math.floor(active.scouts || 1))) - (active.eventPenalty || 0));
+    const oldProgress = getScoutingProgress(house, active.x, active.y);
+    const newProgress = Math.min(100, oldProgress + gain);
+    setScoutingProgress(house, active.x, active.y, newProgress);
+
+    const completedX = active.x;
+    const completedY = active.y;
+    scouting.active = null;
+
+    if (newProgress >= 100) {
+        if (!isTerritoryCell(house, completedX, completedY)) {
+            house.territory.cells.push({ x: completedX, y: completedY });
+            house.territory.forest = house.territory.cells.some(function(cell) {
+                return terrainAt(cell.x, cell.y) === "forest";
+            });
+        }
+        addChronicleEvent(house, "Разведана новая территория: X:" + completedX + " Y:" + completedY + ". Клетка присоединена к владениям Дома.");
+        saveHouseData(house);
+        syncExpandedTerritoryCell(house, completedX, completedY).catch(function(error) {
+            // Если сервер отклонил присоединение, локальная клетка не должна
+            // оставаться захваченной до следующего обновления мира.
+            house.territory.cells = house.territory.cells.filter(function(cell) {
+                return !(Number(cell.x) === completedX && Number(cell.y) === completedY);
+            });
+            saveHouseData(house);
+            updateMap();
+            alert("Клетку не удалось присоединить к владениям.\n\n" + (error.message || "Она могла быть занята другим государством."));
+        });
+    } else {
+        addChronicleEvent(house, "Разведка территории X:" + completedX + " Y:" + completedY + " завершена: " + newProgress + "%.");
+        saveHouseData(house);
+        syncScoutingStateToServer(house);
+    }
+
+    updateMap();
+    return true;
+}
+
+function startCellScouting() {
+    const house = getHouse();
+    if (!house) return;
+    prepareHouse(house);
+    const x = mapState.selectedX;
+    const y = mapState.selectedY;
+    if (x === null || y === null) return;
+    if (isTerritoryCell(house, x, y)) return;
+    if (isForeignTerritoryAt(x, y, house)) {
+        alert("Нельзя разведать чужую территорию.");
+        return;
+    }
+    if (!isAdjacentToOwnTerritory(house, x, y)) {
+        alert("Разведывать можно только клетку, прилегающую к вашей территории.");
+        return;
+    }
+    const available = getAvailableScoutsForScouting(house);
+    const input = document.getElementById("mapScoutCountInput");
+    const count = Math.max(SCOUTING_MIN_SCOUTS, Math.min(available, Math.floor(Number(input?.value) || 1)));
+    if (available < 1) {
+        alert("Для разведки нужен хотя бы один свободный разведчик.");
+        return;
+    }
+    if (scoutingStateActive(house)) {
+        alert("Сейчас уже проводится другая разведывательная операция.");
+        return;
+    }
+
+    const scouting = ensureScoutingState(house);
+    const currentProgress = getScoutingProgress(house, x, y);
+    if (currentProgress >= 100) return;
+
+    scouting.active = {
+        x: x,
+        y: y,
+        scouts: count,
+        startedAt: Date.now(),
+        lastTickAt: Date.now(),
+        elapsedMs: 0,
+        hasEvent: Math.random() < SCOUTING_EVENT_CHANCE,
+        eventAtMs: Math.floor((SCOUTING_DURATION_MS * 0.25) + Math.random() * (SCOUTING_DURATION_MS * 0.55)),
+        eventTriggered: false,
+        eventPending: false,
+        eventType: null,
+        eventPenalty: 0
+    };
+
+    saveHouseData(house);
+    syncScoutingStateToServer(house);
+    updateMap();
+}
+
+function scoutingStateActive(house) {
+    return !!(house && ensureScoutingState(house).active);
+}
+
+function renderScoutingUI(house, x, y) {
+    const panel = document.getElementById("mapScoutPanel");
+    const progressEl = document.getElementById("mapScoutProgress");
+    const input = document.getElementById("mapScoutCountInput");
+    const button = document.getElementById("mapScoutButton");
+    if (!panel || !progressEl || !input || !button) return;
+
+    panel.style.display = "none";
+    const scouting = ensureScoutingState(house);
+    const progress = getScoutingProgress(house, x, y);
+    const adjacent = isAdjacentToOwnTerritory(house, x, y);
+    const foreign = isForeignTerritoryAt(x, y, house);
+    const active = scouting.active;
+
+    if (isTerritoryCell(house, x, y) || foreign || !adjacent) return;
+
+    panel.style.display = "block";
+
+    if (active) {
+        const activeProgress = getScoutingProgress(house, active.x, active.y);
+        if (active.x === x && active.y === y) {
+            const remaining = Math.max(0, SCOUTING_DURATION_MS - Number(active.elapsedMs || 0));
+            const operationProgress = Math.max(0, Math.min(100, Math.floor((Number(active.elapsedMs || 0) / SCOUTING_DURATION_MS) * 100)));
+            progressEl.textContent = "РАЗВЕДАННОСТЬ: " + activeProgress + "% · ЭКСПЕДИЦИЯ: " + operationProgress + "% · РАЗВЕДЧИКОВ: " + active.scouts + " · ОСТАЛОСЬ: " + formatScoutingRemaining(remaining);
+        } else {
+            progressEl.textContent = "ИДЁТ РАЗВЕДКА ДРУГОЙ КЛЕТКИ: X:" + active.x + " Y:" + active.y + " · " + activeProgress + "%";
+        }
+        input.value = active.scouts;
+        input.disabled = true;
+        button.disabled = true;
+        button.textContent = "РАЗВЕДКА ИДЁТ";
+        return;
+    }
+
+    const available = getAvailableScoutsForScouting(house);
+    input.max = String(Math.max(1, available));
+    input.value = String(Math.min(Math.max(1, available), Math.max(1, Number(input.value) || 1)));
+    input.disabled = available < 1;
+    button.disabled = available < 1 || progress >= 100;
+    button.textContent = progress > 0 ? "ПРОДОЛЖИТЬ РАЗВЕДКУ" : "РАЗВЕДАТЬ КЛЕТКУ";
+    progressEl.textContent = available < 1
+        ? "РАЗВЕДАННОСТЬ: " + progress + "% · НУЖЕН ХОТЯ БЫ 1 РАЗВЕДЧИК"
+        : "РАЗВЕДАННОСТЬ: " + progress + "% · ЗА ОПЕРАЦИЮ: до " + SCOUTING_MAX_GAIN + "% · ДЛИТЕЛЬНОСТЬ: 2 ЧАСА";
+}
+
 function getCellDescription(type) {
     switch (type) {
         case "forest":
@@ -6763,6 +7278,10 @@ function updateMap() {
             !!(nearestForeignCity &&
                nearestForeignCity.distance < MIN_CITY_DISTANCE);
 
+        if (!foundationMode && house && !isTerritoryCell(house, mapState.selectedX, mapState.selectedY) && !foreignTerritoryOnCell && !isAdjacentToOwnTerritory(house, mapState.selectedX, mapState.selectedY)) {
+            document.getElementById("mapSelectionInfo").textContent += " · ДАЛЕКО ОТ ГРАНИЦЫ";
+        }
+
         if (tooCloseToForeignCity) {
             document.getElementById("mapSelectionInfo").textContent +=
                 " · БЛИЗКО ДРУГОЙ ГОРОД (" +
@@ -6893,7 +7412,12 @@ function updateMap() {
                     : "Нужно 50 леса и 25 мяса для строительства дома";
         }
 
+        renderScoutingUI(house, mapState.selectedX, mapState.selectedY);
+
     } else {
+
+        const scoutPanel = document.getElementById("mapScoutPanel");
+        if (scoutPanel) scoutPanel.style.display = "none";
 
         document.getElementById("mapSelectionInfo").textContent =
             mapState.mode === "view"
@@ -9335,6 +9859,7 @@ document.addEventListener("visibilitychange", function() {
         const house = getHouse();
         if (house) {
             processOfflineEconomy(house);
+            processScouting(house);
             updateResources();
             updatePopulation();
             updateHunting();
@@ -9751,6 +10276,8 @@ function prepareHouse(house) {
 
     }
 
+
+    ensureScoutingState(house);
 
     return house;
 }
@@ -10959,6 +11486,12 @@ function updateArmy() {
     if (personnelValue)
         personnelValue.textContent = total;
 
+    const scoutingReservedValue = document.getElementById("armyScoutingReserved");
+    if (scoutingReservedValue) {
+        const reserved = house.scouting && house.scouting.active ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0)) : 0;
+        scoutingReservedValue.textContent = reserved;
+    }
+
     const scoutCount =
         document.getElementById("scoutCount");
 
@@ -11061,7 +11594,8 @@ function removeScout() {
 
     house = prepareHouse(house);
 
-    if (house.army.scouts <= 0)
+    const activeScouts = house.scouting && house.scouting.active ? Math.max(0, Math.floor(Number(house.scouting.active.scouts) || 0)) : 0;
+    if (house.army.scouts <= activeScouts)
         return;
 
     house.army.scouts -= 1;
@@ -11860,6 +12394,9 @@ function openRealm() {
     }
 
     processOfflineEconomy(house);
+    if (house.scouting && house.scouting.active && house.scouting.active.eventPending) {
+        showScoutingEvent(getWildAnimalsEvent());
+    }
     processHunting(house);
     processBuildingUpkeep(house);
     processForestry(house);
@@ -12216,6 +12753,8 @@ function processOfflineEconomy(house) {
         processBuildingUpkeep(house, cursor);
         processForestry(house, cursor);
         processFoodConsumption(house, cursor);
+        processScouting(house, cursor);
+        if (house.scouting && house.scouting.active && house.scouting.active.eventPending) break;
     }
 
     house.economyLastOnlineAt = now;
@@ -12238,7 +12777,11 @@ setInterval(function() {
     processBuildingUpkeep(house);
     processForestry(house);
     processFoodConsumption(house);
+    processScouting(house);
     house.economyLastOnlineAt = Date.now();
+    if (mapState.selectedX !== null && mapState.selectedY !== null && document.getElementById("mapScreen")?.style.display !== "none") {
+        renderScoutingUI(house, mapState.selectedX, mapState.selectedY);
+    }
     saveHouseData(house);
 
     const realmScreen = document.getElementById("realmScreen");

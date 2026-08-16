@@ -2219,6 +2219,11 @@ textarea.input {
 .cityInfoWindow {
     width: 100%;
     max-width: 360px;
+    max-height: calc(100vh - 36px);
+    max-height: calc(100dvh - 36px);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
     padding: 20px 17px 17px;
     border: 1px solid rgba(174, 141, 82, 0.68);
     background:

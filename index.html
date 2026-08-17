@@ -5112,15 +5112,11 @@ tg.expand();
    ДОСТУП — ЗАКРЫТАЯ BETA
 ===================================================== */
 
-const user =
-    tg.initDataUnsafe &&
-    tg.initDataUnsafe.user
-        ? tg.initDataUnsafe.user
-        : null;
-
+const user = tg.initDataUnsafe && tg.initDataUnsafe.user
+    ? tg.initDataUnsafe.user
+    : null;
 
 function showLockedAccess() {
-
     document.getElementById("introScreen").style.display = "none";
     document.getElementById("creationScreen").style.display = "none";
     document.getElementById("realmScreen").style.display = "none";
@@ -5128,9 +5124,7 @@ function showLockedAccess() {
     document.getElementById("locked").style.display = "flex";
 }
 
-
 async function checkTheRealmsBetaAccess() {
-
     if (!user || !user.id) {
         showLockedAccess();
         return false;
@@ -5150,17 +5144,12 @@ async function checkTheRealmsBetaAccess() {
     }
 
     try {
-
         const initial = await window.theRealmsSupabase.rpc(
             "the_realms_check_beta_access",
-            {
-                p_telegram_id: telegramId
-            }
+            { p_telegram_id: telegramId }
         );
 
-        if (initial.error) {
-            throw initial.error;
-        }
+        if (initial.error) throw initial.error;
 
         const access = initial.data || {};
 
@@ -5186,9 +5175,7 @@ async function checkTheRealmsBetaAccess() {
             }
         );
 
-        if (claim.error) {
-            throw claim.error;
-        }
+        if (claim.error) throw claim.error;
 
         const claimedAccess = claim.data || {};
 
@@ -5206,20 +5193,10 @@ async function checkTheRealmsBetaAccess() {
         );
 
         return false;
-
     } catch (error) {
-
-        console.error(
-            "The Realms: ошибка проверки Beta-доступа",
-            error
-        );
-
+        console.error("The Realms: ошибка проверки Beta-доступа", error);
         showLockedAccess();
-
-        alert(
-            "Не удалось проверить доступ к закрытому Beta-тестированию."
-        );
-
+        alert("Не удалось проверить доступ к закрытому Beta-тестированию.");
         return false;
     }
 }
@@ -14948,16 +14925,11 @@ setInterval(function() {
 ===================================================== */
 
 (async function startTheRealmsAfterAccessCheck() {
+    const accessGranted = await checkTheRealmsBetaAccess();
 
-    const accessGranted =
-        await checkTheRealmsBetaAccess();
-
-    if (!accessGranted) {
-        return;
-    }
+    if (!accessGranted) return;
 
     checkExistingHouse();
-
 })();
 
 

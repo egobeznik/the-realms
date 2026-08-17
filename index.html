@@ -5069,6 +5069,8 @@ function showLockedAccess() {
     document.getElementById("locked").style.display = "flex";
 }
 
+const THE_REALMS_APP_VERSION = "96.2.12";
+
 async function checkTheRealmsBetaAccess() {
     if (!user || !user.id) {
         showLockedAccess();
@@ -15383,6 +15385,37 @@ setInterval(function() {
     const accessGranted = await checkTheRealmsBetaAccess();
 
     if (!accessGranted) return;
+
+    /* OWNER не зависит от Beta-версии.
+       Для Beta сервер проверяет, разрешена ли эта версия. */
+    if (window.theRealmsAccessRole === "BETA") {
+        const release = await window.theRealmsSupabase.rpc(
+            "the_realms_check_beta_release",
+            {
+                p_telegram_id: Number(user.id),
+                p_app_version: THE_REALMS_APP_VERSION
+            }
+        );
+
+        if (release.error) {
+            console.error("The Realms: ошибка проверки версии Beta", release.error);
+            showLockedAccess();
+            alert("Не удалось проверить версию закрытого Beta-тестирования.");
+            return;
+        }
+
+        const releaseAccess = release.data || {};
+
+        if (releaseAccess.allowed !== true) {
+            showLockedAccess();
+            alert(
+                releaseAccess.reason === "version_not_allowed"
+                    ? "Эта версия The Realms больше не доступна для Beta-тестирования."
+                    : "Эта версия The Realms сейчас недоступна для Beta-тестирования."
+            );
+            return;
+        }
+    }
 
     checkExistingHouse();
 })();

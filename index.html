@@ -8050,6 +8050,18 @@ function updateCellInfo(x, y) {
         y
     );
 
+    const fieldBuilding = Array.isArray(house && house.fields)
+        ? house.fields.find(function(item) {
+            return item.x === x && item.y === y;
+        })
+        : null;
+
+    const bakeryBuilding = Array.isArray(house && house.bakeries)
+        ? house.bakeries.find(function(item) {
+            return item.x === x && item.y === y;
+        })
+        : null;
+
     title.textContent = terrainName(type);
 
     removeDeleteBuildingButton();
@@ -8271,6 +8283,84 @@ function updateCellInfo(x, y) {
 
             addDeleteBuildingButton(x, y, "ОХОТНИЧЬЕ УГОДЬЕ");
         }
+
+    } else if (fieldBuilding) {
+
+        const farmers =
+            Math.max(0, Math.floor(Number(fieldBuilding.farmers) || 0));
+
+        const groups =
+            Math.min(3, Math.floor(farmers / FIELD_GROUP_SIZE));
+
+        const production =
+            Math.floor(
+                (FIELD_GRAIN_BY_GROUP[groups] || 0) *
+                getProductionEfficiencyMultiplier(house)
+            );
+
+        title.textContent = "ПОЛЕ";
+
+        text.textContent =
+            "ПОЛЕ · " +
+            "👷 Земледельцев: " + farmers + " · " +
+            (
+                fieldBuilding.active === false
+                    ? "Производство приостановлено"
+                    : farmers < FIELD_MINIMUM
+                        ? "Недостаточно земледельцев. Требуется минимум " + FIELD_MINIMUM + "."
+                        : isStorageFull(house)
+                            ? "Производство приостановлено, склады заполнены."
+                            : "🌾 Добыча: +" + production + " / 1 ч."
+            ) +
+            " · Содержание: " +
+            FIELD_UPKEEP + " 🌲 / 48 ч.";
+
+        coords.textContent =
+            "X: " + x +
+            " · Y: " + y +
+            " · 🌾 ПОЛЕ";
+
+        addDeleteBuildingButton(x, y, "ПОЛЕ");
+
+    } else if (bakeryBuilding) {
+
+        const bakers =
+            Math.max(0, Math.floor(Number(bakeryBuilding.bakers) || 0));
+
+        const groups =
+            Math.min(3, Math.floor(bakers / BAKERY_GROUP_SIZE));
+
+        const production =
+            Math.floor(
+                (BAKERY_BREAD_BY_GROUP[groups] || 0) *
+                getProductionEfficiencyMultiplier(house)
+            );
+
+        title.textContent = "ПЕКАРНЯ";
+
+        text.textContent =
+            "ПЕКАРНЯ · " +
+            "👨‍🍳 Пекарей: " + bakers + " · " +
+            (
+                bakeryBuilding.active === false
+                    ? "Производство приостановлено"
+                    : bakers < BAKERY_MINIMUM
+                        ? "Недостаточно пекарей. Требуется минимум " + BAKERY_MINIMUM + "."
+                        : isStorageFull(house)
+                            ? "Производство приостановлено, склады заполнены."
+                            : house.resources.grain < production
+                                ? "Недостаточно зерна для производства."
+                                : "🍞 Выпечка: +" + production + " / 1 ч."
+            ) +
+            " · Содержание: " +
+            BAKERY_UPKEEP + " 🌲 / 48 ч.";
+
+        coords.textContent =
+            "X: " + x +
+            " · Y: " + y +
+            " · 🥖 ПЕКАРНЯ";
+
+        addDeleteBuildingButton(x, y, "ПЕКАРНЯ");
 
     } else {
 

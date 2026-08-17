@@ -4429,6 +4429,13 @@ textarea.input {
           <div class="researchTimer" id="livestockResearchTimer"></div>
           <button class="researchButton" id="livestockResearchButton" type="button" onclick="startLivestockResearch()">ИССЛЕДОВАТЬ · 180 👥 · 250 🌲 · 200 🍖 · 36 Ч.</button>
         </div>
+        <div class="researchCard" style="margin-top:10px;">
+          <div class="researchTitle">🧂 ЗАГОТОВКА ПРОДОВОЛЬСТВИЯ</div>
+          <div class="researchText">Улучшает хранение продовольствия. Увеличивает городской склад на 5 000.</div>
+          <div class="researchUnlock">Эффект: +5 000 к городскому складу</div>
+          <div class="researchTimer" id="foodStorageResearchTimer"></div>
+          <button class="researchButton" id="foodStorageResearchButton" type="button" onclick="startFoodStorageResearch()">ИССЛЕДОВАТЬ · 240 👥 · 350 🌲 · 250 🍖 · 48 Ч.</button>
+        </div>
       </div>
     </section>
   </div>
@@ -5028,6 +5035,10 @@ function processResearch(house,nowOverride){
         house.research.livestockUnlocked=true;house.research.livestockCompletedAt=now;house.research.livestockStartedAt=null;
         addChronicleEvent(house,"Исследование «Домашний скот» завершено. Открыт Скотный двор."); changed=true;
     }
+    if(house.research.livestockUnlocked&&!house.research.foodStorageUnlocked&&typeof house.research.foodStorageStartedAt==="number"&&now-house.research.foodStorageStartedAt>=FOOD_STORAGE_RESEARCH_DURATION){
+        house.research.foodStorageUnlocked=true;house.research.foodStorageCompletedAt=now;house.research.foodStorageStartedAt=null;
+        addChronicleEvent(house,"Исследование «Заготовка продовольствия» завершено. Городской склад увеличен на 5 000."); changed=true;
+    }
     if(changed){ if(typeof updateResources==="function")updateResources(); if(typeof updateFieldAndBakeryUI==="function")updateFieldAndBakeryUI(); if(typeof updateLivestockUI==="function")updateLivestockUI(); if(typeof updateResearchUI==="function")updateResearchUI(); if(typeof updateMap==="function")updateMap(); }
     return changed;
 }
@@ -5056,21 +5067,42 @@ function startLivestockResearch(){
     house.research.livestockStartedAt=Date.now(); house.research.livestockCompletedAt=null;
     addChronicleResourceEvent(house,"spend",{wood:LIVESTOCK_RESEARCH_WOOD_COST,meat:LIVESTOCK_RESEARCH_MEAT_COST},"research"); saveHouseData(house); updateResources(); updateResearchUI();
 }
+function isFoodStorageResearchComplete(house){ return !!(house&&house.research&&house.research.foodStorageUnlocked); }
+function startFoodStorageResearch(){
+    let house=getHouse(); if(!house)return; house=prepareHouse(house);
+    if(!isLivestockResearchComplete(house)){alert("Сначала необходимо завершить исследование «Домашний скот».");return;}
+    if(isFoodStorageResearchComplete(house)||typeof house.research.foodStorageStartedAt==="number")return;
+    const total=house.population.free+house.population.workers+house.population.soldiers;
+    if(total<240){alert("Для исследования «Заготовка продовольствия» требуется население 240.");return;}
+    if(house.resources.wood<FOOD_STORAGE_RESEARCH_WOOD_COST||house.resources.meat<FOOD_STORAGE_RESEARCH_MEAT_COST){alert("Недостаточно ресурсов для исследования «Заготовка продовольствия». Требуется 350 🌲 и 250 🍖.");return;}
+    house.resources.wood-=FOOD_STORAGE_RESEARCH_WOOD_COST; house.resources.meat-=FOOD_STORAGE_RESEARCH_MEAT_COST;
+    house.research.foodStorageStartedAt=Date.now(); house.research.foodStorageCompletedAt=null;
+    addChronicleResourceEvent(house,"spend",{wood:FOOD_STORAGE_RESEARCH_WOOD_COST,meat:FOOD_STORAGE_RESEARCH_MEAT_COST},"research"); saveHouseData(house); updateResources(); updateResearchUI();
+}
 function updateResearchUI(){
     const house=getHouse(); if(!house)return;
-    const status=document.getElementById("researchStatus"), grainTimer=document.getElementById("grainResearchTimer"), grainButton=document.getElementById("grainResearchButton"), livestockTimer=document.getElementById("livestockResearchTimer"), livestockButton=document.getElementById("livestockResearchButton");
-    if(!status||!grainTimer||!grainButton||!livestockTimer||!livestockButton)return;
+    const status=document.getElementById("researchStatus"), grainTimer=document.getElementById("grainResearchTimer"), grainButton=document.getElementById("grainResearchButton"), livestockTimer=document.getElementById("livestockResearchTimer"), livestockButton=document.getElementById("livestockResearchButton"), foodStorageTimer=document.getElementById("foodStorageResearchTimer"), foodStorageButton=document.getElementById("foodStorageResearchButton");
+    if(!status||!grainTimer||!grainButton||!livestockTimer||!livestockButton||!foodStorageTimer||!foodStorageButton)return;
     if(!house.research.grainUnlocked){
         const total=house.population.free+house.population.workers+house.population.soldiers; status.textContent="Требование «Зерно»: население 120. Сейчас: "+total;
         if(typeof house.research.grainStartedAt==="number"){ const left=Math.max(0,GRAIN_RESEARCH_DURATION-(Date.now()-house.research.grainStartedAt)); grainTimer.textContent=left>0?"До завершения: "+formatProductionTimeLeft(left):"Исследование завершается…"; grainButton.style.display="none"; if(left<=0){processResearch(house);saveHouseData(house);} }
         else { grainTimer.textContent="Готово к исследованию · 24 часа"; grainButton.style.display="block"; grainButton.disabled=total<120||house.resources.wood<GRAIN_RESEARCH_WOOD_COST||house.resources.meat<GRAIN_RESEARCH_MEAT_COST; }
-        livestockTimer.textContent="Сначала завершите «Зерно»."; livestockButton.style.display="block"; livestockButton.disabled=true; return;
+        livestockTimer.textContent="Сначала завершите «Зерно»."; livestockButton.style.display="block"; livestockButton.disabled=true;
+        foodStorageTimer.textContent="Сначала завершите «Домашний скот»."; foodStorageButton.style.display="block"; foodStorageButton.disabled=true; return;
     }
     grainTimer.textContent="✓ ЗЕРНО ИССЛЕДОВАНО"; grainButton.style.display="none";
-    if(isLivestockResearchComplete(house)){ status.textContent="Исследование «Домашний скот» завершено. Скотные дворы доступны."; livestockTimer.textContent="✓ ДОМАШНИЙ СКОТ ИССЛЕДОВАН"; livestockButton.style.display="none"; return; }
-    const total=house.population.free+house.population.workers+house.population.soldiers; status.textContent="Требование «Домашний скот»: население 180. Сейчас: "+total;
-    if(typeof house.research.livestockStartedAt==="number"){ const left=Math.max(0,LIVESTOCK_RESEARCH_DURATION-(Date.now()-house.research.livestockStartedAt)); livestockTimer.textContent=left>0?"До завершения: "+formatProductionTimeLeft(left):"Исследование завершается…"; livestockButton.style.display="none"; if(left<=0){processResearch(house);saveHouseData(house);} }
-    else { livestockTimer.textContent="Готово к исследованию · 36 часов"; livestockButton.style.display="block"; livestockButton.disabled=total<180||house.resources.wood<LIVESTOCK_RESEARCH_WOOD_COST||house.resources.meat<LIVESTOCK_RESEARCH_MEAT_COST; }
+    if(!isLivestockResearchComplete(house)){
+        const total=house.population.free+house.population.workers+house.population.soldiers; status.textContent="Требование «Домашний скот»: население 180. Сейчас: "+total;
+        livestockTimer.textContent=typeof house.research.livestockStartedAt==="number"?"До завершения: "+formatProductionTimeLeft(Math.max(0,LIVESTOCK_RESEARCH_DURATION-(Date.now()-house.research.livestockStartedAt))):"Готово к исследованию · 36 часов";
+        if(typeof house.research.livestockStartedAt==="number"){ const left=Math.max(0,LIVESTOCK_RESEARCH_DURATION-(Date.now()-house.research.livestockStartedAt)); livestockTimer.textContent=left>0?"До завершения: "+formatProductionTimeLeft(left):"Исследование завершается…"; livestockButton.style.display="none"; if(left<=0){processResearch(house);saveHouseData(house);} }
+        else { livestockButton.style.display="block"; livestockButton.disabled=total<180||house.resources.wood<LIVESTOCK_RESEARCH_WOOD_COST||house.resources.meat<LIVESTOCK_RESEARCH_MEAT_COST; }
+        foodStorageTimer.textContent="Сначала завершите «Домашний скот»."; foodStorageButton.style.display="block"; foodStorageButton.disabled=true; return;
+    }
+    livestockTimer.textContent="✓ ДОМАШНИЙ СКОТ ИССЛЕДОВАН"; livestockButton.style.display="none";
+    if(isFoodStorageResearchComplete(house)){ status.textContent="Исследование «Заготовка продовольствия» завершено. Городской склад увеличен на 5 000."; foodStorageTimer.textContent="✓ ЗАГОТОВКА ПРОДОВОЛЬСТВИЯ ИССЛЕДОВАНА"; foodStorageButton.style.display="none"; return; }
+    const total=house.population.free+house.population.workers+house.population.soldiers; status.textContent="Требование «Заготовка продовольствия»: население 240. Сейчас: "+total;
+    if(typeof house.research.foodStorageStartedAt==="number"){ const left=Math.max(0,FOOD_STORAGE_RESEARCH_DURATION-(Date.now()-house.research.foodStorageStartedAt)); foodStorageTimer.textContent=left>0?"До завершения: "+formatProductionTimeLeft(left):"Исследование завершается…"; foodStorageButton.style.display="none"; if(left<=0){processResearch(house);saveHouseData(house);} }
+    else { foodStorageTimer.textContent="Готово к исследованию · 48 часов"; foodStorageButton.style.display="block"; foodStorageButton.disabled=total<240||house.resources.wood<FOOD_STORAGE_RESEARCH_WOOD_COST||house.resources.meat<FOOD_STORAGE_RESEARCH_MEAT_COST; }
 }
 function toggleProductionCategory(id){ const c=document.getElementById(id); if(c)c.classList.toggle("open"); updateFieldAndBakeryUI(); }
 function toggleResearchBranch(id){ const c=document.getElementById(id); if(c)c.classList.toggle("open"); }
@@ -5415,6 +5447,10 @@ const LIVESTOCK_MAXIMUM = 6;
 const LIVESTOCK_INTERVAL = 60 * 60 * 1000;
 const LIVESTOCK_MEAT_PER_GROUP = 30;
 const LIVESTOCK_GROUP_SIZE = 2;
+const FOOD_STORAGE_RESEARCH_WOOD_COST = 350;
+const FOOD_STORAGE_RESEARCH_MEAT_COST = 250;
+const FOOD_STORAGE_RESEARCH_DURATION = 48 * 60 * 60 * 1000;
+const FOOD_STORAGE_RESEARCH_BONUS = 5000;
 const FIELD_BUILD_WOOD_COST = 40;
 const FIELD_BUILD_MEAT_COST = 20;
 const FIELD_UPKEEP = 10;
@@ -5936,7 +5972,7 @@ function buildServerGameState(house) {
             grain: Math.max(0, Math.floor(Number(house?.resources?.grain) || 0)),
             bread: Math.max(0, Math.floor(Number(house?.resources?.bread) || 0))
         },
-        research: house && house.research ? house.research : { grainUnlocked: false, grainStartedAt: null, grainCompletedAt: null, livestockUnlocked: false, livestockStartedAt: null, livestockCompletedAt: null },
+        research: house && house.research ? house.research : { grainUnlocked: false, grainStartedAt: null, grainCompletedAt: null, livestockUnlocked: false, livestockStartedAt: null, livestockCompletedAt: null, foodStorageUnlocked: false, foodStorageStartedAt: null, foodStorageCompletedAt: null },
         buildings: getHouseWorldBuildings(house),
         scouting: house && house.scouting ? house.scouting : { cells: {}, active: null },
         army: {
@@ -11294,6 +11330,9 @@ function prepareHouse(house) {
     if (typeof house.research.livestockUnlocked !== "boolean") house.research.livestockUnlocked = false;
     if (typeof house.research.livestockStartedAt !== "number") house.research.livestockStartedAt = null;
     if (typeof house.research.livestockCompletedAt !== "number") house.research.livestockCompletedAt = null;
+    if (typeof house.research.foodStorageUnlocked !== "boolean") house.research.foodStorageUnlocked = false;
+    if (typeof house.research.foodStorageStartedAt !== "number") house.research.foodStorageStartedAt = null;
+    if (typeof house.research.foodStorageCompletedAt !== "number") house.research.foodStorageCompletedAt = null;
     if (!Array.isArray(house.livestockYards)) house.livestockYards = [];
     house.livestockYards.forEach(function(yard){ if(typeof yard.active!=="boolean")yard.active=true; if(typeof yard.lastProduction!=="number")yard.lastProduction=Date.now(); if(typeof yard.lastUpkeep!=="number")yard.lastUpkeep=Date.now(); if(typeof yard.maintenanceDue!=="boolean")yard.maintenanceDue=false; if(typeof yard.shepherds!=="number")yard.shepherds=0; });
     house.population.shepherds = house.livestockYards.reduce(function(total,yard){ return total + Math.max(0,Math.floor(Number(yard.shepherds)||0)); },0);
@@ -11351,7 +11390,8 @@ function prepareHouse(house) {
 
     house.storage.capacity =
         STORAGE_BASE_CAPACITY +
-        activeWarehouseCount * STORAGE_WAREHOUSE_BONUS;
+        activeWarehouseCount * STORAGE_WAREHOUSE_BONUS +
+        (house.research && house.research.foodStorageUnlocked ? FOOD_STORAGE_RESEARCH_BONUS : 0);
 
     house.resources.meat = Math.max(
         0,
@@ -12199,7 +12239,8 @@ function processBuildingUpkeep(house, nowOverride) {
 
     house.storage.capacity =
         STORAGE_BASE_CAPACITY +
-        activeWarehouseCount * STORAGE_WAREHOUSE_BONUS;
+        activeWarehouseCount * STORAGE_WAREHOUSE_BONUS +
+        (house.research && house.research.foodStorageUnlocked ? FOOD_STORAGE_RESEARCH_BONUS : 0);
 
     house.resources.meat = Math.min(
         house.resources.meat,

@@ -1352,26 +1352,15 @@ textarea.input {
 
 
 /* =====================================================
-   СБРОС
+   ПРОИЗВОДСТВО — ПОДСКАЗКИ
 ===================================================== */
 
-.demoTimeButton {
-    margin-top: 10px;
-}
-
-.resetButton {
-    position: relative;
-    z-index: 2;
-    width: 100%;
-    min-height: 42px;
-    margin-top: 22px;
-    border: 1px solid rgba(99, 78, 48, 0.45);
-    background: transparent;
-    color: #665e53;
-    font-family: "Cinzel", Georgia, serif;
-    font-size: 8px;
-    letter-spacing: 2px;
-    cursor: pointer;
+.huntingGroundCategoryHint {
+    margin-top: 4px;
+    font-size: 10px;
+    line-height: 1.35;
+    letter-spacing: 0.5px;
+    color: rgba(183, 161, 122, 0.72);
 }
 
 
@@ -4541,14 +4530,14 @@ textarea.input {
             
                 <div class="huntingGroundCategory" id="grainProductionCategory" style="display:none;">
                     <button type="button" class="huntingGroundCategoryHeader" onclick="toggleProductionCategory('grainProductionCategory')">
-                        <div class="huntingGroundCategoryLeft"><div class="huntingGroundCategoryIcon">🌾</div><div><div class="huntingGroundCategoryTitle">ЗЕРНО</div><div class="huntingGroundCategorySubtitle">Поля · назначение земледельцев</div></div></div><span class="huntingGroundCategoryArrow">▼</span>
+                        <div class="huntingGroundCategoryLeft"><div class="huntingGroundCategoryIcon">🌾</div><div><div class="huntingGroundCategoryTitle">ЗЕРНО</div><div class="huntingGroundCategorySubtitle">Поля · назначение земледельцев</div><div class="huntingGroundCategoryHint">Зерно используется для производства хлеба.</div></div></div><span class="huntingGroundCategoryArrow">▼</span>
                     </button>
                     <div class="huntingGroundCategoryMenu" id="grainProductionCategoryMenu"><div id="fieldList"></div></div>
                 </div>
 
                 <div class="huntingGroundCategory" id="breadProductionCategory" style="display:none;">
                     <button type="button" class="huntingGroundCategoryHeader" onclick="toggleProductionCategory('breadProductionCategory')">
-                        <div class="huntingGroundCategoryLeft"><div class="huntingGroundCategoryIcon">🍞</div><div><div class="huntingGroundCategoryTitle">ХЛЕБ</div><div class="huntingGroundCategorySubtitle">Пекарни · назначение пекарей</div></div></div><span class="huntingGroundCategoryArrow">▼</span>
+                        <div class="huntingGroundCategoryLeft"><div class="huntingGroundCategoryIcon">🍞</div><div><div class="huntingGroundCategoryTitle">ХЛЕБ</div><div class="huntingGroundCategorySubtitle">Пекарни · назначение пекарей</div><div class="huntingGroundCategoryHint">Требуется 30 зерна для производства 30 хлеба за 1 час.</div></div></div><span class="huntingGroundCategoryArrow">▼</span>
                     </button>
                     <div class="huntingGroundCategoryMenu" id="breadProductionCategoryMenu"><div id="bakeryList"></div></div>
                 </div>
@@ -4579,20 +4568,7 @@ textarea.input {
         </div>
 
 
-        <button
-            class="resetButton"
-            onclick="resetHouse()"
-        >
-            НАЧАТЬ ЛЕТОПИСЬ ЗАНОВО
-        </button>
 
-        <button
-            class="resetButton demoTimeButton"
-            onclick="demoAdvanceTime()"
-            type="button"
-        >
-            УСКОРИТЬ ВРЕМЯ · +1 ЧАСА
-        </button>
 
 
     </div>
@@ -5066,139 +5042,6 @@ function addFarmerToField(i){let h=getHouse();if(!h)return;h=prepareHouse(h);let
 function removeFarmerFromField(i){let h=getHouse();if(!h)return;h=prepareHouse(h);let f=h.fields[i];if(!f||f.farmers<=0)return;f.farmers--;h.population.farmers=Math.max(0,h.population.farmers-1);f.lastProduction=Date.now();saveHouseData(h);updatePopulation();updateFieldAndBakeryUI();}
 function addBakerToBakery(i){let h=getHouse();if(!h)return;h=prepareHouse(h);let b=h.bakeries[i];if(!b||b.bakers>=BAKERY_MAXIMUM||getAvailableProductionWorkers(h)<=0||isHouseHungry(h))return;b.bakers++;h.population.bakers++;b.lastProduction=Date.now();saveHouseData(h);updatePopulation();updateFieldAndBakeryUI();}
 function removeBakerFromBakery(i){let h=getHouse();if(!h)return;h=prepareHouse(h);let b=h.bakeries[i];if(!b||b.bakers<=0)return;b.bakers--;h.population.bakers=Math.max(0,h.population.bakers-1);b.lastProduction=Date.now();saveHouseData(h);updatePopulation();updateFieldAndBakeryUI();}
-
-/* =====================================================
-   ДЕМО — УСКОРИТЬ ВРЕМЯ НА 1 ЧАС
-===================================================== */
-
-function demoAdvanceTime() {
-
-    let house = getHouse();
-
-    if (!house) return;
-
-    house = prepareHouse(house);
-
-    const DEMO_ONE_HOUR =
-        1 * 60 * 60 * 1000;
-
-    const now = Date.now();
-
-    /*
-       Сдвигаем игровые таймеры назад ровно на 1 час.
-       Это только тестовый ускоритель времени.
-    */
-
-    if (Array.isArray(house.huntingGrounds)) {
-        house.huntingGrounds.forEach(function(ground) {
-            if (typeof ground.lastProduction === "number") {
-                ground.lastProduction -= DEMO_ONE_HOUR;
-            }
-
-            if (typeof ground.recoveryStartedAt === "number") {
-                ground.recoveryStartedAt -= DEMO_ONE_HOUR;
-            }
-
-            if (typeof ground.recoveryLastUpdatedAt === "number") {
-                ground.recoveryLastUpdatedAt -= DEMO_ONE_HOUR;
-            }
-        });
-    }
-
-    // Ускоряем и активную разведывательную экспедицию.
-    // Движок разведки использует lastTickAt как точку отсчёта,
-    // поэтому сдвигаем её на час назад и оставляем всю остальную
-    // механику без изменений.
-    if (house.scouting) {
-        const scoutingOperations = getScoutingOperations(house);
-        scoutingOperations.forEach(function(scoutingActive) {
-            if (typeof scoutingActive.lastTickAt === "number") scoutingActive.lastTickAt -= DEMO_ONE_HOUR;
-        });
-    }
-
-    if (house.army && Array.isArray(house.army.armies)) {
-        house.army.armies.forEach(function(army) {
-            if (army.move && typeof army.move.lastTickAt === "number") {
-                army.move.lastTickAt -= DEMO_ONE_HOUR;
-            }
-        });
-    }
-
-    if (Array.isArray(house.forestryGrounds)) {
-        house.forestryGrounds.forEach(function(ground) {
-            if (typeof ground.lastProduction === "number") {
-                ground.lastProduction -= DEMO_ONE_HOUR;
-            }
-
-            if (typeof ground.recoveryStartedAt === "number") {
-                ground.recoveryStartedAt -= DEMO_ONE_HOUR;
-            }
-
-            if (typeof ground.recoveryLastUpdatedAt === "number") {
-                ground.recoveryLastUpdatedAt -= DEMO_ONE_HOUR;
-            }
-        });
-    }
-
-    if (house.food) {
-
-        if (
-            typeof house.food.lastConsumption === "number"
-        ) {
-            house.food.lastConsumption -=
-                DEMO_ONE_HOUR;
-        }
-
-        // Если Дом уже голодает, ускоряем и таймер самого голода.
-        // Иначе кнопка ускорения двигает только питание, а время голода
-        // остаётся реальным и смертность не наступает при тестировании.
-        if (typeof house.food.hungerStartedAt === "number") {
-            house.food.hungerStartedAt -= DEMO_ONE_HOUR;
-        }
-
-    }
-
-    // Ускоряем и таймер естественного прироста населения.
-    // Он работает через populationGrowth.lastGrowthAt,
-    // поэтому без этого сдвига кнопка ускорения времени его не затрагивает.
-    if (house.populationGrowth &&
-        typeof house.populationGrowth.lastGrowthAt === "number") {
-        house.populationGrowth.lastGrowthAt -= DEMO_ONE_HOUR;
-    }
-
-    // Ускоряем таймер текущего исследования «Зерно».
-    // Используется тот же принцип, что и для остальных игровых таймеров.
-    if (house.research &&
-        typeof house.research.grainStartedAt === "number") {
-        house.research.grainStartedAt -= DEMO_ONE_HOUR;
-    }
-
-    /*
-       Запускаем существующие производственные процессы.
-       Никаких новых правил добычи здесь нет.
-    */
-
-    processBuildingUpkeep(house);
-    processHunting(house);
-    processForestry(house);
-    processFoodConsumption(house);
-    processPopulationGrowth(house);
-    processResearch(house);
-    processScouting(house);
-    processArmyMovement(house);
-
-    saveHouseData(house);
-
-    updatePopulation();
-    updateHunting();
-    updateForestry();
-    updateFieldAndBakeryUI();
-    updateResearchUI();
-    updateResources();
-    updateArmy();
-    updateMap();
-}
-
 
 /* =====================================================
    TELEGRAM
@@ -14977,45 +14820,6 @@ function openRealm() {
             refreshDiplomacy();
         }
     }
-}
-
-
-/* =====================================================
-   СБРОС
-===================================================== */
-
-function resetHouse() {
-
-    const confirmed =
-        confirm(
-            "Вы действительно хотите удалить эту династию и начать новую летопись?"
-        );
-
-    if (!confirmed)
-        return;
-
-    const activeId =
-        getActiveDynastyId();
-
-    if (activeId) {
-
-        const slots =
-            getDynastySlots().filter(
-                function(slot) {
-                    return slot.id !== activeId;
-                }
-            );
-
-        setDynastySlots(slots);
-        setActiveDynastyId("");
-
-    }
-
-    localStorage.removeItem(
-        "theRealmsHouse"
-    );
-
-    location.reload();
 }
 
 

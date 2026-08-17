@@ -5054,98 +5054,21 @@ tg.expand();
 
 
 /* =====================================================
-   ДОСТУП — ЗАКРЫТАЯ BETA
+   ДОСТУП
 ===================================================== */
 
-const user = tg.initDataUnsafe && tg.initDataUnsafe.user
-    ? tg.initDataUnsafe.user
-    : null;
+const ALLOWED_USER_ID = 8608712290;
 
-function showLockedAccess() {
+const user = tg.initDataUnsafe.user;
+
+
+if (!user || Number(user.id) !== ALLOWED_USER_ID) {
+
     document.getElementById("introScreen").style.display = "none";
     document.getElementById("creationScreen").style.display = "none";
     document.getElementById("realmScreen").style.display = "none";
     document.getElementById("mapScreen").style.display = "none";
     document.getElementById("locked").style.display = "flex";
-}
-
-const THE_REALMS_APP_VERSION = "96.2.12";
-
-async function checkTheRealmsBetaAccess() {
-    if (!user || !user.id) {
-        showLockedAccess();
-        return false;
-    }
-
-    if (!window.theRealmsSupabase) {
-        console.error("The Realms: Supabase ещё не готов для проверки доступа.");
-        showLockedAccess();
-        return false;
-    }
-
-    const telegramId = Number(user.id);
-
-    if (!Number.isSafeInteger(telegramId) || telegramId <= 0) {
-        showLockedAccess();
-        return false;
-    }
-
-    try {
-        const initial = await window.theRealmsSupabase.rpc(
-            "the_realms_check_beta_access",
-            { p_telegram_id: telegramId }
-        );
-
-        if (initial.error) throw initial.error;
-
-        const access = initial.data || {};
-
-        if (access.allowed === true) {
-            window.theRealmsAccessRole = access.role || null;
-            return true;
-        }
-
-        const code = window.prompt(
-            "The Realms — закрытое Beta-тестирование\n\nВведите одноразовый код доступа:"
-        );
-
-        if (!code) {
-            showLockedAccess();
-            return false;
-        }
-
-        const claim = await window.theRealmsSupabase.rpc(
-            "the_realms_claim_beta_code",
-            {
-                p_telegram_id: telegramId,
-                p_code: code
-            }
-        );
-
-        if (claim.error) throw claim.error;
-
-        const claimedAccess = claim.data || {};
-
-        if (claimedAccess.allowed === true) {
-            window.theRealmsAccessRole = claimedAccess.role || null;
-            return true;
-        }
-
-        showLockedAccess();
-
-        alert(
-            claimedAccess.reason === "beta_limit_reached"
-                ? "Лимит закрытого Beta-тестирования уже достигнут."
-                : "Код доступа недействителен или уже использован."
-        );
-
-        return false;
-    } catch (error) {
-        console.error("The Realms: ошибка проверки Beta-доступа", error);
-        showLockedAccess();
-        alert("Не удалось проверить доступ к закрытому Beta-тестированию.");
-        return false;
-    }
 }
 
 
@@ -10442,46 +10365,11 @@ initMapControls();
    ДВЕ НЕЗАВИСИМЫЕ ДИНАСТИИ
 ===================================================== */
 
-/* =====================================================
-   ЛОКАЛЬНОЕ ХРАНИЛИЩЕ ПО TELEGRAM ID
-===================================================== */
-
-function getTheRealmsStorageNamespace() {
-    try {
-        const tgUser =
-            window.Telegram &&
-            window.Telegram.WebApp &&
-            window.Telegram.WebApp.initDataUnsafe &&
-            window.Telegram.WebApp.initDataUnsafe.user;
-
-        if (tgUser && tgUser.id) {
-            return "telegram_" + String(tgUser.id);
-        }
-    } catch (e) {}
-
-    return "browser_default";
-}
-
-const THE_REALMS_STORAGE_NAMESPACE =
-    getTheRealmsStorageNamespace();
-
 const DYNASTIES_KEY =
-    "theRealmsDynasties_v1_" + THE_REALMS_STORAGE_NAMESPACE;
-
-const ACTIVE_DYNASTY_KEY =
-    "theRealmsActiveDynasty_v1_" + THE_REALMS_STORAGE_NAMESPACE;
-
-const HOUSE_KEY =
-    "theRealmsHouse_" + THE_REALMS_STORAGE_NAMESPACE;
-
-const LEGACY_DYNASTIES_KEY =
     "theRealmsDynasties_v1";
 
-const LEGACY_ACTIVE_DYNASTY_KEY =
+const ACTIVE_DYNASTY_KEY =
     "theRealmsActiveDynasty_v1";
-
-const LEGACY_HOUSE_KEY =
-    "theRealmsHouse";
 
 function getDynastySlots() {
 
@@ -10588,40 +10476,15 @@ function migrateOldSaveIfNeeded() {
     if (slots.length)
         return slots;
 
-    /*
-       Старые ключи существовали до изоляции хранилища по Telegram ID.
-       Переносим их только для OWNER. Beta-пользователь никогда не
-       получает чужие локальные данные.
-    */
-    if (window.theRealmsAccessRole !== "OWNER")
+    const raw =
+        localStorage.getItem(
+            "theRealmsHouse"
+        );
+
+    if (!raw)
         return [];
 
     try {
-        const legacySlotsRaw =
-            localStorage.getItem(LEGACY_DYNASTIES_KEY);
-
-        if (legacySlotsRaw) {
-            const legacySlots = JSON.parse(legacySlotsRaw);
-
-            if (Array.isArray(legacySlots) && legacySlots.length) {
-                setDynastySlots(legacySlots);
-
-                const legacyActiveId =
-                    localStorage.getItem(LEGACY_ACTIVE_DYNASTY_KEY);
-
-                if (legacyActiveId) {
-                    setActiveDynastyId(legacyActiveId);
-                }
-
-                return getDynastySlots();
-            }
-        }
-
-        const raw =
-            localStorage.getItem(LEGACY_HOUSE_KEY);
-
-        if (!raw)
-            return [];
 
         const data =
             JSON.parse(raw);
@@ -10655,6 +10518,7 @@ function migrateOldSaveIfNeeded() {
 
     }
 }
+
 function createDynastyFromHouse(house) {
 
     let slots =
@@ -10744,7 +10608,7 @@ function loadDynasty(id) {
 
     const house = hydrateHouseCrest(slot.data, slot.id);
     setStoredCrest(slot.id, house.crest || "");
-    localStorage.setItem(HOUSE_KEY, serializeHouseWithoutCrest(house));
+    localStorage.setItem("theRealmsHouse", serializeHouseWithoutCrest(house));
 
     return house;
 
@@ -10898,7 +10762,7 @@ function createSecondDynasty() {
     setActiveDynastyId("");
 
     localStorage.removeItem(
-        HOUSE_KEY
+        "theRealmsHouse"
     );
 
     document
@@ -10944,7 +10808,7 @@ function getHouse() {
         }
     }
 
-    const savedHouse = localStorage.getItem(HOUSE_KEY);
+    const savedHouse = localStorage.getItem("theRealmsHouse");
     if (!savedHouse) {
         runtimeHouseCache = null;
         runtimeHouseCacheKey = cacheKey;
@@ -10970,7 +10834,7 @@ function flushHouseData() {
     const activeId = getActiveDynastyId();
     if (activeId) setStoredCrest(activeId, runtimeHouseCache.crest || "");
 
-    localStorage.setItem(HOUSE_KEY, serializeHouseWithoutCrest(runtimeHouseCache));
+    localStorage.setItem("theRealmsHouse", serializeHouseWithoutCrest(runtimeHouseCache));
     updateActiveDynasty(runtimeHouseCache);
 }
 
@@ -11916,7 +11780,7 @@ function clearLocalDynastyAfterDeath() {
     runtimeHouseSavePending = false;
     runtimeHouseCache = null;
     runtimeHouseCacheKey = null;
-    localStorage.removeItem(HOUSE_KEY);
+    localStorage.removeItem("theRealmsHouse");
     localStorage.removeItem(DYNASTIES_KEY);
     localStorage.removeItem(ACTIVE_DYNASTY_KEY);
 }
@@ -15021,7 +14885,7 @@ function fullLocalResetFromStart() {
         runtimeHouseCache = null;
         runtimeHouseCacheKey = null;
 
-        localStorage.removeItem(HOUSE_KEY);
+        localStorage.removeItem("theRealmsHouse");
         localStorage.removeItem(DYNASTIES_KEY);
         localStorage.removeItem(ACTIVE_DYNASTY_KEY);
 
@@ -15381,44 +15245,15 @@ setInterval(function() {
    ЗАПУСК
 ===================================================== */
 
-(async function startTheRealmsAfterAccessCheck() {
-    const accessGranted = await checkTheRealmsBetaAccess();
-
-    if (!accessGranted) return;
-
-    /* OWNER не зависит от Beta-версии.
-       Для Beta сервер проверяет, разрешена ли эта версия. */
-    if (window.theRealmsAccessRole === "BETA") {
-        const release = await window.theRealmsSupabase.rpc(
-            "the_realms_check_beta_release",
-            {
-                p_telegram_id: Number(user.id),
-                p_app_version: THE_REALMS_APP_VERSION
-            }
-        );
-
-        if (release.error) {
-            console.error("The Realms: ошибка проверки версии Beta", release.error);
-            showLockedAccess();
-            alert("Не удалось проверить версию закрытого Beta-тестирования.");
-            return;
-        }
-
-        const releaseAccess = release.data || {};
-
-        if (releaseAccess.allowed !== true) {
-            showLockedAccess();
-            alert(
-                releaseAccess.reason === "version_not_allowed"
-                    ? "Эта версия The Realms больше не доступна для Beta-тестирования."
-                    : "Эта версия The Realms сейчас недоступна для Beta-тестирования."
-            );
-            return;
-        }
-    }
+if (
+    user &&
+    Number(user.id) ===
+    ALLOWED_USER_ID
+) {
 
     checkExistingHouse();
-})();
+
+}
 
 
 

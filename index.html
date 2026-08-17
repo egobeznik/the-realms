@@ -10440,11 +10440,46 @@ initMapControls();
    ДВЕ НЕЗАВИСИМЫЕ ДИНАСТИИ
 ===================================================== */
 
+/* =====================================================
+   ЛОКАЛЬНОЕ ХРАНИЛИЩЕ ПО TELEGRAM ID
+===================================================== */
+
+function getTheRealmsStorageNamespace() {
+    try {
+        const tgUser =
+            window.Telegram &&
+            window.Telegram.WebApp &&
+            window.Telegram.WebApp.initDataUnsafe &&
+            window.Telegram.WebApp.initDataUnsafe.user;
+
+        if (tgUser && tgUser.id) {
+            return "telegram_" + String(tgUser.id);
+        }
+    } catch (e) {}
+
+    return "browser_default";
+}
+
+const THE_REALMS_STORAGE_NAMESPACE =
+    getTheRealmsStorageNamespace();
+
 const DYNASTIES_KEY =
-    "theRealmsDynasties_v1";
+    "theRealmsDynasties_v1_" + THE_REALMS_STORAGE_NAMESPACE;
 
 const ACTIVE_DYNASTY_KEY =
+    "theRealmsActiveDynasty_v1_" + THE_REALMS_STORAGE_NAMESPACE;
+
+const HOUSE_KEY =
+    "theRealmsHouse_" + THE_REALMS_STORAGE_NAMESPACE;
+
+const LEGACY_DYNASTIES_KEY =
+    "theRealmsDynasties_v1";
+
+const LEGACY_ACTIVE_DYNASTY_KEY =
     "theRealmsActiveDynasty_v1";
+
+const LEGACY_HOUSE_KEY =
+    "theRealmsHouse";
 
 function getDynastySlots() {
 
@@ -10551,15 +10586,40 @@ function migrateOldSaveIfNeeded() {
     if (slots.length)
         return slots;
 
-    const raw =
-        localStorage.getItem(
-            "theRealmsHouse"
-        );
-
-    if (!raw)
+    /*
+       Старые ключи существовали до изоляции хранилища по Telegram ID.
+       Переносим их только для OWNER. Beta-пользователь никогда не
+       получает чужие локальные данные.
+    */
+    if (window.theRealmsAccessRole !== "OWNER")
         return [];
 
     try {
+        const legacySlotsRaw =
+            localStorage.getItem(LEGACY_DYNASTIES_KEY);
+
+        if (legacySlotsRaw) {
+            const legacySlots = JSON.parse(legacySlotsRaw);
+
+            if (Array.isArray(legacySlots) && legacySlots.length) {
+                setDynastySlots(legacySlots);
+
+                const legacyActiveId =
+                    localStorage.getItem(LEGACY_ACTIVE_DYNASTY_KEY);
+
+                if (legacyActiveId) {
+                    setActiveDynastyId(legacyActiveId);
+                }
+
+                return getDynastySlots();
+            }
+        }
+
+        const raw =
+            localStorage.getItem(LEGACY_HOUSE_KEY);
+
+        if (!raw)
+            return [];
 
         const data =
             JSON.parse(raw);
@@ -10593,7 +10653,6 @@ function migrateOldSaveIfNeeded() {
 
     }
 }
-
 function createDynastyFromHouse(house) {
 
     let slots =
@@ -10683,7 +10742,7 @@ function loadDynasty(id) {
 
     const house = hydrateHouseCrest(slot.data, slot.id);
     setStoredCrest(slot.id, house.crest || "");
-    localStorage.setItem("theRealmsHouse", serializeHouseWithoutCrest(house));
+    localStorage.setItem(HOUSE_KEY, serializeHouseWithoutCrest(house));
 
     return house;
 
@@ -10837,7 +10896,7 @@ function createSecondDynasty() {
     setActiveDynastyId("");
 
     localStorage.removeItem(
-        "theRealmsHouse"
+        HOUSE_KEY
     );
 
     document
@@ -10883,7 +10942,7 @@ function getHouse() {
         }
     }
 
-    const savedHouse = localStorage.getItem("theRealmsHouse");
+    const savedHouse = localStorage.getItem(HOUSE_KEY);
     if (!savedHouse) {
         runtimeHouseCache = null;
         runtimeHouseCacheKey = cacheKey;
@@ -10909,7 +10968,7 @@ function flushHouseData() {
     const activeId = getActiveDynastyId();
     if (activeId) setStoredCrest(activeId, runtimeHouseCache.crest || "");
 
-    localStorage.setItem("theRealmsHouse", serializeHouseWithoutCrest(runtimeHouseCache));
+    localStorage.setItem(HOUSE_KEY, serializeHouseWithoutCrest(runtimeHouseCache));
     updateActiveDynasty(runtimeHouseCache);
 }
 
@@ -11855,7 +11914,7 @@ function clearLocalDynastyAfterDeath() {
     runtimeHouseSavePending = false;
     runtimeHouseCache = null;
     runtimeHouseCacheKey = null;
-    localStorage.removeItem("theRealmsHouse");
+    localStorage.removeItem(HOUSE_KEY);
     localStorage.removeItem(DYNASTIES_KEY);
     localStorage.removeItem(ACTIVE_DYNASTY_KEY);
 }
@@ -14960,7 +15019,7 @@ function fullLocalResetFromStart() {
         runtimeHouseCache = null;
         runtimeHouseCacheKey = null;
 
-        localStorage.removeItem("theRealmsHouse");
+        localStorage.removeItem(HOUSE_KEY);
         localStorage.removeItem(DYNASTIES_KEY);
         localStorage.removeItem(ACTIVE_DYNASTY_KEY);
 

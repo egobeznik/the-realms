@@ -8330,6 +8330,7 @@ function updateMap() {
 
     renderArmyMapPanel(getHouse(), mapState.selectedX, mapState.selectedY);
 
+    const house = getHouse();
     const huntingButton =
         document.getElementById("mapBuildHuntingButton");
 
@@ -8375,8 +8376,6 @@ function updateMap() {
             " · Y: " + mapState.selectedY +
             " · " + terrainName(type) +
             (forestNearby ? " · РЯДОМ ЛЕС" : "");
-
-        const house = getHouse();
 
         const sharedCityOnCell =
             getSharedCityAt(

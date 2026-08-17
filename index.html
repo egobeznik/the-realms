@@ -8290,11 +8290,11 @@ function updateCellInfo(x, y) {
             Math.max(0, Math.floor(Number(fieldBuilding.farmers) || 0));
 
         const groups =
-            Math.min(3, Math.floor(farmers / FIELD_GROUP_SIZE));
+            Math.min(Math.floor(farmers / FIELD_MINIMUM), 3);
 
         const production =
             Math.floor(
-                (FIELD_GRAIN_BY_GROUP[groups] || 0) *
+                (groups * FIELD_GRAIN_PER_CYCLE) *
                 getProductionEfficiencyMultiplier(house)
             );
 
@@ -8328,11 +8328,11 @@ function updateCellInfo(x, y) {
             Math.max(0, Math.floor(Number(bakeryBuilding.bakers) || 0));
 
         const groups =
-            Math.min(3, Math.floor(bakers / BAKERY_GROUP_SIZE));
+            Math.min(Math.floor(bakers / BAKERY_MINIMUM), 3);
 
         const production =
             Math.floor(
-                (BAKERY_BREAD_BY_GROUP[groups] || 0) *
+                (groups * BAKERY_BREAD_PER_CYCLE) *
                 getProductionEfficiencyMultiplier(house)
             );
 

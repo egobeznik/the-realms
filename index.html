@@ -502,7 +502,7 @@ textarea.input {
 /* =====================================================
    СВОРАЧИВАЕМЫЕ БЛОКИ ГЛАВНОГО ЭКРАНА — UI ONLY
 ===================================================== */
-.realmSectionToggle { width:28px; height:28px; flex:0 0 28px; padding:0; border:1px solid rgba(142,116,70,.45); background:rgba(36,29,21,.55); color:#94784c; font-family:Georgia,serif; font-size:12px; line-height:1; cursor:pointer; transition:transform .2s ease,background .2s ease; }
+.realmSectionToggle { width:23px; height:23px; flex:0 0 23px; padding:0; border:1px solid rgba(142,116,70,.38); background:rgba(36,29,21,.42); color:#94784c; font-family:Georgia,serif; font-size:9px; line-height:1; cursor:pointer; transition:transform .2s ease,background .2s ease; }
 .realmSectionToggle:active { background:rgba(91,68,38,.55); transform:scale(.94); }
 .realmSection.collapsed .realmSectionToggle { transform:rotate(-90deg); }
 .realmSection.collapsed:not(.productionSection) > :not(.sectionHeader) { display:none; }
@@ -985,7 +985,7 @@ textarea.input {
 }
 
 .productionHeader {
-    cursor: default;
+    cursor: pointer;
 }
 
 .productionHeader:active {
@@ -1018,7 +1018,9 @@ textarea.input {
 }
 
 .productionArrow {
-    display: none;
+    display: block;
+    font-size: 10px;
+    line-height: 1;
 }
 
 .productionCard {
@@ -4345,39 +4347,54 @@ textarea.input {
 
             <div class="storageList">
 
-                <div class="storageRow">
-                    <div class="storageRowIcon">🍖</div>
-                    <div class="storageRowName">МЯСО</div>
-                    <div class="storageRowValue">
-                        <div id="foodValue">100</div>
-                        <div class="storageRowMeta" id="foodStockMeta"></div>
-                    </div>
-                    <div class="foodStatus" id="foodStatus" style="display:none;">
-                        <div class="foodStatusBar"><div class="foodStatusFill" id="foodStatusFill"></div></div>
-                        <div class="foodStatusText" id="foodStatusText"></div>
+                <div class="resourceCategory open" id="foodResourceCategory">
+                    <button type="button" class="resourceCategoryHeader" onclick="toggleResourceCategory('foodResourceCategory')">
+                        <div class="resourceCategoryLeft"><span class="resourceCategoryIcon">🍖</span><span>ПРОДОВОЛЬСТВИЕ</span></div>
+                        <span class="resourceCategoryArrow">▼</span>
+                    </button>
+                    <div class="resourceCategoryContent">
+                        <div class="storageRow">
+                            <div class="storageRowIcon">🍖</div>
+                            <div class="storageRowName">МЯСО</div>
+                            <div class="storageRowValue">
+                                <div id="foodValue">100</div>
+                                <div class="storageRowMeta" id="foodStockMeta"></div>
+                            </div>
+                            <div class="foodStatus" id="foodStatus" style="display:none;">
+                                <div class="foodStatusBar"><div class="foodStatusFill" id="foodStatusFill"></div></div>
+                                <div class="foodStatusText" id="foodStatusText"></div>
+                            </div>
+                        </div>
+
+                        <div class="storageRow grainResourceRow" id="grainResourceRow" style="display:none;">
+                            <div class="storageRowIcon">🌾</div>
+                            <div class="storageRowName">ЗЕРНО</div>
+                            <div class="storageRowValue"><div id="grainValue">0</div><div class="storageRowMeta" id="grainStockMeta"></div></div>
+                        </div>
+
+                        <div class="storageRow grainResourceRow" id="breadResourceRow" style="display:none;">
+                            <div class="storageRowIcon">🍞</div>
+                            <div class="storageRowName">ХЛЕБ</div>
+                            <div class="storageRowValue"><div id="breadValue">0</div><div class="storageRowMeta" id="breadStockMeta"></div></div>
+                        </div>
                     </div>
                 </div>
 
-                <div class="storageRow">
-                    <div class="storageRowIcon">🌲</div>
-                    <div class="storageRowName">ЛЕС</div>
-                    <div class="storageRowValue">
-                        <div id="woodValue">50</div>
-                        <div class="storageRowMeta" id="woodStockMeta"></div>
+                <div class="resourceCategory open" id="strategicResourceCategory">
+                    <button type="button" class="resourceCategoryHeader" onclick="toggleResourceCategory('strategicResourceCategory')">
+                        <div class="resourceCategoryLeft"><span class="resourceCategoryIcon">🌲</span><span>СТРАТЕГИЧЕСКИЕ</span></div>
+                        <span class="resourceCategoryArrow">▼</span>
+                    </button>
+                    <div class="resourceCategoryContent">
+                        <div class="storageRow">
+                            <div class="storageRowIcon">🌲</div>
+                            <div class="storageRowName">ЛЕС</div>
+                            <div class="storageRowValue">
+                                <div id="woodValue">50</div>
+                                <div class="storageRowMeta" id="woodStockMeta"></div>
+                            </div>
+                        </div>
                     </div>
-                </div>
-
-
-                <div class="storageRow grainResourceRow" id="grainResourceRow" style="display:none;">
-                    <div class="storageRowIcon">🌾</div>
-                    <div class="storageRowName">ЗЕРНО</div>
-                    <div class="storageRowValue"><div id="grainValue">0</div><div class="storageRowMeta" id="grainStockMeta"></div></div>
-                </div>
-
-                <div class="storageRow grainResourceRow" id="breadResourceRow" style="display:none;">
-                    <div class="storageRowIcon">🍞</div>
-                    <div class="storageRowName">ХЛЕБ</div>
-                    <div class="storageRowValue"><div id="breadValue">0</div><div class="storageRowMeta" id="breadStockMeta"></div></div>
                 </div>
             </div>
 
@@ -4393,18 +4410,31 @@ textarea.input {
     </button>
 </section>
 
-<div id="researchOverlay" style="display:none;position:fixed;inset:0;z-index:720;padding:18px;background:rgba(0,0,0,.78);align-items:center;justify-content:center;">
-  <div style="width:100%;max-width:390px;max-height:84vh;overflow-y:auto;padding:18px 14px;border:1px solid rgba(174,141,82,.68);background:#110e0a;box-shadow:0 12px 45px rgba(0,0,0,.72);">
-    <div class="researchTitle" style="text-align:center;">ИССЛЕДОВАНИЯ</div>
-    <div class="researchText" id="researchStatus" style="text-align:center;margin-top:8px;"></div>
-    <div class="researchCard" style="margin-top:12px;">
-      <div class="researchTitle">🌾 ЗЕРНО</div>
-      <div class="researchText">Переход к земледелию. Открывает ресурсы Зерно и Хлеб, Поле и Пекарню.</div>
-      <div class="researchUnlock">Открывает: 🌾 Зерно · 🍞 Хлеб · 🌾 Поле · 🥖 Пекарня</div>
-      <div class="researchTimer" id="grainResearchTimer"></div>
-      <button class="researchButton" id="grainResearchButton" type="button" onclick="startGrainResearch()">ИССЛЕДОВАТЬ · 150 🌲 · 100 🍖 · 24 Ч.</button>
+<div id="researchOverlay" style="display:none;position:fixed;inset:0;z-index:720;background:#0b0906;overflow-y:auto;">
+  <div style="min-height:100%;padding:14px 14px 30px;box-sizing:border-box;">
+    <div style="position:sticky;top:0;z-index:2;display:flex;align-items:center;justify-content:space-between;min-height:46px;padding:0 2px;background:#0b0906;border-bottom:1px solid rgba(117,94,56,.32);">
+      <button type="button" onclick="closeResearchScreen()" aria-label="Вернуться" style="width:30px;height:30px;border:1px solid rgba(142,116,70,.42);background:rgba(36,29,21,.42);color:#b29667;font-size:22px;line-height:1;">‹</button>
+      <div class="researchTitle" style="text-align:center;">ИССЛЕДОВАНИЯ</div>
+      <div style="width:30px;height:30px;"></div>
     </div>
-    <button class="researchButton" type="button" onclick="closeResearchScreen()">ЗАКРЫТЬ</button>
+
+    <div class="researchText" id="researchStatus" style="text-align:center;margin:16px 4px 12px;"></div>
+
+    <section class="resourceCategory open" id="researchBranchSurvival" style="border:1px solid rgba(117,94,56,.42);margin-bottom:12px;">
+      <button type="button" class="resourceCategoryHeader" onclick="toggleResearchBranch('researchBranchSurvival')">
+        <div class="resourceCategoryLeft"><span class="resourceCategoryIcon">🌾</span><span>ВЫЖИВАНИЕ И ЗЕМЛЕДЕЛИЕ</span></div>
+        <span class="resourceCategoryArrow">▼</span>
+      </button>
+      <div class="resourceCategoryContent" style="padding:0 10px 12px;">
+        <div class="researchCard">
+          <div class="researchTitle">🌾 ЗЕРНО</div>
+          <div class="researchText">Переход к земледелию. Открывает ресурсы Зерно и Хлеб, Поле и Пекарню.</div>
+          <div class="researchUnlock">Открывает: 🌾 Зерно · 🍞 Хлеб · 🌾 Поле · 🥖 Пекарня</div>
+          <div class="researchTimer" id="grainResearchTimer"></div>
+          <button class="researchButton" id="grainResearchButton" type="button" onclick="startGrainResearch()">ИССЛЕДОВАТЬ · 150 🌲 · 100 🍖 · 24 Ч.</button>
+        </div>
+      </div>
+    </section>
   </div>
 </div>
 <section
@@ -4509,11 +4539,18 @@ textarea.input {
                 </div>
 
             
-                <div class="huntingGroundCategory" id="grainCategory" style="display:none;">
-                    <button type="button" class="huntingGroundCategoryHeader" onclick="toggleGrainCategory()">
-                        <div class="huntingGroundCategoryLeft"><div class="huntingGroundCategoryIcon">🌾</div><div><div class="huntingGroundCategoryTitle">ЗЕМЛЕДЕЛИЕ</div><div class="huntingGroundCategorySubtitle">Поля и пекарни</div></div></div><span class="huntingGroundCategoryArrow">▼</span>
+                <div class="huntingGroundCategory" id="grainProductionCategory" style="display:none;">
+                    <button type="button" class="huntingGroundCategoryHeader" onclick="toggleProductionCategory('grainProductionCategory')">
+                        <div class="huntingGroundCategoryLeft"><div class="huntingGroundCategoryIcon">🌾</div><div><div class="huntingGroundCategoryTitle">ЗЕРНО</div><div class="huntingGroundCategorySubtitle">Поля · назначение земледельцев</div></div></div><span class="huntingGroundCategoryArrow">▼</span>
                     </button>
-                    <div class="huntingGroundCategoryMenu" id="grainCategoryMenu"><div id="fieldList"></div><div id="bakeryList"></div></div>
+                    <div class="huntingGroundCategoryMenu" id="grainProductionCategoryMenu"><div id="fieldList"></div></div>
+                </div>
+
+                <div class="huntingGroundCategory" id="breadProductionCategory" style="display:none;">
+                    <button type="button" class="huntingGroundCategoryHeader" onclick="toggleProductionCategory('breadProductionCategory')">
+                        <div class="huntingGroundCategoryLeft"><div class="huntingGroundCategoryIcon">🍞</div><div><div class="huntingGroundCategoryTitle">ХЛЕБ</div><div class="huntingGroundCategorySubtitle">Пекарни · назначение пекарей</div></div></div><span class="huntingGroundCategoryArrow">▼</span>
+                    </button>
+                    <div class="huntingGroundCategoryMenu" id="breadProductionCategoryMenu"><div id="bakeryList"></div></div>
                 </div>
 </div>
 
@@ -4988,8 +5025,8 @@ textarea.input {
 /* =====================================================
    ИССЛЕДОВАНИЕ «ЗЕРНО»
 ===================================================== */
-function processResearch(house,nowOverride){ if(!house||!house.research||house.research.grainUnlocked||typeof house.research.grainStartedAt!=="number")return; const now=typeof nowOverride==="number"?nowOverride:Date.now(); if(now-house.research.grainStartedAt>=GRAIN_RESEARCH_DURATION){house.research.grainUnlocked=true;house.research.grainCompletedAt=now;house.research.grainStartedAt=null;addChronicleEvent(house,"Исследование «Зерно» завершено. Открыты Поле и Пекарня.");} }
-function openResearchScreen(){ const el=document.getElementById("researchOverlay"); if(!el)return; el.style.display="flex"; updateResearchUI(); }
+function processResearch(house,nowOverride){ if(!house||!house.research||house.research.grainUnlocked||typeof house.research.grainStartedAt!=="number")return false; const now=typeof nowOverride==="number"?nowOverride:Date.now(); if(now-house.research.grainStartedAt<GRAIN_RESEARCH_DURATION)return false; house.research.grainUnlocked=true;house.research.grainCompletedAt=now;house.research.grainStartedAt=null;addChronicleEvent(house,"Исследование «Зерно» завершено. Открыты Поле и Пекарня."); if(typeof updateResources==="function")updateResources(); if(typeof updateFieldAndBakeryUI==="function")updateFieldAndBakeryUI(); if(typeof updateResearchUI==="function")updateResearchUI(); if(typeof updateMap==="function")updateMap(); return true; }
+function openResearchScreen(){ const el=document.getElementById("researchOverlay"); if(!el)return; el.style.display="block"; updateResearchUI(); }
 function closeResearchScreen(){ const el=document.getElementById("researchOverlay"); if(el)el.style.display="none"; }
 function isGrainResearchComplete(house){ return !!(house&&house.research&&house.research.grainUnlocked); }
 function startGrainResearch(){
@@ -5010,16 +5047,17 @@ function updateResearchUI(){
     if(typeof house.research.grainStartedAt==="number") {
         const left=Math.max(0,GRAIN_RESEARCH_DURATION-(Date.now()-house.research.grainStartedAt));
         timer.textContent=left>0?"До завершения: "+formatProductionTimeLeft(left):"Исследование завершается…"; button.style.display="none";
-        if(left<=0){ house.research.grainUnlocked=true; house.research.grainCompletedAt=Date.now(); house.research.grainStartedAt=null; addChronicleEvent(house,"Исследование «Зерно» завершено. Открыты Поле и Пекарня."); saveHouseData(house); }
+        if(left<=0){ processResearch(house); saveHouseData(house); }
         return;
     }
     const total=house.population.free+house.population.workers+house.population.soldiers; status.textContent="Требование: население 120. Сейчас: "+total; timer.textContent="Готово к исследованию · 24 часа"; button.style.display="block"; button.disabled=total<120||house.resources.wood<GRAIN_RESEARCH_WOOD_COST||house.resources.meat<GRAIN_RESEARCH_MEAT_COST;
 }
-function toggleGrainCategory(){ const c=document.getElementById("grainCategory"); if(c)c.classList.toggle("open"); updateFieldAndBakeryUI(); }
+function toggleProductionCategory(id){ const c=document.getElementById(id); if(c)c.classList.toggle("open"); updateFieldAndBakeryUI(); }
+function toggleResearchBranch(id){ const c=document.getElementById(id); if(c)c.classList.toggle("open"); }
 function processFields(house,nowOverride){ if(!house||!house.fields||!house.fields.length||!isGrainResearchComplete(house))return; const now=typeof nowOverride==="number"?nowOverride:Date.now(); house.fields.forEach(function(f){if(f.active===false||f.farmers<FIELD_MINIMUM){f.lastProduction=now;return;} const cycles=Math.floor((now-f.lastProduction)/FIELD_INTERVAL); if(cycles<=0)return; const per=Math.floor((Math.floor(f.farmers/4)*FIELD_GRAIN_PER_CYCLE)*getProductionEfficiencyMultiplier(house)); if(per>0){const free=getStorageFreeSpace(house); const add=Math.min(per*cycles,free); house.resources.grain+=add;} f.lastProduction+=cycles*FIELD_INTERVAL;}); }
 function processBakeries(house,nowOverride){ if(!house||!house.bakeries||!house.bakeries.length||!isGrainResearchComplete(house))return; const now=typeof nowOverride==="number"?nowOverride:Date.now(); house.bakeries.forEach(function(b){if(b.active===false||b.bakers<BAKERY_MINIMUM){b.lastProduction=now;return;} const cycles=Math.floor((now-b.lastProduction)/BAKERY_INTERVAL); if(cycles<=0)return; const possible=Math.min(Math.floor(b.bakers/2)*BAKERY_GRAIN_PER_CYCLE*cycles,Math.floor(house.resources.grain)); const bread=Math.floor(possible*(BAKERY_BREAD_PER_CYCLE/BAKERY_GRAIN_PER_CYCLE)); const free=getStorageFreeSpace(house); const add=Math.min(bread,free); if(add>0){house.resources.grain-=add;house.resources.bread+=add;} b.lastProduction+=cycles*BAKERY_INTERVAL;}); }
 function updateFieldAndBakeryUI(){
-    const house=getHouse(); if(!house)return; const category=document.getElementById("grainCategory"); if(category) category.style.display=isGrainResearchComplete(house)?"block":"none"; if(!isGrainResearchComplete(house))return; const fl=document.getElementById("fieldList"),bl=document.getElementById("bakeryList"); if(!fl||!bl)return; fl.innerHTML="";bl.innerHTML="";
+    const house=getHouse(); if(!house)return; const grainCategory=document.getElementById("grainProductionCategory"), breadCategory=document.getElementById("breadProductionCategory"); const unlocked=isGrainResearchComplete(house); if(grainCategory) grainCategory.style.display=unlocked?"block":"none"; if(breadCategory) breadCategory.style.display=unlocked?"block":"none"; if(!unlocked)return; const fl=document.getElementById("fieldList"),bl=document.getElementById("bakeryList"); if(!fl||!bl)return; fl.innerHTML="";bl.innerHTML="";
     house.fields.forEach(function(f,i){const div=document.createElement("div");div.className="huntingGroundItem";const prod=Math.floor(f.farmers/4)*FIELD_GRAIN_PER_CYCLE; const left=getProductionTimeLeft(f,FIELD_INTERVAL,Date.now()); div.innerHTML='<div class="huntingGroundItemTop"><div><div class="huntingGroundItemName">ПОЛЕ '+(i+1)+'</div><div class="huntingGroundItemCoords">🌾 Равнина · X: '+f.x+' · Y: '+f.y+'</div></div><div style="font-size:17px;">🌾</div></div><div class="huntingGroundControl"><button class="hunterButton" onclick="removeFarmerFromField('+i+')" '+(f.farmers<=0?'disabled':'')+'>−</button><div class="huntingGroundCount"><div class="huntingGroundCountNumber">'+f.farmers+' / '+FIELD_MAXIMUM+'</div><div class="huntingGroundCountText">ЗЕМЛЕДЕЛЬЦЕВ</div></div><button class="hunterButton" onclick="addFarmerToField('+i+')" '+(f.farmers>=FIELD_MAXIMUM||getAvailableProductionWorkers(house)<=0||isHouseHungry(house)?'disabled':'')+'>+</button></div><div class="huntingGroundItemStatus">'+(prod>0?'+'+prod+' 🌾 / ч. · до урожая: '+formatProductionTimeLeft(left):'Требуется минимум 4 земледельца.')+'</div>';fl.appendChild(div);});
     house.bakeries.forEach(function(b,i){const div=document.createElement("div");div.className="huntingGroundItem";const prod=Math.floor(b.bakers/2)*BAKERY_BREAD_PER_CYCLE; const left=getProductionTimeLeft(b,BAKERY_INTERVAL,Date.now()); div.innerHTML='<div class="huntingGroundItemTop"><div><div class="huntingGroundItemName">ПЕКАРНЯ '+(i+1)+'</div><div class="huntingGroundItemCoords">🥖 Город · X: '+b.x+' · Y: '+b.y+'</div></div><div style="font-size:17px;">🥖</div></div><div class="huntingGroundControl"><button class="hunterButton" onclick="removeBakerFromBakery('+i+')" '+(b.bakers<=0?'disabled':'')+'>−</button><div class="huntingGroundCount"><div class="huntingGroundCountNumber">'+b.bakers+' / '+BAKERY_MAXIMUM+'</div><div class="huntingGroundCountText">ПЕКАРЕЙ</div></div><button class="hunterButton" onclick="addBakerToBakery('+i+')" '+(b.bakers>=BAKERY_MAXIMUM||getAvailableProductionWorkers(house)<=0||isHouseHungry(house)?'disabled':'')+'>+</button></div><div class="huntingGroundItemStatus">'+(prod>0?'+'+prod+' 🍞 / ч. · до выпечки: '+formatProductionTimeLeft(left):'Требуется минимум 2 пекаря.')+'</div>';bl.appendChild(div);});
 }
@@ -8507,6 +8545,8 @@ function updateMap() {
             !!(forestryButton && forestryButton.style.display !== "none") ||
             !!(warehouseButton && warehouseButton.style.display !== "none") ||
             !!(houseButton && houseButton.style.display !== "none") ||
+            !!(document.getElementById("mapBuildFieldButton") && document.getElementById("mapBuildFieldButton").style.display !== "none") ||
+            !!(document.getElementById("mapBuildBakeryButton") && document.getElementById("mapBuildBakeryButton").style.display !== "none") ||
             !!document.getElementById("mapDeleteBuildingButton");
 
         if (buildEmpty) buildEmpty.style.display = anyBuildAvailable ? "none" : "block";
@@ -8588,6 +8628,11 @@ function updateMap() {
         if(terrainAt(sx,sy)==="plain" && freeCell && fieldBtn) fieldBtn.style.display="inline-flex";
         const bakeryCellFree=!hasAnyBuildingAt(house,sx,sy);
         if(!isWaterTerrain(terrainAt(sx,sy)) && bakeryCellFree && bakeryBtn) bakeryBtn.style.display="inline-flex";
+    }
+    const finalBuildEmpty=document.getElementById("mapBuildEmpty");
+    if(finalBuildEmpty){
+        const finalBuildAvailable=["mapBuildHouseButton","mapBuildHuntingButton","mapBuildWarehouseButton","mapBuildForestryButton","mapBuildFieldButton","mapBuildBakeryButton","mapDeleteBuildingButton"].some(function(id){const el=document.getElementById(id);return !!el&&el.style.display!=="none";});
+        finalBuildEmpty.style.display=finalBuildAvailable?"none":"block";
     }
 }
 

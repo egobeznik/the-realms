@@ -5128,6 +5128,13 @@ function demoAdvanceTime() {
         house.populationGrowth.lastGrowthAt -= DEMO_ONE_HOUR;
     }
 
+    // Ускоряем таймер текущего исследования «Зерно».
+    // Используется тот же принцип, что и для остальных игровых таймеров.
+    if (house.research &&
+        typeof house.research.grainStartedAt === "number") {
+        house.research.grainStartedAt -= DEMO_ONE_HOUR;
+    }
+
     /*
        Запускаем существующие производственные процессы.
        Никаких новых правил добычи здесь нет.
@@ -5138,6 +5145,7 @@ function demoAdvanceTime() {
     processForestry(house);
     processFoodConsumption(house);
     processPopulationGrowth(house);
+    processResearch(house);
     processScouting(house);
     processArmyMovement(house);
 
